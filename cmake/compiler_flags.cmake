@@ -1,0 +1,12 @@
+MACRO(add_compiler_flag_if_supported _VAR _FLAG)
+        STRING (MAKE_C_IDENTIFIER "CXX_COMPILER_SUPPORTS_${_FLAG}" _test_variable)
+        check_cxx_compiler_flag ("${_FLAG}" ${_test_variable})
+        IF(${_test_variable})
+                IF("${${_VAR}}" STREQUAL "")
+                        SET(${_VAR} "${_FLAG}")
+                ELSE()
+                        SET(${_VAR} "${${_VAR}} ${_FLAG}")
+                ENDIF()
+        ENDIF()
+ENDMACRO()
+
