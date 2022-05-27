@@ -1,7 +1,4 @@
-﻿# CMakeList.txt : Top-level CMake project file, do global configuration
-# and include sub-projects here.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.8)
 project ("WoWIngameEditor")
 
 # check if compiler is suitable
@@ -30,6 +27,8 @@ add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /MP)
 #Allow Big obj for msvc compilation
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /bigobj)
 
+# options
+
 OPTION(ADDITIONAL_OPTIMIZATION_FLAGS "Enabled optimizations?" OFF)
 if(ADDITIONAL_OPTIMIZATION_FLAGS)
   MESSAGE( STATUS "Enabled additional optimization flags for MSVC.")
@@ -53,9 +52,10 @@ add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_link_libraries(EpsilonAddon d3d11.lib minhook)
-target_include_directories(EpsilonAddon PRIVATE ${headers_files} "${EXTERNAL_SOURCE_DIR}/MinHook/include")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "src")
 
 # post build hooks
+#[[
 add_custom_command(TARGET EpsilonAddon POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${PROJECT_SOURCE_DIR}/src/shaders"
@@ -63,7 +63,7 @@ add_custom_command(TARGET EpsilonAddon POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove -f 
         $<TARGET_FILE_DIR:EpsilonAddon>/shaders/.git)
 
-
+]]
 
 
 
