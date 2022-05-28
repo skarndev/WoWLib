@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <type_traits>
+#include <concepts>
 #include <vector>
 #include <cstdint>
 
@@ -13,14 +14,18 @@ namespace IO::Common
     std::uint32_t size;
   };
 
+  class IComplexChunk;
+
   template<typename T>
   class DataChunk
   {
   public:
     DataChunk() = default;
 
-    void Read(std::fstream const& fstream, std::uint32_t size);
-    void Write(std::fstream const& fstream) const;
+    void Read(std::fstream const& fstream, std::uint32_t size) requires (std::is_trivial<T>::value && std::is_standard_layout<T>::value);
+    void Read(std::fstream const& fstream, std::uint32_t size) requires std::derived_from<T, IComplexChunk>;
+    void Write(std::fstream const& fstream) const requires (std::is_trivial<T>::value && std::is_standard_layout<T>::value);
+    void Write(std::fstream const& fstream) const requires std::derived_from<T, IComplexChunk>;
 
     [[nodiscard]] 
     std::vector<T>& data() { return _data; };
@@ -29,7 +34,10 @@ namespace IO::Common
     std::uint32_t size() const { return _data.size(); };
 
     [[nodiscard]]
-    std::uint32_t byte_size() const;
+    std::uint32_t byte_size() const requires (std::is_trivial<T>::value && std::is_standard_layout<T>::value);
+
+    [[nodiscard]]
+    std::uint32_t byte_size() const requires std::derived_from<T, IComplexChunk>;
 
   private:
     std::vector<T> _data;
