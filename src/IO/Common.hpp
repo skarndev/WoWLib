@@ -8,6 +8,25 @@
 
 namespace IO::Common
 {
+  namespace
+  {
+    template<std::size_t n>
+    struct StringLiteral
+    {
+      constexpr StringLiteral(const char(&str)[n])
+      {
+        std::copy_n(str, n - 1, value);
+      }
+
+      char value[n - 1];
+    };
+  }
+   
+  template <StringLiteral fourcc, bool reverse = false>
+  static constexpr std::uint32_t FourCC = reverse ? (fourcc.value[3] << 24 | fourcc.value[2] << 16 | fourcc.value[1] << 8 | fourcc.value[0])
+       : (fourcc.value[0] << 24 | fourcc.value[1] << 16 | fourcc.value[2] << 8 | fourcc.value[3]);
+
+
   struct ChunkHeader
   {
     std::uint32_t fourcc;

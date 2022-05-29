@@ -17,7 +17,7 @@ void DataChunk<T>::Read(std::fstream const& fstream, std::uint32_t size) require
 }
 
 template<typename T>
-void DataChunk<T>::Write(std::fstream const& fstream) const requires (std::is_trivial<T>::value&& std::is_standard_layout<T>::value)
+void DataChunk<T>::Write(std::fstream const& fstream) const requires (std::is_trivial<T>::value && std::is_standard_layout<T>::value)
 {
   for (T const& element : _data)
   {
