@@ -36,7 +36,7 @@ namespace IO::Common
   class IComplexChunk;
 
   template<typename T>
-  class DataChunk
+  class DataChunk 
   {
   public:
     DataChunk() = default;

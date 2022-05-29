@@ -358,5 +358,107 @@ namespace IO::ADT::DataStructures
     /*0x10*/
   };
 
+  struct MBMH // blend mesh header
+  {
+    std::uint32_t mapObjectID; // (unique ID)
+    std::uint32_t textureId; // of linked WMO
+    std::uint32_t unknown; // always zero?
+    std::uint32_t mbmi_count; // record count in MBMI for this mesh
+    std::uint32_t mbnv_count; // record count in MBNV for this mesh
+    std::uint32_t mbmi_start; // start record into MBMI for this mesh
+    std::uint32_t mbnv_start; // start record into MBNV for this mesh
+  };
+
+  struct MBBB  // blend mesh bounding boxes
+  {
+    std::uint32_t mapObjectID; // (unique ID) -- repeated for unknown reason
+    Common::DataStructures::CAaBox bounding;
+  };
+
+  struct MBNV // blend mesh vertices
+  {
+    Common::DataStructures::C3Vector pos;
+    Common::DataStructures::C3Vector normal;
+    Common::DataStructures::C2Vector texture_coordinates;
+    Common::DataStructures::CArgb color[3]; // used: PN: none; PNC: 0; PNC2: 0, 1; PNC2T: 0, 2
+  };
+
+  struct MLHD
+  {
+    std::uint32_t unknown;
+    float some_kind_of_bounding[6];
+  };
+
+  struct MLLL
+  {
+    float lod; // lod bands : // 32, 16, 8…
+    std::uint32_t height_length;
+    std::uint32_t height_index; //index into MLVI
+    std::uint32_t mapAreaLow_length;
+    std::uint32_t mapAreaLow_index; //index into MLVI
+  };
+
+  struct MLND
+  {
+    std::uint32_t index;  //index into MLVI
+    std::uint32_t length; //number of elements in MLVI used
+    std::uint32_t _2;
+    std::uint32_t _3;
+    std::uint16_t indices[4]; // indexes into MLND for child leaves
+  };
+
+  struct MLLN
+  {
+    std::uint32_t _0;
+    std::uint32_t num_indices; // MLLI
+    std::uint32_t _2;
+    std::uint16_t _3a;
+    std::uint16_t _3b;
+    std::uint32_t _4;
+    std::uint32_t _5;
+  };
+
+  struct MLMD
+  {                        // same as MODF but without bounding box (may be out of sync), better look at both. 
+    std::uint32_t mwidEntry;           // they seem to be sorted based on the MLMX's radius, from largest to smallest, likely for optimization, rather than straight out the same as MODF.
+    std::uint32_t uniqueId;
+    Common::DataStructures::C3Vector position;
+    Common::DataStructures::C3Vector rotation;
+    std::uint16_t flags;
+    std::uint16_t doodadSet;
+    std::uint16_t nameSet;
+    std::uint16_t unk;
+  };
+
+  struct MLMX
+  {
+    Common::DataStructures::CAaBox bounding;
+    float radius;
+  };
+
+  struct MLDX
+  {
+    Common::DataStructures::CAaBox bounding;
+    float radius;
+  };
+
+  struct MLFD
+  {
+    std::uint32_t m2LodOffset[3];  //Index into MLDD per lod
+    std::uint32_t m2LodLength[3];  //Number of elements used from MLDD per lod
+    std::uint32_t wmoLodOffset[3]; //Index into MLMD per lod
+    std::uint32_t wmoLodLength[3]; //Number of elements used from MLMD per lod
+  };
+
+  struct MLMB
+  {
+    char unk[20];
+  };
+
+  struct MWDR
+  {
+    std::uint32_t begin; // Index into MWDS.
+    std::uint32_t end;   // inclusive: [7, 10] = MWDS[7] + MWDS[8] + MWDS[9] + MWDS[10]
+  };
 
 }

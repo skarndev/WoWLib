@@ -9,6 +9,12 @@ namespace IO::Common::DataStructures
     float z;
   };
 
+  struct C2Vector
+  {
+    float x;
+    float y;
+  };
+
   struct CAaBox
   {
     C3Vector min;
