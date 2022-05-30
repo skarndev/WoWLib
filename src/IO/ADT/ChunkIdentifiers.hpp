@@ -93,8 +93,6 @@ namespace IO::ADT::ChunkIdentifiers
   {
     enum eADTObj1Chunks : std::uint32_t
     {
-      MDDF = IO::Common::FourCC<"MDDF">,
-      MODF = IO::Common::FourCC<"MODF">,
       MCNK = IO::Common::FourCC<"MCNK">,
       MLMD = IO::Common::FourCC<"MLMD">,
       MLMX = IO::Common::FourCC<"MLMX">,

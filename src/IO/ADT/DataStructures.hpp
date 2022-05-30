@@ -297,7 +297,7 @@ namespace IO::ADT::DataStructures
     MCLQVert verts[9 * 9];
     char tiles[8][8];
     std::uint32_t n_flows;
-    struct MCLQ_SWFlowv flows[2];
+    MCLQ_SWFlowv flows[2];
   };
 
   struct CWSoundEmitter
