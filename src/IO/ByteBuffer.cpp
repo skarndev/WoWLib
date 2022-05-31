@@ -31,8 +31,24 @@ ByteBuffer::ByteBuffer(std::fstream& stream, std::size_t size)
   stream.read(_data.get(), size);
 }
 
+
+ByteBuffer::ByteBuffer(std::fstream& stream)
+  : _cur_pos(0)
+  , _is_data_owned(true)
+{
+  stream.seekg(0, std::ios::end);
+  _size = stream.tellg();
+  _buf_size = _size;
+  Ensure(_size, "Size can't be 0 for initializing the buffer.");
+  _data.reset(new char[_size]);
+  stream.seekg(0, std::ios::beg);
+
+  stream.read(_data.get(), _size);
+}
+
+
 ByteBuffer::ByteBuffer(std::size_t size)
-  : _size((Require(size, "Size can't be 0 for initializing the buffer."), size))
+  : _size(size)
   , _buf_size(size)
   , _cur_pos(0)
   , _is_data_owned(true)

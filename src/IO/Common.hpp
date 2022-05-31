@@ -40,8 +40,8 @@ namespace IO::Common
   {
   public:
     IDataChunk() = default;
-    virtual void Read(std::fstream& fstream, std::uint32_t size) = 0;
-    virtual void Write(std::fstream& fstream) = 0;
+    virtual void Read(ByteBuffer const& buf, std::uint32_t size) = 0;
+    virtual void Write(ByteBuffer& buf) = 0;
     
     [[nodiscard]]
     virtual std::uint32_t size() const = 0;
@@ -57,8 +57,8 @@ namespace IO::Common
   public:
     DataChunk() = default;
 
-    void Read(std::fstream& fstream, std::uint32_t size) override;
-    void Write(std::fstream& fstream) override;
+    void Read(ByteBuffer const& buf, std::uint32_t size) override;
+    void Write(ByteBuffer& buf) override;
 
     [[nodiscard]] 
     std::vector<T>& data() { return _data; };
@@ -79,8 +79,8 @@ namespace IO::Common
   public:
     IComplexChunk() = default; 
 
-    virtual void Read(std::fstream& fstream, std::uint32_t size) = 0;
-    virtual void Write(std::fstream& fstream) const = 0;
+    virtual void Read(ByteBuffer const& buf, std::uint32_t size) = 0;
+    virtual void Write(ByteBuffer& buf) const = 0;
 
     [[nodiscard]]
     virtual std::uint32_t size() const = 0;
@@ -95,8 +95,10 @@ namespace IO::Common
   public:
     IChunkedFile(std::uint32_t file_data_id);
 
-    virtual void Read(std::fstream const& fstream) = 0;
-    virtual void Write(std::fstream const& fstream) const = 0;
+    virtual void Read(ByteBuffer const& buf) = 0;
+    virtual void Read(std::fstream& fstream) = 0;
+    virtual void Write(ByteBuffer& buf) const = 0;
+    virtual void Write(std::fstream& fstream) const = 0;
 
     [[nodiscard]]
     std::uint32_t file_data_id() const { return _file_data_id; };

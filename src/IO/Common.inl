@@ -4,7 +4,7 @@
 using namespace IO::Common;
 
 template<typename T>
-void DataChunk<T>::Read(std::fstream& fstream, std::uint32_t size) 
+void DataChunk<T>::Read(ByteBuffer const& buf, std::uint32_t size)
 {
   if constexpr (std::is_trivial<T>::value && std::is_standard_layout<T>::value)
   {
@@ -14,13 +14,13 @@ void DataChunk<T>::Read(std::fstream& fstream, std::uint32_t size)
     for (int i = 0; i < n_elements; ++i)
     {
       T& element = _data.emplace_back();
-      fstream.read(reinterpret_cast<char*>(&element), sizeof(T));
+      buf.Read(element);
     }
   }
   else if constexpr (std::derived_from<T, IComplexChunk>)
   {
     T& element = _data.emplace_back();
-    element.Read(fstream, size);
+    element.Read(buf, size);
   }
   else
   {
@@ -30,19 +30,19 @@ void DataChunk<T>::Read(std::fstream& fstream, std::uint32_t size)
 }
 
 template<typename T>
-void DataChunk<T>::Write(std::fstream& fstream)
+void DataChunk<T>::Write(ByteBuffer& buf)
 {
   if constexpr (std::is_trivial<T>::value && std::is_standard_layout<T>::value)
   {
     for (T const& element : _data)
     {
-      fstream.write(reinterpret_cast<const char*>(&element), sizeof(T));
+      buf.Write(element);
     }
   }
   else if constexpr (std::derived_from<T, IComplexChunk>)
   {
     assert(_data.size() == 1);
-    _data[0].Write(fstream);
+    _data[0].Write(buf);
   }
   else
   {

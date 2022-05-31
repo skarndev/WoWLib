@@ -15,8 +15,10 @@ namespace IO::ADT
   public:
     ADTFile(std::uint32_t file_data_id);
 
-    void Read(std::fstream const& fstream) override;
-    void Write(std::fstream const& fstream) const override;
+    void Read(ByteBuffer const& buf) override;
+    void Read(std::fstream& fstream) override;
+    void Write(std::fstream& fstream) const override;
+    void Write(ByteBuffer& buf) const override;
 
   private:
     std::unordered_map<ChunkIdentifiers::ADTCommonChunks::eADTCommonChunks, Common::IDataChunk*> _common_chunks;

@@ -48,12 +48,25 @@ ADTFile::ADTFile(std::uint32_t file_data_id)
 
 }
 
-void ADTFile::Read(std::fstream const& fstream)
+void ADTFile::Read(std::fstream& fstream)
+{
+  ByteBuffer buf{ fstream };
+  Read(buf);
+}
+
+void ADTFile::Write(std::fstream& fstream) const
+{
+  ByteBuffer buf{};
+  Write(buf);
+  buf.Flush(fstream);
+}
+
+void ADTFile::Read(ByteBuffer const& buf)
 {
 
 }
 
-void ADTFile::Write(std::fstream const& fstream) const
+void ADTFile::Write(ByteBuffer& buf) const
 {
 
 }

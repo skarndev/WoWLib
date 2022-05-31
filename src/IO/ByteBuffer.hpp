@@ -36,7 +36,8 @@ namespace IO::Common
     explicit ByteBuffer(const char* data, std::size_t size);
     explicit ByteBuffer(char* data, std::size_t size);
     explicit ByteBuffer(std::fstream& stream, std::size_t size);
-    explicit ByteBuffer(std::size_t size);
+    explicit ByteBuffer(std::fstream& stream);
+    explicit ByteBuffer(std::size_t size = 0);
     ~ByteBuffer();
 
     [[nodiscard]]
@@ -154,14 +155,14 @@ namespace IO::Common
     void Read(char* dest, std::size_t n) const;
 
     // Writes n bytes into associated buffer starting at absolute pos (offset)
-    void Write(char* src, std::size_t n, std::size_t offset = 0);
+    void Write(char* src, std::size_t n, std::size_t offset);
 
     // Writes n bytes into associated buffer starting at current buffer pos
     void Write(char* src, std::size_t n);
 
     // Writes implicit life time type T into associated buffer starting at absolute pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    void Write(T& data, std::size_t offset = 0)
+    void Write(T& data, std::size_t offset)
     {
       Require(std::numeric_limits<std::size_t>::max() - offset >= sizeof(T), "Buffer size overflow on writing.");
 
