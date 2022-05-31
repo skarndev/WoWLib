@@ -50,7 +50,7 @@ ADTFile::ADTFile(std::uint32_t file_data_id)
 
 void ADTFile::Read(std::fstream& fstream)
 {
-  ByteBuffer buf{ fstream };
+  ByteBuffer buf{fstream};
   Read(buf);
 }
 
