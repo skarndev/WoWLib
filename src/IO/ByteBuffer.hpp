@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <ostream>
 #include <concepts>
 #include <type_traits>
 #include <limits>
@@ -232,6 +233,12 @@ namespace IO::Common
         _size += n;
       }
     }
+
+    // Flushes associated buffer into std::fstream
+    void Flush(std::fstream& stream) const;
+
+    // Flushes associated buffer into std::ostream
+    void Flush(std::ostream& stream) const;
 
    
   private:

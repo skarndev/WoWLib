@@ -88,3 +88,13 @@ void IO::Common::ByteBuffer::Write(char* src, std::size_t n)
   _cur_pos += n;
 }
 
+void ByteBuffer::Flush(std::fstream& stream) const
+{
+  stream.write(_data.get(), _size);
+}
+
+void ByteBuffer::Flush(std::ostream& stream) const
+{
+  stream.write(_data.get(), _size);
+}
+
