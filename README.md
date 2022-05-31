@@ -40,7 +40,7 @@ Following is an example for file `src/ModuleName/FooBan.hpp`.
 #include <SomeLocalFile.hpp>
 
 // Lib imports go here
-#include <external/SomeLibCode.hpp
+#include <external/SomeLibCode.hpp>
 
 // STL imports go here
 #include <string>
