@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  schedule:
+    # Run on the 21 of every month on 05:42
+    - cron: "42 5 21 * *"
+  push:
+  pull_request:
+  release:
+    types: [published]
+
+jobs:
+  ci:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-18.04, windows-2019, macos-10.15]
+        preset: [ninja-debug, ninja-release]
+        include:
+          - name: ubuntu-gcc-7
+            os: ubuntu-18.04
+            compiler: g++-7
+
+          - name: ubuntu-clang-9
+            os: ubuntu-18.04
+            compiler: clang++-9
+
+          - name: macos-10.15
+            os: macos-10.15
+
+          - name: windows-msvc-19-debug
+            os: windows-2019
+            preset: MSVC-19
+            buildPreset: msvc-debug
+            testPreset: unit-tests-debug
+
+          - name: windows-msvc-19-release
+            os: windows-2019
+            preset: MSVC-19
+            buildPreset: msvc-release
+            testPreset: unit-tests-release
+
+        exclude:
+          - os: windows-2019
+            preset: ninja-debug
+
+          - os: windows-2019
+            preset: ninja-release
+
+    steps:
+      - name: display matrix settings
+        run: |
+          echo "OS: ${{ matrix.os }}" 
+          echo "Preset: ${{ matrix.preset }}"
+          echo "Compiler: ${{ matrix.compiler }}"
+
+      - uses: actions/checkout@v1
+      - name: dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt install shunit2 ninja-build python3-setuptools python3-pip -y
+          sudo pip3 install conan
+
+      - name: dependecies (macos)
+        if: runner.os == 'macOS'
+        run: brew install shunit2 ninja conan
+
+      - name: dependencies (windows)
+        if: runner.os == 'Windows'
+        run: pip install conan
+
+      - name: set-compiler-env
+        run: |
+          if [ "${{ matrix.compiler }}" != "" ]; then
+            echo "CXX=${{ matrix.compiler }}" >> $GITHUB_ENV
+          fi
+        shell: bash
+
+      - name: cmake-configure-preset
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: build
+        run: |
+          if [ "${{ matrix.buildPreset }}" == "" ]; then
+            cmake --build ./build 
+          else
+            cmake --build --preset ${{ matrix.buildPreset }}
+          fi
+        shell: bash
+
+      - name: ctest
+        run: |
+          if [ "${{ matrix.testPreset }}" == "" ]; then
+            ctest
+          else
+            ctest --preset ${{ matrix.testPreset }}
+          fi
+        shell: bash
+
+      - name: program-termination-tests
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        run: ./test/test-program-termination.sh
+
+  installation-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ./.github/actions/installation-tests
+        with:
+          script: ./test/installation-tests.sh
+        id: installation-tests

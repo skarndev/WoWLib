@@ -52,7 +52,7 @@ add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_link_libraries(EpsilonAddon d3d11.lib minhook)
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "src")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/bertrand/include" "src")
 
 # post build hooks
 #[[

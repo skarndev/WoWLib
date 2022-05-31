@@ -1,0 +1,77 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "ninja",
+            "generator": "Ninja",
+            "hidden": true,
+            "binaryDir": "build"
+        },
+        {
+            "name": "ninja-debug",
+            "displayName": "Ninja (Debug)",
+            "inherits": "ninja",
+            "hidden": false,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "ninja-release",
+            "displayName": "Ninja (Release)",
+            "inherits": "ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "MSVC-19",
+            "displayName": "MSVC 19",
+            "generator": "Visual Studio 16 2019",
+            "binaryDir": "build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "msvc-debug",
+            "configurePreset": "MSVC-19",
+            "configuration": "Debug"
+        },
+        {
+            "name": "msvc-release",
+            "configurePreset": "MSVC-19",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "unit-tests-debug",
+            "displayName": "Unit Tests (Debug)",
+            "configurePreset": "MSVC-19",
+            "configuration": "Debug",
+            "inheritConfigureEnvironment": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "unit-tests-release",
+            "displayName": "Unit Tests (Release)",
+            "configurePreset": "MSVC-19",
+            "configuration": "Release",
+            "inheritConfigureEnvironment": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ]
+}

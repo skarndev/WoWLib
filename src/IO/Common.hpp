@@ -1,5 +1,6 @@
 #pragma once
 
+#include <IO/ByteBuffer.hpp>
 #include <fstream>
 #include <type_traits>
 #include <concepts>

@@ -33,16 +33,16 @@ ADTFile::ADTFile(std::uint32_t file_data_id)
   _obj0_chunks[ChunkIdentifiers::ADTObj0Chunks::MWDS] = &_wmo_dooodad_set_indices;
 
   // obj1
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLMD] = &_mlmd;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLMX] = &_mlmx;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDD] = &_mldd;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDX] = &_mldx;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLMD] = &_wmo_instanced_lod;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLMX] = &_wmo_instances_lod_extents;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDD] = &_model_instances_lod;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDX] = &_model_instances_lod_extents;
   _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDL] = &_mldl;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLFD] = &_mlfd;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLFD] = &_object_lod_levels;
   _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLMB] = &_mlmb_obj1;
   _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MLDB] = &_mldb;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MWDR] = &_mwdr_obj1;
-  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MWDS] = &_mwds_obj1;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MWDR] = &_wmo_doodadset_ranges_lod;
+  _obj1_chunks[ChunkIdentifiers::ADTObj1Chunks::MWDS] = &_wmo_doodad_set_indices_lod;
 
 
 

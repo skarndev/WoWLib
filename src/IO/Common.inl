@@ -14,7 +14,7 @@ void DataChunk<T>::Read(std::fstream& fstream, std::uint32_t size)
     for (int i = 0; i < n_elements; ++i)
     {
       T& element = _data.emplace_back();
-      fstream.read(&element, sizeof(T));
+      fstream.read(reinterpret_cast<char*>(&element), sizeof(T));
     }
   }
   else if constexpr (std::derived_from<T, IComplexChunk>)
@@ -36,7 +36,7 @@ void DataChunk<T>::Write(std::fstream& fstream)
   {
     for (T const& element : _data)
     {
-      fstream.write(&element, sizeof(T));
+      fstream.write(reinterpret_cast<const char*>(&element), sizeof(T));
     }
   }
   else if constexpr (std::derived_from<T, IComplexChunk>)

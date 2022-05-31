@@ -1,0 +1,19 @@
+extraction:
+  cpp:
+    prepare:
+      packages:
+        - python-pip
+        - ca-certificates
+
+    after_prepare:
+      - mkdir custom_cmake
+      - wget --quiet -O - https://github.com/Kitware/CMake/releases/download/v3.21.3/cmake-3.21.3-linux-x86_64.tar.gz | tar --strip-components=1 -xz -C custom_cmake
+      - export PATH=$(pwd)/custom_cmake/bin:${PATH}
+      - pip3 install conan --user --upgrade
+      - ls ~/.local/bin
+      - export PATH=$PATH:~/.local/bin
+      - conan --version
+      - conan profile new default --detect
+      # see here for the reason why the certificates need to be appended
+      # https://github.com/fair-acc/opencmw-cpp/blob/d231d6a09c6288da60c32df7b77c1dee8363e68a/.lgtm.yml#L14
+      - cat /usr/local/share/ca-certificates/semmle-cache-ca/semmle-cache-ca.crt >> ~/.conan/cacert.pem
