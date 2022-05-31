@@ -93,7 +93,6 @@ namespace Parent::Child
   };
 }
 
-#endif
 ```
 
 Following is an example for file `src/ModuleName/FooBan.cpp`.
