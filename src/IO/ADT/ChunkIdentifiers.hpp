@@ -51,7 +51,6 @@ namespace IO::ADT::ChunkIdentifiers
       MTXP = IO::Common::FourCC<"MTXP">,
       MTCG = IO::Common::FourCC<"MTCG">,
       MAMP = IO::Common::FourCC<"MAMP">
-
     };
   }
 
@@ -62,7 +61,7 @@ namespace IO::ADT::ChunkIdentifiers
       MCLY = IO::Common::FourCC<"MCLY">,
       MCSH = IO::Common::FourCC<"MCSH">,
       MCAL = IO::Common::FourCC<"MCAL">,
-      MCMT = IO::Common::FourCC<"MCMT">,
+      MCMT = IO::Common::FourCC<"MCMT">
     };
   }
 

@@ -1,7 +1,0 @@
-
-[requires]
-catch2/2.13.7
-
-[generators]
-cmake_find_package_multi
-cmake_find_package
