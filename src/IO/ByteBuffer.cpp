@@ -3,26 +3,26 @@
 using namespace IO::Common;
 
 ByteBuffer::ByteBuffer(const char* data, std::size_t size)
-  : _size((Require(size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
-  , _data((Require(data != nullptr, "Data can't be null for initializing the buffer."), new char[size]))
+  , _data((RequireF(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), new char[size]))
   , _is_data_owned(true)
 {
   std::memcpy(_data.get(), data, size);
 }
 
 ByteBuffer::ByteBuffer(char* data, std::size_t size)
-  : _size((Require(size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
   , _is_data_owned(false)
-  , _data((Require(data != nullptr, "Data can't be null for initializing the buffer."), data))
+  , _data((RequireF(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), data))
 {
 }
 
 ByteBuffer::ByteBuffer(std::fstream& stream, std::size_t size)
-  : _size((Require(size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
   , _is_data_owned(true)
@@ -39,7 +39,7 @@ ByteBuffer::ByteBuffer(std::fstream& stream)
   stream.seekg(0, std::ios::end);
   _size = stream.tellg();
   _buf_size = _size;
-  Ensure(_size, "Size can't be 0 for initializing the buffer.");
+  EnsureF(CCodeZones::FILE_IO, _size, "Size can't be 0 for initializing the buffer.");
   _data.reset(new char[_size]);
   stream.seekg(0, std::ios::beg);
 
@@ -66,21 +66,21 @@ ByteBuffer::~ByteBuffer()
 
 void ByteBuffer::Read(char* dest, std::size_t offset, std::size_t n) const
 {
-  Require(dest != nullptr, "Can't read to nullptr.");
-  Require(offset <= _size && n <= _size && std::numeric_limits<std::size_t>::max() - n >= _size, "Buffer offset overflow.");
+  RequireF(CCodeZones::FILE_IO, dest != nullptr, "Can't read to nullptr.");
+  RequireF(CCodeZones::FILE_IO, offset <= _size && n <= _size && std::numeric_limits<std::size_t>::max() - n >= _size, "Buffer offset overflow.");
   std::memcpy(dest, _data.get() + offset, n);
 }
 
 void ByteBuffer::Read(char* dest, std::size_t n) const
 {
-  Require(dest != nullptr, "Can't read to nullptr.");
-  Require(n <= _size && std::numeric_limits<std::size_t>::max() - n >= _size - _cur_pos, "Buffer offset overflow.");
+  RequireF(CCodeZones::FILE_IO, dest != nullptr, "Can't read to nullptr.");
+  RequireF(CCodeZones::FILE_IO, n <= _size && std::numeric_limits<std::size_t>::max() - n >= _size - _cur_pos, "Buffer offset overflow.");
   std::memcpy(dest, _data.get() + _cur_pos, n);
 }
 
 void ByteBuffer::Write(char* src, std::size_t n, std::size_t offset)
 {
-  Require(std::numeric_limits<std::size_t>::max() - offset >= n, "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= n, "Buffer size overflow on writing.");
 
   if ((offset + n) > _size)
   {
@@ -92,7 +92,7 @@ void ByteBuffer::Write(char* src, std::size_t n, std::size_t offset)
 
 void IO::Common::ByteBuffer::Write(char* src, std::size_t n)
 {
-  Require(std::numeric_limits<std::size_t>::max() - _cur_pos >= n, "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= n, "Buffer size overflow on writing.");
 
   if ((_cur_pos + n) > _size)
   {

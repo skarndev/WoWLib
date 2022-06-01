@@ -7,7 +7,6 @@
 #include <iostream>
 #include <filesystem>
 #include <cassert>
-#include <cstdlib>
 
 namespace Validation::Contracts
 {
@@ -71,12 +70,12 @@ namespace Validation::Contracts
   #define InvariantF(FLAGS, ...) static_cast<void>(0)
 
 #else
-  #define Require(EXPR, ...) if(!Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Require", __VA_ARGS__) ) std::abort()
-  #define Ensure(EXPR, ...) if(!Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Ensure", __VA_ARGS__) ) std::abort()
-  #define Invariant(EXPR, ...) if(!Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__) ) std::abort()
-  #define RequireF(FLAGS, EXPR, ...) if(!Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Require", __VA_ARGS__) ) std::abort()
-  #define EnsureF(FLAGS, EXPR, ...) if(!Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Ensure", __VA_ARGS__) ) std::abort()
-  #define InvariantF(FLAGS, EXPR, ...) if(!Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__) ) std::abort()
+  #define Require(EXPR, ...) assert(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Require", __VA_ARGS__) ) 
+  #define Ensure(EXPR, ...) assert(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Ensure", __VA_ARGS__) ) 
+  #define Invariant(EXPR, ...) assert(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__) ) 
+  #define RequireF(FLAGS, EXPR, ...) assert(Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Require", __VA_ARGS__) ) 
+  #define EnsureF(FLAGS, EXPR, ...) assert(Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION,  "Ensure", __VA_ARGS__) ) 
+  #define InvariantF(FLAGS, EXPR, ...) assert(Validation::Contracts::ResolveContract<FLAGS>((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__) ) 
 
 #endif
 

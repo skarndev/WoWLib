@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Utils/Meta/Concepts.hpp>
-#include <bertrand/bertrand.hpp>
+#include <Validation/Contracts.hpp>
 
 #include <cstdint>
 #include <fstream>
