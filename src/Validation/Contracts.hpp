@@ -7,6 +7,7 @@
 #include <iostream>
 #include <filesystem>
 #include <cassert>
+#include <functional>
 
 namespace Validation::Contracts
 {
@@ -29,6 +30,27 @@ namespace Validation::Contracts
     Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
 
     return false;
+  }
+
+  template<typename... Args>
+  FORCEINLINE bool ResolveContract(const std::function<bool()>& callback
+    , const char* expr
+    , const char* file
+    , int line
+    , const char* func
+    , const char* type
+    , const char* msg
+    , const Args&... args)
+  {
+    bool expr_result = callback();
+    if (expr_result)
+      return true;
+
+    std::string error_text{ "Contract check failed: %s(%s): " };
+    error_text.append(msg);
+    Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
+
+    return false;
 
   }
 
@@ -44,6 +66,34 @@ namespace Validation::Contracts
   {
     if constexpr (CONTRACT_FLAGS & flags)
     {
+      if (expr_result)
+        return true;
+
+      std::string error_text{ "Contract check failed: %s(%s): " };
+      error_text.append(msg);
+      Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
+
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
+
+  template<unsigned flags, typename... Args>
+  FORCEINLINE bool ResolveContract(const std::function<bool()>& callback
+    , const char* expr
+    , const char* file
+    , int line
+    , const char* func
+    , const char* type
+    , const char* msg
+    , const Args&... args)
+  {
+    if constexpr (CONTRACT_FLAGS & flags)
+    {
+      bool expr_result = callback();
       if (expr_result)
         return true;
 
