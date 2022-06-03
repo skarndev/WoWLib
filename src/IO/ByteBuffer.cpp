@@ -78,7 +78,7 @@ void ByteBuffer::Read(char* dest, std::size_t n) const
   std::memcpy(dest, _data.get() + _cur_pos, n);
 }
 
-void ByteBuffer::Write(char* src, std::size_t n, std::size_t offset)
+void ByteBuffer::Write(const char* src, std::size_t n, std::size_t offset)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= n, "Buffer size overflow on writing.");
 
@@ -90,7 +90,7 @@ void ByteBuffer::Write(char* src, std::size_t n, std::size_t offset)
   std::memcpy(_data.get() + offset, src, n);
 }
 
-void IO::Common::ByteBuffer::Write(char* src, std::size_t n)
+void IO::Common::ByteBuffer::Write(const char* src, std::size_t n)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= n, "Buffer size overflow on writing.");
 

@@ -10,35 +10,21 @@
 
 namespace IO::ADT
 {
-  class ADTFile : public IO::Common::IChunkedFile
+  class ADTFile
   {
   public:
     ADTFile(std::uint32_t file_data_id);
 
-    void Read(ByteBuffer const& buf) override;
-    void Read(std::fstream& fstream) override;
-    void Write(std::fstream& fstream) const override;
-    void Write(ByteBuffer& buf) const override;
 
   private:
-    std::unordered_map<ChunkIdentifiers::ADTCommonChunks::eADTCommonChunks, Common::IDataChunk*> _common_chunks;
-    std::unordered_map<ChunkIdentifiers::ADTRootChunks::eADTRootChunks, Common::IDataChunk*> _root_chunks;
-    std::unordered_map<ChunkIdentifiers::ADTTexChunks::eADTTexChunks, Common::IDataChunk*> _tex_chunks;
-    std::unordered_map<ChunkIdentifiers::ADTObj0Chunks::eADTObj0Chunks, Common::IDataChunk*> _obj0_chunks;
-    std::unordered_map<ChunkIdentifiers::ADTObj1Chunks::eADTObj1Chunks, Common::IDataChunk*> _obj1_chunks;
-    std::unordered_map<ChunkIdentifiers::ADTLodChunks::eADTLodChunks, Common::IDataChunk*> _lod_chunks;
+   
+    //std::unordered_map<ChunkIdentifiers::ADTTexChunks::eADTTexChunks, Common::IDataChunk*> _tex_chunks;
+    //std::unordered_map<ChunkIdentifiers::ADTObj0Chunks::eADTObj0Chunks, Common::IDataChunk*> _obj0_chunks;
+    //std::unordered_map<ChunkIdentifiers::ADTObj1Chunks::eADTObj1Chunks, Common::IDataChunk*> _obj1_chunks;
+    //std::unordered_map<ChunkIdentifiers::ADTLodChunks::eADTLodChunks, Common::IDataChunk*> _lod_chunks;
 
     // common
-    Common::DataChunk<std::uint32_t> _version;
-    
-    // root
-    Common::DataChunk<DataStructures::MHDR> _header;
-    // todo: mh20, mcnks
-    Common::DataChunk<DataStructures::MFBO> _flight_bounds;
-    Common::DataChunk<DataStructures::MBMH> _blend_mesh_headers;
-    Common::DataChunk<DataStructures::MBBB> _blend_mesh_bounding_boxes;
-    Common::DataChunk<DataStructures::MBNV> _blend_mesh_vertices;
-    Common::DataChunk<std::uint16_t> _blend_mesh_indices;
+  
 
     // tex
     Common::DataChunk<std::uint32_t> _diffuse_texture_ids;

@@ -93,7 +93,7 @@ void IO::Common::ByteBuffer::Read(T& lhs, std::size_t offset) const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Write(T& data, std::size_t offset)
+void IO::Common::ByteBuffer::Write(T const& data, std::size_t offset)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= sizeof(T), "Buffer size overflow on writing.");
 
@@ -106,7 +106,7 @@ void IO::Common::ByteBuffer::Write(T& data, std::size_t offset)
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Write(T& data)
+void IO::Common::ByteBuffer::Write(T const& data)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= sizeof(T), "Buffer size overflow on writing.");
 

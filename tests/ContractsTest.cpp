@@ -3,7 +3,7 @@
 
 int ContractedFunctionExample(int x, int y)
 {
-  RequireF(CCodeZones::FILE_IO, [=]() { return y != 0; }, "test"); // for multi-liners used lambda
+  RequireF(CCodeZones::FILE_IO, [=]() { return y != 0; }, "test"); // for multi-liners use lambda
   RequireF(CCodeZones::FILE_IO, y != 0, "test"); // for one-liners use expr
   return x / y;
 }

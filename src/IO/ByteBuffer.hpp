@@ -40,18 +40,23 @@ namespace IO::Common
     explicit ByteBuffer(std::size_t size = 0);
     ~ByteBuffer();
 
+    // Size of the buffer
     [[nodiscard]]
     std::size_t Size() const { return _size; };
-
+    
+    // Current position in the buffer
     [[nodiscard]]
     std::size_t Tell() const { return _cur_pos; };
 
+    // Associated internal data buffer
     [[nodiscard]]
     char* GetData() { return _data.get(); };
 
+    // Report if pos is at EOF
     [[nodiscard]]
     bool IsEof() const { return _cur_pos == _size; };
 
+    // Returns true if data is owned by this buffer
     [[nodiscard]]
     bool IsDataOnwed() const { return _is_data_owned; };
 
@@ -91,18 +96,18 @@ namespace IO::Common
     void Read(char* dest, std::size_t n) const;
 
     // Writes n bytes into associated buffer starting at absolute pos (offset)
-    void Write(char* src, std::size_t n, std::size_t offset);
+    void Write(const char* src, std::size_t n, std::size_t offset);
 
     // Writes n bytes into associated buffer starting at current buffer pos
-    void Write(char* src, std::size_t n);
+    void Write(const char* src, std::size_t n);
 
     // Writes implicit life time type T into associated buffer starting at absolute pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    void Write(T& data, std::size_t offset);
+    void Write(T const& data, std::size_t offset);
 
     // Writes implicit life time type T into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    void Write(T& data);
+    void Write(T const& data);
 
     // Reserves b bytes in the associated buffer
     // Can only be used for the cases when the associated buffer is owned by a ByteBuffer instance.

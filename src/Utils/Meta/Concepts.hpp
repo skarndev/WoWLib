@@ -10,4 +10,7 @@ namespace Utils::Meta::Concepts
   template<typename T>
   concept ImplicitLifetimeType = ImplicitLifetimeTypeSingular<T> 
     || std::is_array_v<T> && ImplicitLifetimeTypeSingular<std::remove_all_extents_t<T>>;
+
+  template<typename T>
+  concept PODType = std::is_standard_layout_v<T> && std::is_trivial_v<T>;
 }
