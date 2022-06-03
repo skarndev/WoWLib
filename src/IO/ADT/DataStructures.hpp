@@ -1,4 +1,5 @@
-﻿#include <IO/CommonDataStructures.hpp>
+﻿#pragma once
+#include <IO/CommonDataStructures.hpp>
 #include <cstdint>
 #include <type_traits>
 
@@ -300,7 +301,7 @@ namespace IO::ADT::DataStructures
     MCLQ_SWFlowv flows[2];
   };
 
-  struct CWSoundEmitter
+  struct MCSE
   {
     /*000h*/  std::uint32_t entry_id;
     /*004h*/  Common::DataStructures::C3Vector position;
@@ -311,7 +312,7 @@ namespace IO::ADT::DataStructures
     /*018h*/
   };
 
-  struct MCBBEntry // blend batches. max 256 per MCNK
+  struct MCBB // blend batches. max 256 per MCNK
   {
     std::uint32_t mbmh_index;
     std::uint32_t indexCount; // MBMI

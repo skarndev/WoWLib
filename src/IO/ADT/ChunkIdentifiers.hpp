@@ -30,6 +30,7 @@ namespace IO::ADT::ChunkIdentifiers
   {
     enum eADTRootMCNKSubchunks : std::uint32_t
     {
+      MCVT = IO::Common::FourCC<"MCVT">,
       MCLV = IO::Common::FourCC<"MCLV">,
       MCCV = IO::Common::FourCC<"MCCV">,
       MCNR = IO::Common::FourCC<"MCNR">,

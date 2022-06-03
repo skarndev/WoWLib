@@ -18,10 +18,6 @@ int main()
 
   LogDebugVF(LCodeZones::GRAPHICS, "This is a graphics debug %s", "print.");
 
-  // not supposed to work here, as network debug prints are not enabled in Cmake
-  // compiles to empty body function
-  LogDebugF(LCodeZones::NETWORK, "This is a network debug print.");
-
   std::uint32_t fourcc_int = IO::ADT::ChunkIdentifiers::ADTCommonChunks::MVER;
   char* fourcc = reinterpret_cast<char*>(&fourcc_int);
   LogDebug("Encountered unknown chunk %c%c%c%c.", fourcc[0], fourcc[1], fourcc[2], fourcc[3]);

@@ -14,6 +14,9 @@ namespace IO::Common
 {
   class ByteBuffer
   {
+
+  public:
+
     enum class SeekDir
     {
       Forward,
@@ -32,7 +35,6 @@ namespace IO::Common
       Double
     };
 
-  public:
     explicit ByteBuffer(const char* data, std::size_t size);
     explicit ByteBuffer(char* data, std::size_t size);
     explicit ByteBuffer(std::fstream& stream, std::size_t size);
@@ -61,13 +63,12 @@ namespace IO::Common
     bool IsDataOnwed() const { return _is_data_owned; };
 
     // Seeks the position within current buffer
-    // If resulted pos is larger than EOF, returns EOF.
     template
     <
       SeekDir seek_dir = SeekDir::Forward,
       SeekType seek_type = SeekType::Absolute
     >
-    void Seek(std::size_t offset);
+    void Seek(std::size_t offset) const;
 
     // Peaks into the internal buffer at absolute position and returns read-only view.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>

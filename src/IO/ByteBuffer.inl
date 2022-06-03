@@ -9,7 +9,7 @@ template
   IO::Common::ByteBuffer::SeekDir seek_dir,
   IO::Common::ByteBuffer::SeekType seek_type
 >
-void IO::Common::ByteBuffer::Seek(std::size_t offset)
+void IO::Common::ByteBuffer::Seek(std::size_t offset) const
 {
   if constexpr (seek_type == SeekType::Absolute)
   {
@@ -34,7 +34,7 @@ void IO::Common::ByteBuffer::Seek(std::size_t offset)
     }
     else
     {
-      Ensure(offset <= _cur_pos, "Seek underflow.");
+      EnsureF(CCodeZones::FILE_IO, offset <= _cur_pos, "Seek underflow.");
       _cur_pos = _cur_pos - offset;
     }
   }

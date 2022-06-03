@@ -70,6 +70,11 @@ if(LOGGING_FLAGS_CLIENT_HOOKS)
   math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x2")
 endif()
 
+option(LOGGING_FLAGS_ADT_IO "Enable ADT IO loggers?" ON)
+if(LOGGING_FLAGS_ADT_IO)
+  math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x4")
+endif()
+
 add_definitions(-DLOGGING_FLAGS=${LOGGING_FLAGS_})
 
 # contract flags
