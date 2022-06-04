@@ -45,12 +45,27 @@ namespace IO::Common
       buf.Read(data);
     }
 
+    template<std::uint32_t fourcc>
     void Write(ByteBuffer& buf) const
     {
+      LogDebugF(LCodeZones::ADT_IO, "Writing chunk: %c%c%c%c, size: %d"
+        , reinterpret_cast<const char*>(&fourcc)[3]
+        , reinterpret_cast<const char*>(&fourcc)[2]
+        , reinterpret_cast<const char*>(&fourcc)[1]
+        , reinterpret_cast<const char*>(&fourcc)[0]
+        , sizeof(T));
+
+      ChunkHeader header{};
+      header.fourcc = fourcc;
+      header.size = sizeof(T);
+
       buf.Write(data);
     }
    
     T data;
+
+  private:
+    bool _is_initialised = false;
   };
 
   template<Utils::Meta::Concepts::PODType T>
@@ -64,8 +79,23 @@ namespace IO::Common
       }
     }
 
+    template<std::uint32_t fourcc>
     void Write(ByteBuffer& buf) const
     {
+      LogDebugF(LCodeZones::ADT_IO, "Writing array chunk: %c%c%c%c, length: %d, size: %d"
+        , reinterpret_cast<const char*>(&fourcc)[3]
+        , reinterpret_cast<const char*>(&fourcc)[2]
+        , reinterpret_cast<const char*>(&fourcc)[1]
+        , reinterpret_cast<const char*>(&fourcc)[0]
+        , _data.size()
+        , _data.size() * sizeof(T));
+
+      ChunkHeader header{};
+      header.fourcc = fourcc;
+      header.size = _data.size() * sizeof(T);
+
+      buf.Write(header);
+
       for (auto& element : _data)
       {
         buf.Write(element);
@@ -106,6 +136,7 @@ namespace IO::Common
 
   private:
     std::vector<T> _data;
+    bool _is_initialised = false;
   };
 
 }

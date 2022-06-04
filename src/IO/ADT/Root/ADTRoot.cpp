@@ -16,6 +16,13 @@ ADTRoot::ADTRoot(std::uint32_t file_data_id)
 
 }
 
+ADTRoot::ADTRoot(std::uint32_t file_data_id, ByteBuffer const& buf)
+  : _file_data_id(file_data_id)
+{
+
+  Read(buf);
+}
+
 void ADTRoot::Read(ByteBuffer const& buf)
 {
   LogDebugF(LCodeZones::ADT_IO, "Reading ADT Root. Filedata ID: %d.", _file_data_id);
@@ -70,9 +77,7 @@ void ADTRoot::Read(ByteBuffer const& buf)
         LogError("Encountered unknown ADT root chunk %c%c%c%c.", fourcc[3], fourcc[2], fourcc[1], fourcc[0]);
         break;
       }
-    
     }
-
   }
 
   LogDebugF(LCodeZones::ADT_IO, "Done ADT Root. Filedata ID: %d.", _file_data_id);

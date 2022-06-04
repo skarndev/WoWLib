@@ -13,6 +13,7 @@ namespace IO::ADT
   public:
  
     ADTRoot(std::uint32_t file_data_id);
+    ADTRoot(std::uint32_t file_data_id, Common::ByteBuffer const& buf);
 
     [[nodiscard]]
     std::uint32_t FileDataID() const { return _file_data_id; };
