@@ -6,6 +6,9 @@
 
 namespace IO::ADT::DataStructures
 {
+
+#pragma pack(push, 1)
+
   struct MVER
   {
     std::uint32_t version;
@@ -23,17 +26,17 @@ namespace IO::ADT::DataStructures
   struct MHDR
   {
     std::uint32_t flags;
-    std::uintptr_t mcin;                     // Cata+: obviously gone. probably all offsets gone, except mh2o(which remains in root file).
-    std::uintptr_t mtex;
-    std::uintptr_t mmdx;
-    std::uintptr_t mmid;
-    std::uintptr_t mwmo;
-    std::uintptr_t mwid;
-    std::uintptr_t mddf;
-    std::uintptr_t modf;
+    std::uintptr_t mcin_unused;                     // Cata+: obviously gone. probably all offsets gone, except mh2o(which remains in root file).
+    std::uintptr_t mtex_unused;
+    std::uintptr_t mmdx_unused;
+    std::uintptr_t mmid_unused;
+    std::uintptr_t mwmo_unused;
+    std::uintptr_t mwid_unused;
+    std::uintptr_t mddf_unused;
+    std::uintptr_t modf_unused;
     std::uintptr_t mfbo;                     // this is only set if flags & mhdr_MFBO.
     std::uintptr_t mh2o;
-    std::uintptr_t mtxf;
+    std::uintptr_t mtxf_unused;
     std::uint8_t mamp_value;             // Cata+, explicit MAMP chunk overrides data
     std::uint8_t padding[3];
     std::uint32_t unused[3];
@@ -150,7 +153,7 @@ namespace IO::ADT::DataStructures
   
   struct SMChunk
   {
-               std::uint32_t flags;
+               SMChunkFlags flags;
     /*0x004*/  std::uint32_t IndexX;
     /*0x008*/  std::uint32_t IndexY;
     /*0x00C*/  std::uint32_t nLayers;                              // maximum 4
@@ -461,5 +464,7 @@ namespace IO::ADT::DataStructures
     std::uint32_t begin; // Index into MWDS.
     std::uint32_t end;   // inclusive: [7, 10] = MWDS[7] + MWDS[8] + MWDS[9] + MWDS[10]
   };
+
+#pragma pack(pop)
 
 }

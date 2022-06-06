@@ -12,8 +12,8 @@ using namespace IO::Common;
 ADTRoot::ADTRoot(std::uint32_t file_data_id)
   : _file_data_id(file_data_id)
 {
-
-
+  _version.Initialize(18);
+  _header.Initialize();
 }
 
 ADTRoot::ADTRoot(std::uint32_t file_data_id, ByteBuffer const& buf)
@@ -35,57 +35,88 @@ void ADTRoot::Read(ByteBuffer const& buf)
   {
     ChunkHeader const& chunk_header = buf.ReadView<ChunkHeader>();
 
-    LogDebugF(LCodeZones::ADT_IO, "Loading ADT root chunk %c%c%c%c."
-      , reinterpret_cast<const char*>(&chunk_header.fourcc)[3]
-      , reinterpret_cast<const char*>(&chunk_header.fourcc)[2]
-      , reinterpret_cast<const char*>(&chunk_header.fourcc)[1]
-      , reinterpret_cast<const char*>(&chunk_header.fourcc)[0]);
+    LogDebugF(LCodeZones::ADT_IO, "Loading ADT root chunk %s.", FourCCToStr(chunk_header.fourcc).c_str());
 
     switch (chunk_header.fourcc)
     {
       case ADTCommonChunks::MVER:
-        version.Read(buf);
+        _version.Read(buf);
         break;
       case ADTRootChunks::MHDR:
-        header.Read(buf);
+        _header.Read(buf);
         break;
       case ADTRootChunks::MFBO:
-        flight_bounds.Read(buf);
+        _flight_bounds.Read(buf);
         break;
       case ADTRootChunks::MCNK:
-        chunks[chunk_counter++].Read(buf, chunk_header.size);
+        _chunks[chunk_counter++].Read(buf, chunk_header.size);
         break;
 
       // blend mesh related
       case ADTRootChunks::MBMH:
-        blend_mesh_headers.Read(buf);
+        _blend_mesh_headers.Read(buf);
         break;
       case ADTRootChunks::MBBB:
-        blend_mesh_bounding_boxes.Read(buf);
+        _blend_mesh_bounding_boxes.Read(buf);
         break;
       case ADTRootChunks::MBNV:
-        blend_mesh_vertices.Read(buf);
+        _blend_mesh_vertices.Read(buf);
         break;
       case ADTRootChunks::MBMI:
-        blend_mesh_indices.Read(buf);
+        _blend_mesh_indices.Read(buf);
         break;
 
       default:
       {
-        const char* fourcc = reinterpret_cast<const char*>(&chunk_header.fourcc);
         buf.Seek<ByteBuffer::SeekDir::Forward, ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("Encountered unknown ADT root chunk %c%c%c%c.", fourcc[3], fourcc[2], fourcc[1], fourcc[0]);
+        LogError("Encountered unknown ADT root chunk %s.", FourCCToStr(chunk_header.fourcc));
         break;
       }
     }
   }
 
-  LogDebugF(LCodeZones::ADT_IO, "Done ADT Root. Filedata ID: %d.", _file_data_id);
+  LogDebugF(LCodeZones::ADT_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id);
   EnsureF(CCodeZones::FILE_IO, chunk_counter == 256, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
   EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
 }
 
 void ADTRoot::Write(ByteBuffer& buf)
 {
+  LogDebugF(LCodeZones::ADT_IO, "Writing ADT Root. Filedata ID: %d.", _file_data_id);
+  InvariantF(CCodeZones::FILE_IO, _version.IsInitialized() && _header.IsInitialized(),
+    "Attempted writing ADT file without version or header initialized.");
 
+  _version.Write<ADTCommonChunks::MVER>(buf);
+
+  std::size_t header_pos = buf.Tell();
+  std::size_t header_data_pos = header_pos + 8;
+  _header.Write<ADTRootChunks::MHDR>(buf);
+  
+  // todo: MH20
+
+  for (int i = 0; i < 256; ++i)
+  {
+    LogDebugF(LCodeZones::ADT_IO, "Writing ADT Root MCNK (%d / 256).", i);
+    _chunks[i].Write(buf);
+  }
+
+  if (_flight_bounds.IsInitialized())
+  {
+    _header.data.mfbo = _header.data.mfbo - buf.Tell();
+    _header.data.flags |= DataStructures::MHDRFlags::mhdr_MFBO;
+    _flight_bounds.Write<ADTRootChunks::MFBO>(buf);
+  }
+
+  // blend mesh stuff
+  _blend_mesh_headers.Write<ADTRootChunks::MBMH>(buf);
+  _blend_mesh_bounding_boxes.Write<ADTRootChunks::MBBB>(buf);
+  _blend_mesh_vertices.Write<ADTRootChunks::MBNV>(buf);
+  _blend_mesh_indices.Write<ADTRootChunks::MBMI>(buf);
+
+  std::size_t end_pos = buf.Tell();
+
+  // go back and write relevant header data
+  buf.Seek(header_pos);
+  _header.Write<ADTRootChunks::MHDR>(buf);
+  buf.Seek(end_pos);
 }
