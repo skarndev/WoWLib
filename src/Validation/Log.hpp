@@ -30,7 +30,7 @@ namespace Validation::Log
     auto time_str = std::to_string(time);
     std::printf("%s - %s Source: \"%s\", line %d, in %s:\n%*c", time_str.c_str(), name,
       std::filesystem::relative(file, SOURCE_DIR).generic_string().c_str(),
-      line, func, time_str.length() + 11, ' ');
+      line, func, static_cast<unsigned>(time_str.length() + 11), ' ');
   }
 
   FORCEINLINE void PrintFormattedLine(const char* name)
@@ -60,29 +60,6 @@ namespace Validation::Log
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
-
-
-  template<unsigned flags, typename ... Args>
-  FORCEINLINE void _LogDebugVF(const char* file, int line, const char* func, const char* format, const Args&... args)
-  {
-    if constexpr (LOGGING_FLAGS & flags)
-    {
-      PrintFormattedLine(DEBUG_LOG_MSG_TOKEN, file, func, line);
-      std::printf(format, args...);
-      std::cout << std::endl;
-    }
-  };
-
-  template<unsigned flags, typename ... Args>
-  FORCEINLINE void _LogDebugF(const char* format, const Args&... args)
-  {
-    if constexpr (LOGGING_FLAGS & static_cast<unsigned>(flags))
-    {
-      PrintFormattedLine(DEBUG_LOG_MSG_TOKEN);
-      std::printf(format, args...);
-      std::cout << std::endl;
-    }
   };
 
   template<typename ... Args>
@@ -124,13 +101,22 @@ namespace Validation::Log
   #define LogDebug(...) Validation::Log::_LogDebug(__VA_ARGS__)
 
   // Basic verbose debug logger 
-  #define LogDebugF(FLAGS, ...) Validation::Log::_LogDebugF<FLAGS>(__VA_ARGS__)
+  #define LogDebugF(FLAGS, ...)  \
+    if constexpr (LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) \
+    {                                                           \
+      Validation::Log::_LogDebug(__VA_ARGS__);                  \
+    }
 
   // Flagged verbose debug logger
   #define LogDebugV(...) Validation::Log::_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
   
   // Flagged debug logger
-  #define LogDebugVF(FLAGS, ...) Validation::Log::_LogDebugVF<FLAGS>(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
+  #define LogDebugVF(FLAGS, ...) \
+  if constexpr (LOGGING_FLAGS & static_cast<unsigned>(FLAGS))                       \
+  {                                                                                 \
+    Validation::Log::_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__); \
+  }
+
 #endif
 
 // Basic logger

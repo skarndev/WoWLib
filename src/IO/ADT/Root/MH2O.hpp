@@ -2,11 +2,22 @@
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/Common.hpp>
 
+#include <vector>
+
 namespace IO::ADT
 {
   class LiquidChunk
   {
+  public:
+    [[nodiscard]]
+    std::vector<DataStructures::SMLiquidInstance>& layers() { return _layers; };
+    
+    [[nodiscard]]
+    DataStructures::SMLiquidChunkAttributes& attributes() { return _attributes; };
 
+  private:
+    std::vector<DataStructures::SMLiquidInstance> _layers;
+    DataStructures::SMLiquidChunkAttributes _attributes;
   };
 
   class MH2O

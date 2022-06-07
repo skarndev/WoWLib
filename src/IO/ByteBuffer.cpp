@@ -3,26 +3,26 @@
 using namespace IO::Common;
 
 ByteBuffer::ByteBuffer(const char* data, std::size_t size)
-  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
-  , _data((RequireF(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), new char[size]))
+  , _data((RequireFE(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), new char[size]))
   , _is_data_owned(true)
 {
   std::memcpy(_data.get(), data, size);
 }
 
 ByteBuffer::ByteBuffer(char* data, std::size_t size)
-  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
   , _is_data_owned(false)
-  , _data((RequireF(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), data))
+  , _data((RequireFE(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), data))
 {
 }
 
 ByteBuffer::ByteBuffer(std::fstream& stream, std::size_t size)
-  : _size((RequireF(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
   , _buf_size(size)
   , _cur_pos(0)
   , _is_data_owned(true)

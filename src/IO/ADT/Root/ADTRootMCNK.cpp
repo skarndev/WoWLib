@@ -88,7 +88,9 @@ void MCNKRoot::Write(Common::ByteBuffer& buf)
   std::size_t end_pos = buf.Tell();
   buf.Seek(pos);
   chunk_header.fourcc = ADTRootChunks::MCNK;
-  chunk_header.size = end_pos - pos;
+
+  EnsureF(CCodeZones::FILE_IO, (end_pos - pos) <= std::numeric_limits<std::uint32_t>::max(), "Root MCNK chunk size overflow.");
+  chunk_header.size = static_cast<std::uint32_t>(end_pos - pos);
   buf.Write(chunk_header);
   buf.Seek(end_pos);
 

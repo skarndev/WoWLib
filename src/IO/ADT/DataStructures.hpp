@@ -105,7 +105,7 @@ namespace IO::ADT::DataStructures
     std::uint32_t offset_attributes;      // points to mh2o_chunk_attributes, can be ommitted for all-0
   };
 
-  struct MH20ChunkAttributes 
+  struct SMLiquidChunkAttributes
   {
     std::uint64_t fishable;               // seems to be usable as visibility information.
     std::uint64_t deep;                   // TC: treat as fatigue area if bit set

@@ -2,6 +2,8 @@
 
 #include <IO/ByteBuffer.hpp>
 #include <Utils/Meta/Traits.hpp>
+#include <Validation/Contracts.hpp>
+#include <Validation/Log.hpp>
 #include <unordered_map>
 #include <fstream>
 #include <type_traits>
@@ -40,10 +42,10 @@ namespace IO::Common
 
   inline std::string FourCCToStr(std::uint32_t fourcc, bool reverse = false)
   {
-    char fourcc_str[5] = { reverse ? fourcc & 0xFF : (fourcc >> 24) & 0xFF,
-                           reverse ? (fourcc >> 8) & 0xFF : (fourcc >> 16) & 0xFF,
-                           reverse ? (fourcc >> 16) & 0xFF : (fourcc >> 8) & 0xFF,
-                           reverse ? (fourcc >> 24) & 0xFF : fourcc & 0xFF,
+    char fourcc_str[5] = { static_cast<char>(reverse ? fourcc & 0xFF : (fourcc >> 24) & 0xFF),
+                           static_cast<char>(reverse ? (fourcc >> 8) & 0xFF : (fourcc >> 16) & 0xFF),
+                           static_cast<char>(reverse ? (fourcc >> 16) & 0xFF : (fourcc >> 8) & 0xFF),
+                           static_cast<char>(reverse ? (fourcc >> 24) & 0xFF : fourcc & 0xFF),
                            '\0'
                          };
 
@@ -70,6 +72,7 @@ namespace IO::Common
     void Initialize(InterfaceType data_block)
     {
       data = data_block;
+      _is_initialized = true;
     };
 
     void Read(ByteBuffer const& buf)
@@ -120,12 +123,14 @@ namespace IO::Common
     { 
       RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       std::fill(_data.begin(), _data.end(), data_block); 
+      _is_initialized = true;
     };
 
     void Initialize(std::vector<T> const& data_vec) 
     {
       RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       _data = data_vec;
+      _is_initialized = true;
     }
 
     void Read(ByteBuffer const& buf)
@@ -149,7 +154,8 @@ namespace IO::Common
 
       ChunkHeader header{};
       header.fourcc = fourcc;
-      header.size = _data.size() * sizeof(T);
+      EnsureF(CCodeZones::FILE_IO, (_data.size() * sizeof(T)) <= std::numeric_limits<std::uint32_t>::max(), "Chunk size overflow.");
+      header.size = static_cast<std::uint32_t>(_data.size() * sizeof(T));
 
       buf.Write(header);
 
