@@ -6,10 +6,12 @@ using namespace IO::ADT;
 
 void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
 {
-  LogDebugF(LCodeZones::ADT_IO, "Loading ADT root chunk MH2O.");
+  LogDebugF(LCodeZones::FILE_IO, "Loading ADT root chunk MH2O.");
 
-  std::size_t pos = buf.Tell();
+  std::size_t data_pos = buf.Tell();
   buf.Read(_header);
+
+
   
 
 

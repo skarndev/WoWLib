@@ -41,7 +41,7 @@ namespace Validation::Log
 
   FORCEINLINE void PrintFormattedLine(const char* name)
   {
-    std::printf("%d - %s%*c", clock() * 1000 / CLOCKS_PER_SEC, name, gLogIndentLevel * 4, ' ');
+    std::printf("%d - %s%*c", static_cast<int>(clock() * 1000 / CLOCKS_PER_SEC), name, gLogIndentLevel * 4, ' ');
   }
 
   template<typename ... Args>

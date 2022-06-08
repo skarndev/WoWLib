@@ -24,15 +24,15 @@ namespace IO::ADT
   private:
     std::uint32_t _file_data_id;
 
-    Common::DataChunk<std::uint32_t> _version;
-    Common::DataChunk<DataStructures::MHDR> _header;
+    Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _version;
+    Common::DataChunk<DataStructures::MHDR, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
     std::array<MCNKRoot, 256> _chunks;
     // todo: mh20
-    Common::DataChunk<DataStructures::MFBO> _flight_bounds;
-    Common::DataArrayChunk<DataStructures::MBMH> _blend_mesh_headers;
-    Common::DataArrayChunk<DataStructures::MBBB> _blend_mesh_bounding_boxes;
-    Common::DataArrayChunk<DataStructures::MBNV> _blend_mesh_vertices;
-    Common::DataArrayChunk<std::uint16_t> _blend_mesh_indices;
+    Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
+    Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
+    Common::DataArrayChunk<DataStructures::MBBB, ChunkIdentifiers::ADTRootChunks::MBBB> _blend_mesh_bounding_boxes;
+    Common::DataArrayChunk<DataStructures::MBNV, ChunkIdentifiers::ADTRootChunks::MBNV> _blend_mesh_vertices;
+    Common::DataArrayChunk<std::uint16_t, ChunkIdentifiers::ADTRootChunks::MBMI> _blend_mesh_indices;
   };
 
 

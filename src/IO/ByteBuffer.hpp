@@ -86,6 +86,10 @@ namespace IO::Common
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Read(T& lhs) const;
 
+    // Reads a range of object representations from buffer starting from current position, identified by byte size.
+    template<Utils::Meta::Concepts::ImplicitLifetimeType T>
+    void Read(T* begin, std::size_t size) const;
+
     // Reads object representation from buffer to an lhs object without modifying buffer position.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Read(T& lhs, std::size_t offset) const;

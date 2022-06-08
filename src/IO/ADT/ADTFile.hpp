@@ -25,7 +25,7 @@ namespace IO::ADT
 
     // common
   
-
+    /*
     // tex
     Common::DataChunk<std::uint32_t> _diffuse_texture_ids;
     Common::DataChunk<std::uint32_t> _height_texture_ids;
@@ -55,6 +55,6 @@ namespace IO::ADT
     Common::DataChunk<char> _mldb; // TODO: what is this one for?
     Common::DataChunk<DataStructures::MWDR> _wmo_doodadset_ranges_lod;
     Common::DataChunk<std::uint16_t> _wmo_doodad_set_indices_lod;
-
+    */
   };
 }

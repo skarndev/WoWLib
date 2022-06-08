@@ -21,33 +21,31 @@ void MCNKRoot::Read(Common::ByteBuffer const& buf, std::size_t size)
   {
     ChunkHeader const& chunk_header = buf.ReadView<ChunkHeader>();
 
-    LogDebugF(LCodeZones::ADT_IO, "Loading ADT root MCNK sub-chunk %s.", FourCCToStr(chunk_header.fourcc));
-
     switch (chunk_header.fourcc)
     {
       case ADTRootMCNKSubchunks::MCVT:
-        _heightmap.Read(buf);
+        _heightmap.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCLV:
-        _vertex_lighting.Read(buf);
+        _vertex_lighting.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCCV:
-        _vertex_color.Read(buf);
+        _vertex_color.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCNR:
-        _normals.Read(buf);
+        _normals.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCLQ:
-        _tbc_water.Read(buf);
+        _tbc_water.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCSE:
-        _sound_emitters.Read(buf);
+        _sound_emitters.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCBB:
-        _blend_batches.Read(buf);
+        _blend_batches.Read(buf, chunk_header.size);
         break;
       case ADTRootMCNKSubchunks::MCDD:
-        _groundeffect_disable.Read(buf);
+        _groundeffect_disable.Read(buf, chunk_header.size);
         break;
       default:
       {
@@ -73,16 +71,16 @@ void MCNKRoot::Write(Common::ByteBuffer& buf)
   buf.Write(chunk_header);
 
   buf.Write(_header);
-  _heightmap.Write<ADTRootMCNKSubchunks::MCVT>(buf);
-  _normals.Write<ADTRootMCNKSubchunks::MCNR>(buf);
+  _heightmap.Write(buf);
+  _normals.Write(buf);
 
   // optional sub-chunks
-  _vertex_lighting.Write<ADTRootMCNKSubchunks::MCLV>(buf);
-  _vertex_color.Write<ADTRootMCNKSubchunks::MCCV>(buf);
-  _tbc_water.Write<ADTRootMCNKSubchunks::MCLQ>(buf);
-  _sound_emitters.Write<ADTRootMCNKSubchunks::MCSE>(buf);
-  _blend_batches.Write<ADTRootMCNKSubchunks::MCBB>(buf);
-  _groundeffect_disable.Write<ADTRootMCNKSubchunks::MCDD>(buf);
+  _vertex_lighting.Write(buf);
+  _vertex_color.Write(buf);
+  _tbc_water.Write(buf);
+  _sound_emitters.Write(buf);
+  _blend_batches.Write(buf);
+  _groundeffect_disable.Write(buf);
 
   // writing actual chunk header data
   std::size_t end_pos = buf.Tell();

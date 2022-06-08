@@ -160,3 +160,15 @@ void IO::Common::ByteBuffer::Reserve(std::size_t n)
     _size += n;
   }
 }
+
+template<Utils::Meta::Concepts::ImplicitLifetimeType T>
+void IO::Common::ByteBuffer::Read(T* begin, std::size_t size) const
+{
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - size >= _cur_pos, "Read adress overflow");
+  RequireF(CCodeZones::FILE_IO, _cur_pos + size <= _size, "Attempted reading past EOF.");
+  RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)), "Provided size is not evenly divisble by element type.");
+
+  std::memcpy(begin, _data.get() + _cur_pos, size);
+
+  _cur_pos += size;
+}

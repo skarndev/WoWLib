@@ -10,7 +10,7 @@ namespace LCodeZones
   {
     GRAPHICS = 0x1,
     CLIENT_HOOKS = 0x2,
-    ADT_IO = 0x4
+    FILE_IO = 0x4
   };
 }
 

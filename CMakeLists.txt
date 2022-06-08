@@ -21,12 +21,13 @@ include("cmake/file_globbing.cmake")
 include("cmake/compiler_flags.cmake")
 
 
-#Better exception handling for visual studio, particularly for the asynchronous stuff
+#Better exception handling for visual studio, particularly for tshe asynchronous stuff
 #add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /EHa)
 #Multi core building for visual studio
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /MP)
 #Allow Big obj for msvc compilation
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /bigobj)
+add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /W3)
 
 # options
 option(ADDITIONAL_OPTIMIZATION_FLAGS "Enable optimizations?" OFF)

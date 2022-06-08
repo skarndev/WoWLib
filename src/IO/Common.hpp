@@ -58,14 +58,14 @@ namespace IO::Common
     std::uint32_t size;
   };
 
-  template<Utils::Meta::Concepts::PODType T>
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false>
   struct DataChunk
   {
     typedef std::conditional_t<sizeof(T) <= sizeof(std::size_t), T, T const&> InterfaceType;
 
     void Initialize()
     {
-      RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       _is_initialized = true;
     };
 
@@ -75,19 +75,24 @@ namespace IO::Common
       _is_initialized = true;
     };
 
-    void Read(ByteBuffer const& buf)
+    void Read(ByteBuffer const& buf, std::size_t size)
     {
+      RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)), "Provided size is not the same as the size of underlying structure.");
+
+      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d"
+        , FourCCStr<fourcc, fourcc_reversed>
+        , sizeof(T));
+
       buf.Read(data);
       _is_initialized = true;
     }
 
-    template<std::uint32_t fourcc, bool fourcc_reversed = false>
     void Write(ByteBuffer& buf) const
     {
       if (!_is_initialized)
         return;
 
-      LogDebugF(LCodeZones::ADT_IO, "Writing chunk: %s, size: %d"
+      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d"
         , FourCCStr<fourcc, fourcc_reversed>
         , sizeof(T));
 
@@ -110,44 +115,50 @@ namespace IO::Common
     bool _is_initialized = false;
   };
 
-  template<Utils::Meta::Concepts::PODType T>
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false>
   struct DataArrayChunk
   {
     void Initialize() 
     { 
-      RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       _is_initialized = true;
     };
 
     void Initialize(T const& data_block, std::size_t n) 
     { 
-      RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       std::fill(_data.begin(), _data.end(), data_block); 
       _is_initialized = true;
     };
 
     void Initialize(std::vector<T> const& data_vec) 
     {
-      RequireF(LCodeZones::ADT_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
       _data = data_vec;
       _is_initialized = true;
     }
 
-    void Read(ByteBuffer const& buf)
+    void Read(ByteBuffer const& buf, std::size_t size)
     {
-      for (auto& element : _data)
-      {
-        buf.Read(element);
-      }
+      RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
+        "Provided size is not evenly divisible divisible by the size of underlying structure.");
+
+      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d"
+        , FourCCStr<fourcc, fourcc_reversed>
+        , sizeof(T));
+
+      _data.resize(size / sizeof(T));
+      buf.Read(*_data.begin(), size);
+
+      _is_initialized = true;
     }
 
-    template<std::uint32_t fourcc, bool fourcc_reversed = false>
     void Write(ByteBuffer& buf) const
     {
       if (!_is_initialized)
         return;
 
-      LogDebugF(LCodeZones::ADT_IO, "Writing array chunk: %s, length: %d, size: %d"
+      LogDebugF(LCodeZones::FILE_IO, "Writing array chunk: %s, length: %d, size: %d"
         , FourCCStr<fourcc, fourcc_reversed>
         , _data.size()
         , _data.size() * sizeof(T));
@@ -174,17 +185,19 @@ namespace IO::Common
     [[nodiscard]]
     std::size_t ByteSize() const { return _data.size() * sizeof(T); };
 
-    T& Add() { return _data.emplace_back(); };
+    T& Add() { _is_initialized = true; return _data.emplace_back(); };
 
     void Remove(std::size_t index) 
     { 
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector.");
+      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
       _data.erase(_data.begin() + index);
     }
 
     T& At(std::size_t index) 
     { 
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
+      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
       return _data[index]; 
     }
 
