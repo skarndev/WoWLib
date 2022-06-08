@@ -3,6 +3,8 @@
 #include <Validation/Contracts.hpp>
 #include <Config/CodeZones.hpp>
 
+#include <iterator>
+
 
 template
 <
@@ -162,11 +164,13 @@ void IO::Common::ByteBuffer::Reserve(std::size_t n)
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Read(T* begin, std::size_t size) const
+void IO::Common::ByteBuffer::Read(T* begin, T* end) const
 {
+  std::size_t size = std::distance(begin, end) * sizeof(T);
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - size >= _cur_pos, "Read adress overflow");
   RequireF(CCodeZones::FILE_IO, _cur_pos + size <= _size, "Attempted reading past EOF.");
   RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)), "Provided size is not evenly divisble by element type.");
+  RequireF(CCodeZones::FILE_IO, (begin + size) == end, "Out of bounds on target array.");
 
   std::memcpy(begin, _data.get() + _cur_pos, size);
 

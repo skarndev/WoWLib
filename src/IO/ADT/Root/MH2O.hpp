@@ -2,7 +2,7 @@
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/Common.hpp>
 
-#include <vector>
+#include <array>
 
 namespace IO::ADT
 {
@@ -31,9 +31,12 @@ namespace IO::ADT
     [[nodiscard]]
     bool IsInitialized() const { return _is_initialized; }
 
+    [[nodiscard]]
+    std::array<LiquidChunk, 16 * 16>& chunks() { return _chunks; }
+
 
   private:
-    DataStructures::SMLiquidChunk _header;
+    std::array<LiquidChunk, 16 * 16> _chunks;
     bool _is_initialized = false;
 
   };

@@ -78,7 +78,8 @@ void ADTRoot::Read(ByteBuffer const& buf)
   EnsureF(CCodeZones::FILE_IO, chunk_counter == 256, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
 
   
-  LogDebugF(LCodeZones::FILE_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id);  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
+  LogDebugF(LCodeZones::FILE_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id); 
+  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
 }
 
 void ADTRoot::Write(ByteBuffer& buf)
