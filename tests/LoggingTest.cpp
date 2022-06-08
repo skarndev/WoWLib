@@ -1,10 +1,22 @@
 #include <Validation/Log.hpp>
 #include <Config/CodeZones.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
-#include <backward.hpp>
 #include <cstdlib>
 #include <cassert>
 #include <cstdint>
+
+#if defined(_MSC_VER) & !defined(__INTEL_COMPILER)
+  #pragma warning(push)
+  #pragma warning(disable : 4267)
+  #pragma warning(disable : 4996)
+
+  #include <backward.hpp>
+
+  #pragma warning(pop) 
+#else
+  #include <backward.hpp>
+#endif
+
 
 int main()
 {

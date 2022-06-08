@@ -120,7 +120,7 @@ namespace Validation::Log
 
   // Basic verbose debug logger 
   #define LogDebugF(FLAGS, ...)  \
-    if constexpr (LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) \
+    if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0) \
     {                                                           \
       Validation::Log::_LogDebug(__VA_ARGS__);                  \
     }
@@ -130,7 +130,7 @@ namespace Validation::Log
   
   // Flagged debug logger
   #define LogDebugVF(FLAGS, ...) \
-  if constexpr (LOGGING_FLAGS & static_cast<unsigned>(FLAGS))                       \
+  if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0)                       \
   {                                                                                 \
     Validation::Log::_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__); \
   }

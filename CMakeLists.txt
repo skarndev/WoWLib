@@ -104,9 +104,6 @@ add_definitions(-DSOURCE_DIR="${CMAKE_SOURCE_DIR}")
 collect_files(sources_files src TRUE "*.c;*.cpp;" "")
 collect_files(headers_files src TRUE "*.h;*.hpp;*.inl" "")
 
-collect_files(backward_sources_files "${EXTERNAL_SOURCE_DIR}/backward-cpp" FALSE "*.c;*.cpp;" "")
-collect_files(backward_headers_files "${EXTERNAL_SOURCE_DIR}/backward-cpp" FALSE "*.h;*.hpp;*.inl" "")
-
 assign_source_group(
   ${sources_files} 
   ${headers_files}
@@ -115,9 +112,9 @@ assign_source_group(
 # dependencies
 add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 
-add_library(EpsilonAddon SHARED ${sources_files} ${headers_files} ${backward_sources_files} ${backward_headers_files})
+add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_link_libraries(EpsilonAddon d3d11.lib minhook)
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/bertrand/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 
 # tests
 if(BUILD_TESTS)
@@ -127,11 +124,11 @@ if(BUILD_TESTS)
 
   add_executable(logging_test "tests/LoggingTest.cpp")
   target_link_libraries(logging_test EpsilonAddon)
-  target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/bertrand/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 
   add_executable(contract_test "tests/ContractsTest.cpp")
   target_link_libraries(contract_test EpsilonAddon)
-  target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/bertrand/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 endif()
 
 # post build hooks

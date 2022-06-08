@@ -1,6 +1,17 @@
 #include <Validation/Contracts.hpp>
 #include <Config/CodeZones.hpp>
-#include <backward.hpp>
+
+#if defined(_MSC_VER) & !defined(__INTEL_COMPILER)
+  #pragma warning(push)
+  #pragma warning(disable : 4267)
+  #pragma warning(disable : 4996)
+
+  #include <backward.hpp>
+
+  #pragma warning(pop) 
+#else
+  #include <backward.hpp>
+#endif
 
 
 int ContractedFunctionExample(int x, int y)
