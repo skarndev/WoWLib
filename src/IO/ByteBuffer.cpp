@@ -31,7 +31,6 @@ ByteBuffer::ByteBuffer(std::fstream& stream, std::size_t size)
   stream.read(_data.get(), size);
 }
 
-
 ByteBuffer::ByteBuffer(std::fstream& stream)
   : _cur_pos(0)
   , _is_data_owned(true)
@@ -45,7 +44,6 @@ ByteBuffer::ByteBuffer(std::fstream& stream)
 
   stream.read(_data.get(), _size);
 }
-
 
 ByteBuffer::ByteBuffer(std::size_t size)
   : _size(size)

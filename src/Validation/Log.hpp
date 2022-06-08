@@ -23,19 +23,25 @@
 
 namespace Validation::Log
 {
+  static inline unsigned gLogIndentLevel = 0;
 
   FORCEINLINE void PrintFormattedLine(const char* name, const char* file, const char* func, int line)
   {
     auto time = clock() * 1000 / CLOCKS_PER_SEC;
     auto time_str = std::to_string(time);
-    std::printf("%s - %s Source: \"%s\", line %d, in %s:\n%*c", time_str.c_str(), name,
+
+    unsigned new_line_indent = static_cast<unsigned>(time_str.length()) + 11 + gLogIndentLevel * 4;
+    if (gLogIndentLevel)
+      new_line_indent--;
+
+    std::printf("%s - %s%*cSource: \"%s\", line %d, in %s:\n%*c", time_str.c_str(), name, gLogIndentLevel * 4, ' ',
       std::filesystem::relative(file, SOURCE_DIR).generic_string().c_str(),
-      line, func, static_cast<unsigned>(time_str.length() + 11), ' ');
+      line, func, new_line_indent, ' ');
   }
 
   FORCEINLINE void PrintFormattedLine(const char* name)
   {
-    std::printf("%d - %s ", clock() * 1000 / CLOCKS_PER_SEC, name);
+    std::printf("%d - %s%*c", clock() * 1000 / CLOCKS_PER_SEC, name, gLogIndentLevel * 4, ' ');
   }
 
   template<typename ... Args>
@@ -78,6 +84,18 @@ namespace Validation::Log
     std::cout << std::endl;
   };
 
+  struct _LogLevelScopedSetter
+  {
+    _LogLevelScopedSetter()
+    {
+      gLogIndentLevel++;
+    }
+
+    ~_LogLevelScopedSetter()
+    {
+      gLogIndentLevel--;
+    }
+  };
 
 
   void InitLoggers();
@@ -128,3 +146,5 @@ namespace Validation::Log
 // Basic verbose error logger
 #define LogErrorV(...) Validation::Log::_LogErrorV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
 
+// Log indent level scoped setter
+#define LogIndentScoped Validation::Log::_LogLevelScopedSetter _log_level_indent_setter{}

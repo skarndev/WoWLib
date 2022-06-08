@@ -26,58 +26,63 @@ ADTRoot::ADTRoot(std::uint32_t file_data_id, ByteBuffer const& buf)
 void ADTRoot::Read(ByteBuffer const& buf)
 {
   LogDebugF(LCodeZones::ADT_IO, "Reading ADT Root. Filedata ID: %d.", _file_data_id);
-  RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
-  RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-  
-  unsigned chunk_counter = 0;
 
-  while (!buf.IsEof())
   {
-    ChunkHeader const& chunk_header = buf.ReadView<ChunkHeader>();
+    LogIndentScoped;
 
-    LogDebugF(LCodeZones::ADT_IO, "Loading ADT root chunk %s.", FourCCToStr(chunk_header.fourcc).c_str());
+    RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
+    RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
 
-    switch (chunk_header.fourcc)
+    unsigned chunk_counter = 0;
+
+    while (!buf.IsEof())
     {
-      case ADTCommonChunks::MVER:
-        _version.Read(buf);
-        break;
-      case ADTRootChunks::MHDR:
-        _header.Read(buf);
-        break;
-      case ADTRootChunks::MFBO:
-        _flight_bounds.Read(buf);
-        break;
-      case ADTRootChunks::MCNK:
-        _chunks[chunk_counter++].Read(buf, chunk_header.size);
-        break;
+      ChunkHeader const& chunk_header = buf.ReadView<ChunkHeader>();
 
-      // blend mesh related
-      case ADTRootChunks::MBMH:
-        _blend_mesh_headers.Read(buf);
-        break;
-      case ADTRootChunks::MBBB:
-        _blend_mesh_bounding_boxes.Read(buf);
-        break;
-      case ADTRootChunks::MBNV:
-        _blend_mesh_vertices.Read(buf);
-        break;
-      case ADTRootChunks::MBMI:
-        _blend_mesh_indices.Read(buf);
-        break;
+      LogDebugF(LCodeZones::ADT_IO, "Loading ADT root chunk %s.", FourCCToStr(chunk_header.fourcc).c_str());
 
-      default:
+      switch (chunk_header.fourcc)
       {
-        buf.Seek<ByteBuffer::SeekDir::Forward, ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("Encountered unknown ADT root chunk %s.", FourCCToStr(chunk_header.fourcc));
-        break;
+        case ADTCommonChunks::MVER:
+          _version.Read(buf);
+          break;
+        case ADTRootChunks::MHDR:
+          _header.Read(buf);
+          break;
+        case ADTRootChunks::MFBO:
+          _flight_bounds.Read(buf);
+          break;
+        case ADTRootChunks::MCNK:
+          _chunks[chunk_counter++].Read(buf, chunk_header.size);
+          break;
+
+          // blend mesh related
+        case ADTRootChunks::MBMH:
+          _blend_mesh_headers.Read(buf);
+          break;
+        case ADTRootChunks::MBBB:
+          _blend_mesh_bounding_boxes.Read(buf);
+          break;
+        case ADTRootChunks::MBNV:
+          _blend_mesh_vertices.Read(buf);
+          break;
+        case ADTRootChunks::MBMI:
+          _blend_mesh_indices.Read(buf);
+          break;
+
+        default:
+        {
+          buf.Seek<ByteBuffer::SeekDir::Forward, ByteBuffer::SeekType::Relative>(chunk_header.size);
+          LogError("Encountered unknown ADT root chunk %s.", FourCCToStr(chunk_header.fourcc));
+          break;
+        }
       }
     }
-  }
 
-  LogDebugF(LCodeZones::ADT_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id);
-  EnsureF(CCodeZones::FILE_IO, chunk_counter == 256, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
-  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
+    EnsureF(CCodeZones::FILE_IO, chunk_counter == 256, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
+  }
+  
+  LogDebugF(LCodeZones::ADT_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id);  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
 }
 
 void ADTRoot::Write(ByteBuffer& buf)

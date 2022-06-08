@@ -21,7 +21,7 @@ void MCNKRoot::Read(Common::ByteBuffer const& buf, std::size_t size)
   {
     ChunkHeader const& chunk_header = buf.ReadView<ChunkHeader>();
 
-    LogDebugF(LCodeZones::ADT_IO, "   Loading ADT root MCNK sub-chunk %s.", FourCCToStr(chunk_header.fourcc));
+    LogDebugF(LCodeZones::ADT_IO, "Loading ADT root MCNK sub-chunk %s.", FourCCToStr(chunk_header.fourcc));
 
     switch (chunk_header.fourcc)
     {
@@ -52,7 +52,7 @@ void MCNKRoot::Read(Common::ByteBuffer const& buf, std::size_t size)
       default:
       {
         buf.Seek<ByteBuffer::SeekDir::Forward, ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("    Encountered unknown ADT root MCNK sub-chunk %s.", FourCCToStr(chunk_header.fourcc));
+        LogError("Encountered unknown ADT root MCNK sub-chunk %s.", FourCCToStr(chunk_header.fourcc));
         break;
       }
 
