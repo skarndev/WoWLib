@@ -115,7 +115,7 @@ namespace IO::Common
     bool _is_initialized = false;
   };
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false, int size_min = -1, int size_max = -1>
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false, std::int64_t size_min = -1, std::int64_t size_max = -1>
   struct DataArrayChunk
   {
     typedef std::conditional_t<size_max == size_min && size_max >= 0, std::array<T, size_max>, std::vector<T>> ArrayImplT;
@@ -157,7 +157,7 @@ namespace IO::Common
     {
       LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d"
         , FourCCStr<fourcc, fourcc_reversed>
-        , sizeof(T));
+        , size);
 
       RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
         "Provided size is not evenly divisible divisible by the size of underlying structure.");
@@ -218,34 +218,20 @@ namespace IO::Common
     [[nodiscard]]
     std::size_t ByteSize() const { return _data.size() * sizeof(T); };
 
-    T& Add() 
+    T& Add() requires (std::is_same_v<ArrayImplT, std::vector<T>>)
     { 
-      if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
-      {
-        _is_initialized = true;
-        return _data.emplace_back();
-      }
-      else
-      {
-        assert("Not implemented for static vectors.");
-      }
+      _is_initialized = true;
+      return _data.emplace_back();
     };
 
-    void Remove(std::size_t index) 
+    void Remove(std::size_t index)  requires (std::is_same_v<ArrayImplT, std::vector<T>>)
     { 
-      if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
-      {
-        RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector.");
-        RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
-        _data.erase(_data.begin() + index);
-      }
-      else
-      {
-        assert("Not implemented for static vectors.");
-      }
-     
+      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector.");
+      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
+      _data.erase(_data.begin() + index);
     }
 
+    [[nodiscard]]
     T& At(std::size_t index) 
     { 
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
@@ -253,11 +239,19 @@ namespace IO::Common
       return _data[index]; 
     }
 
+    [[nodiscard]]
     ArrayImplT::iterator begin() { return _data.begin(); };
+
+    [[nodiscard]]
     ArrayImplT::iterator end() { return _data.end(); };
+
+    [[nodiscard]]
     ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
+
+    [[nodiscard]]
     ArrayImplT::const_iterator cend() const { return _data.end(); };
 
+    [[nodiscard]]
     constexpr T& operator[](std::size_t index) 
     {
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
