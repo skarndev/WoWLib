@@ -3,21 +3,53 @@
 #include <IO/Common.hpp>
 
 #include <array>
+#include <variant>
 
 namespace IO::ADT
 {
+  struct LiquidLayer;
+
   class LiquidChunk
   {
   public:
     [[nodiscard]]
-    std::vector<DataStructures::SMLiquidInstance>& layers() { return _layers; };
-    
-    [[nodiscard]]
-    DataStructures::SMLiquidChunkAttributes& attributes() { return _attributes; };
+    std::vector<LiquidLayer>& layers() { return _layers; };
 
   private:
-    std::vector<DataStructures::SMLiquidInstance> _layers;
-    DataStructures::SMLiquidChunkAttributes _attributes;
+    std::vector<LiquidLayer> _layers;
+  };
+
+  struct LiquidLayer
+  {
+    enum class LiquidvertexFormat
+    {
+      HEIGHT_DEPTH = 0,
+      HEIGHT_TEXCOORD = 1,
+      DEPTH = 2,
+      HEIGHT_DEPTH_TEXCOORD = 3
+    };
+
+    std::uint16_t liquid_type;
+    LiquidvertexFormat liquid_vertex_format;
+    float min_height_level;
+    float max_height_level;
+    std::uint8_t x_offset;
+    std::uint8_t y_offset;
+    std::uint8_t width;
+    std::uint8_t height;
+    std::uint64_t holemap;
+
+    // attributes
+    std::uint64_t fishable;
+    std::uint64_t deep;
+    
+    bool has_attributes = false;
+
+    std::variant<DataStructures::MH2OHeightDepth, DataStructures::MH2OHeightTexCoord, DataStructures::MH2ODepth, DataStructures::MH2OHeightDepthTexCoord> vertex_data;
+    
+    void SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_object_or_lvf);
+
+
   };
 
   class MH2O

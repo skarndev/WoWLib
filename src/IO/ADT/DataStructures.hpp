@@ -2,6 +2,7 @@
 #include <IO/CommonDataStructures.hpp>
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
 
 namespace IO::ADT::DataStructures
@@ -134,6 +135,30 @@ namespace IO::ADT::DataStructures
     std::uint16_t y;
   };
 
+  struct MH2OHeightDepth
+  {
+    std::vector<float> heightmap;
+    std::vector<char> depthmap;
+  };
+
+  struct MH2OHeightTexCoord
+  {
+    std::vector<float> heightmap;
+    std::vector<MH20UVMapEntry> uvmap;
+  };
+
+  struct MH2ODepth
+  {
+    std::vector<char> depthmap;
+  };
+
+  struct MH2OHeightDepthTexCoord
+  {
+    std::vector<float> heightmap;
+    std::vector<MH20UVMapEntry> uvmap;
+    std::vector<char> depthmap;
+  };
+
   struct SMChunkFlags
   {
     std::uint32_t has_mcsh : 1;
@@ -187,16 +212,6 @@ namespace IO::ADT::DataStructures
     /*0x080*/
   };
 
-  struct MCVT
-  {
-    float height[9 * 9 + 8 * 8];
-  };
-
-  struct MCLV
-  {
-    Common::DataStructures::CArgb values[9 * 9 + 8 * 8]; // or rgba?
-  };
-
   struct MCCVEntry
   {
     std::uint8_t blue;                 // these values range from 0x00 to 0xFF with 0x7F being the default.
@@ -204,11 +219,7 @@ namespace IO::ADT::DataStructures
     std::uint8_t red;                  // setting all values to 0x00 makes a chunk completely black.
     std::uint8_t alpha;                // seems not to have any effect.
   };
-
-  struct MCCV 
-  {
-    MCCVEntry entries[9 * 9 + 8 * 8];
-  };
+  
 
   struct MCNREntry
   {

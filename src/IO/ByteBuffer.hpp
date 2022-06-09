@@ -9,9 +9,11 @@
 #include <concepts>
 #include <type_traits>
 #include <limits>
+#include <iterator>
 
 namespace IO::Common
 {
+
   class ByteBuffer
   {
 
@@ -87,8 +89,8 @@ namespace IO::Common
     void Read(T& lhs) const;
 
     // Reads a range of object representations from buffer starting from current position, identified by byte size.
-    template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    void Read(T* begin, T* end) const;
+    template<typename T>
+    void Read(T begin, T end) const requires std::contiguous_iterator<T>;
 
     // Reads object representation from buffer to an lhs object without modifying buffer position.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>

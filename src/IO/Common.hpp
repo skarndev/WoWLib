@@ -162,13 +162,22 @@ namespace IO::Common
       RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
         "Provided size is not evenly divisible divisible by the size of underlying structure.");
 
-      std::size_t n_elements = size / sizeof(T);
-      _data.resize(n_elements);
+      std::size_t n_elements;
+
+      if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
+      {
+        n_elements = size / sizeof(T);
+        _data.resize(n_elements);
+      }
+      else
+      {
+        n_elements = _data.size();
+      }
 
       EnsureF(LCodeZones::FILE_IO, (size_min < 0 || n_elements >= size_min, size_max < 0 || n_elements <= size_max),
         "Expected to read satisfying size constraint (min: %d, max: %d), got size %d instead.", size_min, size_max, n_elements);
 
-      buf.Read(&(*_data.begin()), &(*_data.end()));
+      buf.Read(_data.begin(), _data.end());
 
       _is_initialized = true;
 
@@ -244,10 +253,10 @@ namespace IO::Common
       return _data[index]; 
     }
 
-    T* begin() { return &*_data.begin(); };
-    T* end() { return &*_data.end(); };
-    const T* cbegin() const { return &*_data.cbegin(); };
-    const T* cend() const { return &*_data.end(); };
+    ArrayImplT::iterator begin() { return _data.begin(); };
+    ArrayImplT::iterator end() { return _data.end(); };
+    ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
+    ArrayImplT::const_iterator cend() const { return _data.end(); };
 
     constexpr T& operator[](std::size_t index) 
     {

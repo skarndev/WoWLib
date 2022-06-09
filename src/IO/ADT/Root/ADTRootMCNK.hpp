@@ -1,6 +1,7 @@
 #pragma once
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
+#include <IO/WorldConstants.hpp>
 #include <IO/Common.hpp>
 
 namespace IO::ADT
@@ -18,10 +19,42 @@ namespace IO::ADT
 
   private:
     DataStructures::SMChunk _header;
-    Common::DataChunk<DataStructures::MCVT, ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT> _heightmap;
-    Common::DataChunk<DataStructures::MCLV, ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV> _vertex_lighting;
-    Common::DataChunk<DataStructures::MCCV, ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV> _vertex_color;
-    Common::DataChunk<DataStructures::MCNR, ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR> _normals;
+    Common::DataArrayChunk
+      <
+        float
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT
+        , false
+        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNKBUFSIZE
+      > _heightmap;
+
+    Common::DataArrayChunk
+      <
+        Common::DataStructures::CArgb
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV
+        , false
+        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNKBUFSIZE
+      > _vertex_lighting;
+
+    Common::DataArrayChunk
+      <
+        DataStructures::MCCVEntry
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV
+        , false
+        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNKBUFSIZE
+      > _vertex_color;
+
+    Common::DataArrayChunk
+      <
+        DataStructures::MCNREntry
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR
+        , false
+        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNKBUFSIZE
+      > _normals;
+
     Common::DataChunk<DataStructures::MCLQ, ChunkIdentifiers::ADTRootMCNKSubchunks::MCLQ> _tbc_water;
     Common::DataArrayChunk<DataStructures::MCSE, ChunkIdentifiers::ADTRootMCNKSubchunks::MCSE> _sound_emitters;
     Common::DataArrayChunk<DataStructures::MCBB, ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB> _blend_batches;
