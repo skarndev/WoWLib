@@ -80,9 +80,9 @@ if(LOGGING_FLAGS_CLIENT_HOOKS)
   math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x2")
 endif()
 
-option(LOGGING_FLAGS_ADT_IO "Enable ADT IO loggers?" ON)
-if(LOGGING_FLAGS_ADT_IO)
-  message( STATUS "ADT IO loggers enabled")
+option(LOGGING_FLAGS_FILE_IO "Enable File IO loggers?" ON)
+if(LOGGING_FLAGS_FILE_IO)
+  message( STATUS "File IO loggers enabled")
   math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x4")
 endif()
 
@@ -115,7 +115,7 @@ add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_link_libraries(EpsilonAddon d3d11.lib minhook)
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src")
 
 # tests
 if(BUILD_TESTS)
@@ -125,11 +125,11 @@ if(BUILD_TESTS)
 
   add_executable(logging_test "tests/LoggingTest.cpp")
   target_link_libraries(logging_test EpsilonAddon)
-  target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 
   add_executable(contract_test "tests/ContractsTest.cpp")
   target_link_libraries(contract_test EpsilonAddon)
-  target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 endif()
 
 # post build hooks

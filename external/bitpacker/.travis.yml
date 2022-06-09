@@ -1,0 +1,66 @@
+dist: bionic
+language: cpp
+os: linux
+
+matrix:
+  include:
+# broken in Travis as of 16APR2020
+#    - os: linux
+#      env: CC=gcc-9 CXX=g++-9
+#      addons:
+#        apt:
+#          sources: [ 'ubuntu-toolchain-r-test' ]
+#          packages: [ 'gcc-9', 'g++-9' ]
+    - os: linux
+      env: CC=gcc-7 CXX=g++-7
+      addons:
+        apt:
+          sources: [ 'ubuntu-toolchain-r-test' ]
+          packages: [ 'gcc-7', 'g++-7' ]
+    - os: linux
+      env: CC=gcc-5 CXX=g++-5 USE_CXX14=true
+      addons:
+        apt:
+          sources: [ 'ubuntu-toolchain-r-test' ]
+          packages: [ 'gcc-5', 'g++-5' ]
+    - os: linux
+      env: CC=clang-9 CXX=clang++-9
+      addons:
+        apt:
+          sources: [ 'ubuntu-toolchain-r-test' ]
+          packages: [ 'clang-9' ]
+    - os: osx
+      osx_image: xcode10.2
+      language: cpp
+      compiler: clang
+      env: CI_PYTHON_NAME=python3
+#    - os: windows
+#      language: bash
+
+install:
+  - |
+    if [[ $TRAVIS_OS_NAME == 'windows' ]]; then
+      choco install conan ninja
+      export PATH=$PATH:"/c/Program Files/Conan/conan"
+    elif [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+      export PATH=~/Library/Python/3.7/bin:$PATH
+      pip3 install --user conan cmake bitstruct
+    else
+      pip install --user conan cmake bitstruct
+      conan profile new default --detect
+      conan profile update settings.compiler.libcxx=libstdc++11 default
+    fi
+
+script:
+  - |
+    if [[ $TRAVIS_OS_NAME == 'windows' ]]; then
+      cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -S . -B build
+      cmake --build build
+    elif [[ $USE_CXX14  ]]; then
+      cmake -DCMAKE_BUILD_TYPE=Release -DBITPACKER_USE_CXX17=OFF -S . -B build
+      cmake --build build -- VERBOSE=1 -j2
+    else
+      cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+      cmake --build build -- VERBOSE=1 -j2
+    fi
+  - cd build/tests && ctest -j2

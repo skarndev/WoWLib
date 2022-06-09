@@ -80,7 +80,7 @@ void ByteBuffer::Write(const char* src, std::size_t n, std::size_t offset)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= n, "Buffer size overflow on writing.");
 
-  if ((offset + n) > _size)
+  if ((offset + n) > _size) [[likely]]
   {
     Reserve(offset + n - _size);
   }
@@ -92,7 +92,7 @@ void IO::Common::ByteBuffer::Write(const char* src, std::size_t n)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= n, "Buffer size overflow on writing.");
 
-  if ((_cur_pos + n) > _size)
+  if ((_cur_pos + n) > _size) [[likely]]
   {
     Reserve(_cur_pos + n - _size);
   }

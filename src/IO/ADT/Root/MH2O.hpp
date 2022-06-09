@@ -4,6 +4,7 @@
 
 #include <array>
 #include <variant>
+#include <bitset>
 
 namespace IO::ADT
 {
@@ -40,8 +41,8 @@ namespace IO::ADT
     std::uint64_t holemap;
 
     // attributes
-    std::uint64_t fishable;
-    std::uint64_t deep;
+    std::bitset<64> fishable;
+    std::bitset<64> deep;
     
     bool has_attributes = false;
 

@@ -27,16 +27,22 @@ namespace IO::Common
       char value[n - 1];
     };
   }
+
+  enum class FourCCEndian
+  {
+    LITTLE = 0, // commonly used order of chars in bytes (little endian, chars sre written right to left in the file)
+    BIG = 1 // use in m2 (big endian, chars are written left to right in the file)
+  };
    
-  template <StringLiteral fourcc, bool reverse = false>
-  static constexpr std::uint32_t FourCC = reverse ? (fourcc.value[3] << 24 | fourcc.value[2] << 16 | fourcc.value[1] << 8 | fourcc.value[0])
+  template <StringLiteral fourcc, FourCCEndian reverse = FourCCEndian::LITTLE>
+  static constexpr std::uint32_t FourCC = static_cast<bool>(reverse) ? (fourcc.value[3] << 24 | fourcc.value[2] << 16 | fourcc.value[1] << 8 | fourcc.value[0])
        : (fourcc.value[0] << 24 | fourcc.value[1] << 16 | fourcc.value[2] << 8 | fourcc.value[3]);
 
-  template <std::uint32_t fourcc_int, bool reverse = false>
-  static constexpr char FourCCStr[5] = { reverse ? fourcc_int & 0xFF : (fourcc_int >> 24) & 0xFF,
-                                         reverse ? (fourcc_int >> 8) & 0xFF : (fourcc_int >> 16) & 0xFF,
-                                         reverse ? (fourcc_int >> 16) & 0xFF : (fourcc_int >> 8) & 0xFF,
-                                         reverse ? (fourcc_int >> 24) & 0xFF : fourcc_int & 0xFF,
+  template <std::uint32_t fourcc_int, FourCCEndian reverse = FourCCEndian::LITTLE>
+  static constexpr char FourCCStr[5] = { static_cast<bool>(reverse) ? fourcc_int & 0xFF : (fourcc_int >> 24) & 0xFF,
+                                         static_cast<bool>(reverse) ? (fourcc_int >> 8) & 0xFF : (fourcc_int >> 16) & 0xFF,
+                                         static_cast<bool>(reverse) ? (fourcc_int >> 16) & 0xFF : (fourcc_int >> 8) & 0xFF,
+                                         static_cast<bool>(reverse) ? (fourcc_int >> 24) & 0xFF : fourcc_int & 0xFF,
                                          '\0'
                                        };
 
@@ -58,7 +64,7 @@ namespace IO::Common
     std::uint32_t size;
   };
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false>
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed = FourCCEndian::LITTLE>
   struct DataChunk
   {
     typedef std::conditional_t<sizeof(T) <= sizeof(std::size_t), T, T const&> InterfaceType;
@@ -89,7 +95,7 @@ namespace IO::Common
 
     void Write(ByteBuffer& buf) const
     {
-      if (!_is_initialized)
+      if (!_is_initialized) [[unlikely]]
         return;
 
       LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d"
@@ -115,7 +121,7 @@ namespace IO::Common
     bool _is_initialized = false;
   };
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, bool fourcc_reversed = false, std::int64_t size_min = -1, std::int64_t size_max = -1>
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed = FourCCEndian::LITTLE, std::int64_t size_min = -1, std::int64_t size_max = -1>
   struct DataArrayChunk
   {
     typedef std::conditional_t<size_max == size_min && size_max >= 0, std::array<T, size_max>, std::vector<T>> ArrayImplT;
@@ -185,7 +191,7 @@ namespace IO::Common
 
     void Write(ByteBuffer& buf) const
     {
-      if (!_is_initialized)
+      if (!_is_initialized) [[unlikely]]
         return;
 
       LogDebugF(LCodeZones::FILE_IO, "Writing array chunk: %s, length: %d, size: %d"

@@ -23,7 +23,7 @@ namespace IO::ADT
       <
         float
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT
-        , false
+        , Common::FourCCEndian::LITTLE
         , Common::WorldConstants::CHUNKBUFSIZE
         , Common::WorldConstants::CHUNKBUFSIZE
       > _heightmap;
@@ -32,7 +32,7 @@ namespace IO::ADT
       <
         Common::DataStructures::CArgb
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV
-        , false
+        , Common::FourCCEndian::LITTLE
         , Common::WorldConstants::CHUNKBUFSIZE
         , Common::WorldConstants::CHUNKBUFSIZE
       > _vertex_lighting;
@@ -41,7 +41,7 @@ namespace IO::ADT
       <
         DataStructures::MCCVEntry
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV
-        , false
+        , Common::FourCCEndian::LITTLE
         , Common::WorldConstants::CHUNKBUFSIZE
         , Common::WorldConstants::CHUNKBUFSIZE
       > _vertex_color;
@@ -50,7 +50,7 @@ namespace IO::ADT
       <
         DataStructures::MCNREntry
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR
-        , false
+        , Common::FourCCEndian::LITTLE
         , Common::WorldConstants::CHUNKBUFSIZE
         , Common::WorldConstants::CHUNKBUFSIZE
       > _normals;

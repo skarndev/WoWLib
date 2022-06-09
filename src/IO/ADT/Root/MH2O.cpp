@@ -19,8 +19,12 @@ void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
   
   for (auto&& [header_chunk, chunk] : future::zip(header_chunks, _chunks))
   {
-    if (!header_chunk.layer_count)
-      continue;
+
+    if (!header_chunk.layer_count) [[unlikely]]
+    {
+       continue;
+    }
+    
 
     std::vector<DataStructures::SMLiquidChunkAttributes> layer_attrs;
     std::vector<DataStructures::SMLiquidInstance> layer_instances;
@@ -34,13 +38,41 @@ void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
     bool has_attributes = header_chunk.offset_attributes;
 
     // attributes can be omitted for all-0 height liquids, in this case the offset is zero.
-    if (has_attributes)
+    if (has_attributes) [[likely]]
     {
       buf.Seek(data_pos + header_chunk.offset_attributes);
       buf.Read(layer_attrs.begin(), layer_attrs.end());
     }
     
+    chunk.layers().resize(header_chunk.layer_count);
+    
+    for (auto&& [layer, attributes, instance] : future::zip(chunk.layers(), layer_attrs, layer_instances))
+    {
 
+      // handle liquid attributes
+
+      if (has_attributes)
+      {
+        layer.deep = std::bitset<64>(attributes.deep);
+        layer.fishable = std::bitset<64>(attributes.fishable);
+      }
+      else
+      {
+        layer.deep = std::bitset<64>(0);
+        layer.fishable = std::bitset<64>(0);
+      }
+
+      // handle liquid instance
+      layer.liquid_type = instance.liquid_type;
+      layer.SetLiquidObjectOrLiquidVertexFormat(instance.liquid_object_or_lvf);
+      layer.width = instance.width;
+      layer.height = instance.height;
+      layer.x_offset = instance.x_offset;
+      layer.y_offset = instance.y_offset; 
+
+
+
+    }
 
 
 
