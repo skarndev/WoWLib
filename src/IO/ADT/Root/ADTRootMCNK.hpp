@@ -55,9 +55,17 @@ namespace IO::ADT
         , Common::WorldConstants::CHUNKBUFSIZE
       > _normals;
 
+    Common::DataArrayChunk
+      <
+        DataStructures::MCBB
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB
+        , Common::FourCCEndian::LITTLE
+        , 0
+        , 256
+      > _blend_batches;
+
     Common::DataChunk<DataStructures::MCLQ, ChunkIdentifiers::ADTRootMCNKSubchunks::MCLQ> _tbc_water;
     Common::DataArrayChunk<DataStructures::MCSE, ChunkIdentifiers::ADTRootMCNKSubchunks::MCSE> _sound_emitters;
-    Common::DataArrayChunk<DataStructures::MCBB, ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB> _blend_batches;
     Common::DataChunk<std::uint64_t, ChunkIdentifiers::ADTRootMCNKSubchunks::MCDD> _groundeffect_disable;
   };
 }
