@@ -65,6 +65,9 @@ void ADTRoot::Read(ByteBuffer const& buf)
       case ADTRootChunks::MBMI:
         _blend_mesh_indices.Read(buf, chunk_header.size);
         break;
+      case ADTRootChunks::MH2O:
+        _liquids.Read(buf, chunk_header.size);
+        break;
 
       default:
       {
@@ -79,7 +82,7 @@ void ADTRoot::Read(ByteBuffer const& buf)
 
   
   LogDebugF(LCodeZones::FILE_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id); 
-  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file.");
+  EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. Bad logic or corrupt file.");
 }
 
 void ADTRoot::Write(ByteBuffer& buf)
@@ -96,7 +99,11 @@ void ADTRoot::Write(ByteBuffer& buf)
   std::size_t header_data_pos = header_pos + 8;
   _header.Write(buf);
   
-  // todo: MH20
+  if (_liquids.IsInitialized())
+  {
+    _header.data.mh2o = buf.Tell() - header_data_pos;
+    _liquids.Write(buf);
+  }
 
   for (int i = 0; i < 256; ++i)
   {
@@ -106,7 +113,7 @@ void ADTRoot::Write(ByteBuffer& buf)
 
   if (_flight_bounds.IsInitialized())
   {
-    _header.data.mfbo = _header.data.mfbo - buf.Tell();
+    _header.data.mfbo = buf.Tell() - header_data_pos;
     _header.data.flags |= DataStructures::MHDRFlags::mhdr_MFBO;
     _flight_bounds.Write(buf);
   }

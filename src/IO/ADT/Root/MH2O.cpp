@@ -158,12 +158,12 @@ void MH2O::Write(Common::ByteBuffer& buf)
 
   for (auto&& [header_chunk, chunk] : future::zip(header_chunks, _chunks))
   {
-    header_chunk.layer_count = chunk.Layers().size();
+    header_chunk.layer_count = static_cast<std::uint32_t>(chunk.Layers().size());
 
     if (header_chunk.layer_count)
     {
       std::size_t instances_pos = buf.Tell();
-      header_chunk.offset_instances = buf.Tell() - data_pos;
+      header_chunk.offset_instances = static_cast<std::uint32_t>(buf.Tell() - data_pos);
 
       std::vector<DataStructures::SMLiquidInstance> liquid_instances;
       liquid_instances.resize(header_chunk.layer_count);
@@ -242,14 +242,14 @@ void MH2O::Write(Common::ByteBuffer& buf)
 
           std::uint64_t exists_bitmap = bitmap_temp.to_ullong();
 
-          instance.offset_exists_bitmap = buf.Tell() - data_pos;
+          instance.offset_exists_bitmap = static_cast<std::uint32_t>(buf.Tell() - data_pos);
           buf.Write(reinterpret_cast<char*>(&exists_bitmap), n_exists_bitmap_bytes);
         }
 
         // write vertex data
         if (layer.has_vertex_data)
         {
-          instance.offset_vertex_data = buf.Tell() - data_pos;
+          instance.offset_vertex_data = static_cast<std::uint32_t>(buf.Tell() - data_pos);
 
           EnsureF(CCodeZones::FILE_IO, layer.vertex_data.index() == static_cast<unsigned>(layer.liquid_vertex_format),
                   "MH2O layer: wrong vertex format, expected %d, got %d.", static_cast<unsigned>(layer.liquid_vertex_format), layer.vertex_data.index());
@@ -293,11 +293,6 @@ void MH2O::Write(Common::ByteBuffer& buf)
         {
           instance.offset_vertex_data = 0;
         }
-        
-
-
-     
-     
       }
 
       std::size_t end_pos = buf.Tell();
@@ -311,7 +306,7 @@ void MH2O::Write(Common::ByteBuffer& buf)
       // handle attributes
       if (chunk.Attributes().has_value())
       {
-        header_chunk.offset_attributes = buf.Tell() - data_pos;
+        header_chunk.offset_attributes = static_cast<std::uint32_t>(buf.Tell() - data_pos);
         DataStructures::SMLiquidChunkAttributes attrs{chunk.Attributes()->fishable.to_ullong(), chunk.Attributes()->deep.to_ullong()};
         buf.Write(attrs);
       }

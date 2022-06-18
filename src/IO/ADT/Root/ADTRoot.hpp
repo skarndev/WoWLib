@@ -2,6 +2,7 @@
 #include <IO/Common.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/Root/ADTRootMCNK.hpp>
+#include <IO/ADT/Root/MH2O.hpp>
 
 #include <array>
 #include <cstdint>
@@ -27,7 +28,7 @@ namespace IO::ADT
     Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _version;
     Common::DataChunk<DataStructures::MHDR, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
     std::array<MCNKRoot, 256> _chunks;
-    // todo: mh20
+    MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
     Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
     Common::DataArrayChunk<DataStructures::MBBB, ChunkIdentifiers::ADTRootChunks::MBBB> _blend_mesh_bounding_boxes;

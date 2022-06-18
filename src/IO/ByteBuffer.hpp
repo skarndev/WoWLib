@@ -47,6 +47,9 @@ namespace IO::Common
     // Size of the buffer
     [[nodiscard]]
     std::size_t Size() const { return _size; };
+
+    [[nodiscard]]
+    std::size_t Capacity() const { return _buf_size; };
     
     // Current position in the buffer
     [[nodiscard]]

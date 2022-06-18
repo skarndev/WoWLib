@@ -9,9 +9,30 @@
 
 namespace IO::ADT
 {
-  struct LiquidLayer;
+  struct LiquidLayer
+  {
+    enum class LiquidVertexFormat
+    {
+      HEIGHT_DEPTH = 0,
+      HEIGHT_TEXCOORD = 1,
+      DEPTH = 2,
+      HEIGHT_DEPTH_TEXCOORD = 3
+    };
 
+    std::uint16_t liquid_type;
+    LiquidVertexFormat liquid_vertex_format;
+    float min_height_level;
+    float max_height_level;
 
+    std::bitset<64> exists_map = {0};
+
+    bool has_vertex_data = false;
+
+    std::variant<DataStructures::MH2OHeightDepth, DataStructures::MH2OHeightTexCoord, DataStructures::MH2ODepth, DataStructures::MH2OHeightDepthTexCoord> vertex_data;
+
+    void SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_object_or_lvf);
+    std::uint16_t GetLiquidObjectOrLVF();
+  };
 
   class LiquidChunk
   {
@@ -46,32 +67,7 @@ namespace IO::ADT
     std::optional<LiquidAttributes> _attributes;
   };
 
-  struct LiquidLayer
-  {
-    enum class LiquidVertexFormat
-    {
-      HEIGHT_DEPTH = 0,
-      HEIGHT_TEXCOORD = 1,
-      DEPTH = 2,
-      HEIGHT_DEPTH_TEXCOORD = 3
-    };
-
-    std::uint16_t liquid_type;
-    LiquidVertexFormat liquid_vertex_format;
-    float min_height_level;
-    float max_height_level;
-
-    std::bitset<64> exists_map;
-
-    bool has_vertex_data = false;
-
-    std::variant<DataStructures::MH2OHeightDepth, DataStructures::MH2OHeightTexCoord, DataStructures::MH2ODepth, DataStructures::MH2OHeightDepthTexCoord> vertex_data;
-    
-    void SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_object_or_lvf);
-    std::uint16_t GetLiquidObjectOrLVF();
-
-
-  };
+  
 
   class MH2O
   {

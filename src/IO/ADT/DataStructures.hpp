@@ -26,18 +26,18 @@ namespace IO::ADT::DataStructures
 
   struct MHDR
   {
-    std::uint32_t flags;
-    std::uintptr_t mcin_unused;                     // Cata+: obviously gone. probably all offsets gone, except mh2o(which remains in root file).
-    std::uintptr_t mtex_unused;
-    std::uintptr_t mmdx_unused;
-    std::uintptr_t mmid_unused;
-    std::uintptr_t mwmo_unused;
-    std::uintptr_t mwid_unused;
-    std::uintptr_t mddf_unused;
-    std::uintptr_t modf_unused;
-    std::uintptr_t mfbo;                     // this is only set if flags & mhdr_MFBO.
-    std::uintptr_t mh2o;
-    std::uintptr_t mtxf_unused;
+    std::uint32_t flags = 0;
+    std::uint32_t mcin_unused;                     // Cata+: obviously gone. probably all offsets gone, except mh2o(which remains in root file).
+    std::uint32_t mtex_unused;
+    std::uint32_t mmdx_unused;
+    std::uint32_t mmid_unused;
+    std::uint32_t mwmo_unused;
+    std::uint32_t mwid_unused;
+    std::uint32_t mddf_unused;
+    std::uint32_t modf_unused;
+    std::uint32_t mfbo;                     // this is only set if flags & mhdr_MFBO.
+    std::uint32_t mh2o;
+    std::uint32_t mtxf_unused;
     std::uint8_t mamp_value;             // Cata+, explicit MAMP chunk overrides data
     std::uint8_t padding[3];
     std::uint32_t unused[3];
