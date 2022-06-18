@@ -176,3 +176,21 @@ void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::contiguous
 
   _cur_pos += size;
 }
+
+template<typename T>
+void IO::Common::ByteBuffer::Write(T begin, T end) requires std::contiguous_iterator<T>
+{
+  static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<std::iterator_traits<T>::value_type>);
+  std::size_t size = std::distance(begin, end) * sizeof(std::iterator_traits<T>::value_type);
+
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= size, "Buffer size overflow on writing.");
+
+  if ((_cur_pos + size) > _size)
+  {
+    Reserve(_cur_pos + size - _size);
+  }
+
+  std::memcpy(_data.get() + _cur_pos, &(*begin), size);
+
+  _cur_pos += size;
+}

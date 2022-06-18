@@ -100,7 +100,7 @@ void ADTRoot::Write(ByteBuffer& buf)
 
   for (int i = 0; i < 256; ++i)
   {
-    LogDebugF(LCodeZones::FILE_IO, "Writing ADT Root MCNK (%d / 256).", i);
+    LogDebugF(LCodeZones::FILE_IO, "Writing chunk: ADT-root MCNK (%d / 256).", i);
     _chunks[i].Write(buf);
   }
 

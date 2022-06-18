@@ -2,7 +2,7 @@
 #include <IO/CommonDataStructures.hpp>
 #include <cstdint>
 #include <type_traits>
-#include <vector>
+#include <array>
 
 
 namespace IO::ADT::DataStructures
@@ -129,6 +129,7 @@ namespace IO::ADT::DataStructures
                                      // if offset = 0 and liquidType ≠ 2, then let LVF = 2, i.e. some ocean shit
   };
 
+
   struct MH20UVMapEntry
   {
     std::uint16_t x;                      // divided by 8 for shaders
@@ -137,26 +138,26 @@ namespace IO::ADT::DataStructures
 
   struct MH2OHeightDepth
   {
-    std::vector<float> heightmap;
-    std::vector<char> depthmap;
+    std::array<float, 81> heightmap;
+    std::array<char, 81> depthmap;
   };
 
   struct MH2OHeightTexCoord
   {
-    std::vector<float> heightmap;
-    std::vector<MH20UVMapEntry> uvmap;
+    std::array<float, 81> heightmap;
+    std::array<MH20UVMapEntry, 81> uvmap;
   };
 
   struct MH2ODepth
   {
-    std::vector<char> depthmap;
+    std::array<char, 81> depthmap;
   };
 
   struct MH2OHeightDepthTexCoord
   {
-    std::vector<float> heightmap;
-    std::vector<MH20UVMapEntry> uvmap;
-    std::vector<char> depthmap;
+    std::array<float, 81> heightmap;
+    std::array<MH20UVMapEntry, 81> uvmap;
+    std::array<char, 81> depthmap;
   };
 
   struct SMChunkFlags

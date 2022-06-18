@@ -72,7 +72,7 @@ namespace IO::Common
     >
     void Seek(std::size_t offset) const;
 
-    // Peaks into the internal buffer at absolute position and returns read-only view.
+    // Peeks into the internal buffer at absolute position and returns read-only view.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     const T& Peek(std::size_t offset) const;
 
@@ -115,6 +115,10 @@ namespace IO::Common
     // Writes implicit life time type T into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data);
+    
+    // Writes a range of object representations to buffer
+    template<typename T>
+    void Write(T begin, T end) requires std::contiguous_iterator<T>;
 
     // Reserves b bytes in the associated buffer
     // Can only be used for the cases when the associated buffer is owned by a ByteBuffer instance.

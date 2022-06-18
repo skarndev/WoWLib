@@ -5,24 +5,50 @@
 #include <array>
 #include <variant>
 #include <bitset>
+#include <optional>
 
 namespace IO::ADT
 {
   struct LiquidLayer;
 
+
+
   class LiquidChunk
   {
   public:
+
+    struct LiquidAttributes
+    {
+      std::bitset<64> fishable = {0};
+      std::bitset<64> deep = {0};
+    };
+
     [[nodiscard]]
-    std::vector<LiquidLayer>& layers() { return _layers; };
+    std::vector<LiquidLayer>& Layers() { return _layers; };
+
+    [[nodiscard]]
+    std::optional<LiquidAttributes>& Attributes() { return _attributes; };
+
+    LiquidAttributes& AddAttributes() { return _attributes.emplace(); };
+
+    LiquidAttributes& AddAttributes(DataStructures::SMLiquidChunkAttributes const& attrs) 
+    {
+      return _attributes.emplace(LiquidChunk::LiquidAttributes{attrs.fishable, attrs.deep});
+    };
+
+    LiquidAttributes& AddAttributes(std::uint64_t fishable, std::uint64_t deep) 
+    {
+      return _attributes.emplace(LiquidChunk::LiquidAttributes{fishable, deep});
+    };
 
   private:
     std::vector<LiquidLayer> _layers;
+    std::optional<LiquidAttributes> _attributes;
   };
 
   struct LiquidLayer
   {
-    enum class LiquidvertexFormat
+    enum class LiquidVertexFormat
     {
       HEIGHT_DEPTH = 0,
       HEIGHT_TEXCOORD = 1,
@@ -31,24 +57,18 @@ namespace IO::ADT
     };
 
     std::uint16_t liquid_type;
-    LiquidvertexFormat liquid_vertex_format;
+    LiquidVertexFormat liquid_vertex_format;
     float min_height_level;
     float max_height_level;
-    std::uint8_t x_offset;
-    std::uint8_t y_offset;
-    std::uint8_t width;
-    std::uint8_t height;
-    std::uint64_t holemap;
 
-    // attributes
-    std::bitset<64> fishable;
-    std::bitset<64> deep;
-    
-    bool has_attributes = false;
+    std::bitset<64> exists_map;
+
+    bool has_vertex_data = false;
 
     std::variant<DataStructures::MH2OHeightDepth, DataStructures::MH2OHeightTexCoord, DataStructures::MH2ODepth, DataStructures::MH2OHeightDepthTexCoord> vertex_data;
     
     void SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_object_or_lvf);
+    std::uint16_t GetLiquidObjectOrLVF();
 
 
   };
