@@ -19,7 +19,6 @@ ADTRoot::ADTRoot(std::uint32_t file_data_id)
 ADTRoot::ADTRoot(std::uint32_t file_data_id, ByteBuffer const& buf)
   : _file_data_id(file_data_id)
 {
-
   Read(buf);
 }
 
@@ -101,7 +100,7 @@ void ADTRoot::Write(ByteBuffer& buf)
   
   if (_liquids.IsInitialized())
   {
-    _header.data.mh2o = buf.Tell() - header_data_pos;
+    _header.data.mh2o = static_cast<std::uint32_t>(buf.Tell() - header_data_pos);
     _liquids.Write(buf);
   }
 
@@ -113,7 +112,7 @@ void ADTRoot::Write(ByteBuffer& buf)
 
   if (_flight_bounds.IsInitialized())
   {
-    _header.data.mfbo = buf.Tell() - header_data_pos;
+    _header.data.mfbo = static_cast<std::uint32_t>(buf.Tell() - header_data_pos);
     _header.data.flags |= DataStructures::MHDRFlags::mhdr_MFBO;
     _flight_bounds.Write(buf);
   }

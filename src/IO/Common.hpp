@@ -72,6 +72,7 @@ namespace IO::Common
     void Initialize()
     {
       RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+      std::memset(&data, 0, sizeof(T));
       _is_initialized = true;
     };
 
@@ -227,7 +228,9 @@ namespace IO::Common
     T& Add() requires (std::is_same_v<ArrayImplT, std::vector<T>>)
     { 
       _is_initialized = true;
-      return _data.emplace_back();
+      T& ret = _data.emplace_back();
+      std::memset(&ret, 0, sizeof(T));
+      return ret;
     };
 
     void Remove(std::size_t index)  requires (std::is_same_v<ArrayImplT, std::vector<T>>)
