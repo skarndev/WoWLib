@@ -36,7 +36,7 @@ ByteBuffer::ByteBuffer(std::fstream& stream)
   , _is_data_owned(true)
 {
   stream.seekg(0, std::ios::end);
-  _size = stream.tellg();
+  _size = static_cast<std::size_t>(stream.tellg());
   _buf_size = _size;
   EnsureF(CCodeZones::FILE_IO, _size, "Size can't be 0 for initializing the buffer.");
   _data.reset(new char[_size]);

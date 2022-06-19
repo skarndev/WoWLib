@@ -34,3 +34,9 @@
 # dirs
 out
 .vs
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf
+cmake-build-debug
+cmake-build-relwithdebinfo
+cmake-build-release
