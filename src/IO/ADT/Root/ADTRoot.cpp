@@ -71,7 +71,7 @@ void ADTRoot::Read(ByteBuffer const& buf)
       default:
       {
         buf.Seek<ByteBuffer::SeekDir::Forward, ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("Encountered unknown ADT root chunk %s.", FourCCToStr(chunk_header.fourcc));
+        LogError("Encountered unknown ADT root chunk %s.", FourCCToStr(chunk_header.fourcc).c_str());
         break;
       }
     }

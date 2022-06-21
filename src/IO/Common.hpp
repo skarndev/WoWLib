@@ -122,10 +122,17 @@ namespace IO::Common
     bool _is_initialized = false;
   };
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed = FourCCEndian::LITTLE, std::int64_t size_min = -1, std::int64_t size_max = -1>
+  template
+  <
+    Utils::Meta::Concepts::PODType T
+    , std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed = FourCCEndian::LITTLE
+    , std::int64_t size_min = -1
+    , std::int64_t size_max = -1
+  >
   struct DataArrayChunk
   {
-    typedef std::conditional_t<size_max == size_min && size_max >= 0, std::array<T, size_max>, std::vector<T>> ArrayImplT;
+    typedef std::conditional_t<size_max == size_min && size_max >= 0, std::array<T, static_cast<std::size_t>(size_max)>, std::vector<T>> ArrayImplT;
 
     void Initialize() 
     { 
@@ -181,7 +188,8 @@ namespace IO::Common
         n_elements = _data.size();
       }
 
-      EnsureF(LCodeZones::FILE_IO, (size_min < 0 || n_elements >= size_min, size_max < 0 || n_elements <= size_max),
+      EnsureF(LCodeZones::FILE_IO, (size_min < 0 || n_elements >= static_cast<std::size_t>(size_min), size_max < 0 ||
+        static_cast<std::size_t>(n_elements) <= size_max),
         "Expected to read satisfying size constraint (min: %d, max: %d), got size %d instead.", size_min, size_max, n_elements);
 
       buf.Read(_data.begin(), _data.end());
@@ -249,16 +257,16 @@ namespace IO::Common
     }
 
     [[nodiscard]]
-    ArrayImplT::iterator begin() { return _data.begin(); };
+    typename ArrayImplT::iterator begin() { return _data.begin(); };
 
     [[nodiscard]]
-    ArrayImplT::iterator end() { return _data.end(); };
+    typename ArrayImplT::iterator end() { return _data.end(); };
 
     [[nodiscard]]
-    ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
+    typename ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
 
     [[nodiscard]]
-    ArrayImplT::const_iterator cend() const { return _data.end(); };
+    typename ArrayImplT::const_iterator cend() const { return _data.end(); };
 
     [[nodiscard]]
     constexpr T& operator[](std::size_t index) 

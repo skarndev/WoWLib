@@ -263,7 +263,7 @@ namespace IO::ADT::DataStructures
 
   struct MCSHEntry
   {
-    char shadow_map[64][64];
+    char shadow_map[64 * 64 / 8];
     // or 63x63 with the last column&row&cell auto-filled as detailed in MCAL.
   };
 

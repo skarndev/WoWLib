@@ -45,7 +45,7 @@ namespace Validation::Log
   }
 
   template<typename ... Args>
-  FORCEINLINE void _Log(const char* format, const Args&... args)
+  FORCEINLINE void impl_Log(const char* format, const Args&... args)
   {
     PrintFormattedLine(LOG_MSG_TOKEN);
     std::printf(format, args...);
@@ -53,7 +53,7 @@ namespace Validation::Log
   };
 
   template<typename ... Args>
-  FORCEINLINE void _LogDebugV(const char* file, int line, const char* func, const char* format, const Args&... args)
+  FORCEINLINE void impl_LogDebugV(const char* file, int line, const char* func, const char* format, const Args&... args)
   {
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN, file, func, line);
     std::printf(format, args...);
@@ -61,7 +61,7 @@ namespace Validation::Log
   };
 
   template<typename ... Args>
-  FORCEINLINE void _LogDebug(const char* format, const Args&... args)
+  FORCEINLINE void impl_LogDebug(const char* format, const Args&... args)
   {
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN);
     std::printf(format, args...);
@@ -69,7 +69,7 @@ namespace Validation::Log
   };
 
   template<typename ... Args>
-  FORCEINLINE void _LogError(const char* format, const Args&... args)
+  FORCEINLINE void impl_LogError(const char* format, const Args&... args)
   {
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN);
     std::printf(format, args...);
@@ -77,21 +77,21 @@ namespace Validation::Log
   };
 
   template<typename ... Args>
-  FORCEINLINE void _LogErrorV(const char* file, int line, const char* func, const char* format, const Args&... args)
+  FORCEINLINE void impl_LogErrorV(const char* file, int line, const char* func, const char* format, const Args&... args)
   {
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN, file, func, line);
     std::printf(format, args...);
     std::cout << std::endl;
   };
 
-  struct _LogLevelScopedSetter
+  struct impl_LogLevelScopedSetter
   {
-    _LogLevelScopedSetter()
+    impl_LogLevelScopedSetter()
     {
       gLogIndentLevel++;
     }
 
-    ~_LogLevelScopedSetter()
+    ~impl_LogLevelScopedSetter()
     {
       gLogIndentLevel--;
     }
@@ -116,35 +116,35 @@ namespace Validation::Log
   #define LogDebugF(...) static_cast<void>(0)
 #else
   // Basic debug logger
-  #define LogDebug(...) Validation::Log::_LogDebug(__VA_ARGS__)
+  #define LogDebug(...) Validation::Log::impl_LogDebug(__VA_ARGS__)
 
   // Basic verbose debug logger 
   #define LogDebugF(FLAGS, ...)  \
     if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0) \
     {                                                           \
-      Validation::Log::_LogDebug(__VA_ARGS__);                  \
+      Validation::Log::impl_LogDebug(__VA_ARGS__);                  \
     }
 
   // Flagged verbose debug logger
-  #define LogDebugV(...) Validation::Log::_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
+  #define LogDebugV(...) Validation::Log::impl_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
   
   // Flagged debug logger
   #define LogDebugVF(FLAGS, ...) \
   if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0)                       \
   {                                                                                 \
-    Validation::Log::_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__); \
+    Validation::Log::impl_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__); \
   }
 
 #endif
 
 // Basic logger
-#define Log(...) Validation::Log::_Log(__VA_ARGS__)
+#define Log(...) Validation::Log::impl_Log(__VA_ARGS__)
 
 // Basic error logger
-#define LogError(...) Validation::Log::_LogError(__VA_ARGS__)
+#define LogError(...) Validation::Log::impl_LogError(__VA_ARGS__)
 
 // Basic verbose error logger
-#define LogErrorV(...) Validation::Log::_LogErrorV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
+#define LogErrorV(...) Validation::Log::impl_LogErrorV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
 
 // Log indent level scoped setter
-#define LogIndentScoped Validation::Log::_LogLevelScopedSetter _log_level_indent_setter{}
+#define LogIndentScoped Validation::Log::impl_LogLevelScopedSetter _log_level_indent_setter{}

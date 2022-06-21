@@ -27,3 +27,4 @@ int main()
   backward::SignalHandling sh;
   ContractedFunctionExample(1, 0);
   return 0;
+}
