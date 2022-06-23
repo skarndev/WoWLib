@@ -38,7 +38,7 @@ void MCSH::Read(Common::ByteBuffer const& buf, std::size_t size, bool fix_last_r
   }
 }
 
-void MCSH::Write(Common::ByteBuffer& buf)
+void MCSH::Write(Common::ByteBuffer& buf) const
 {
   LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCSH");
 

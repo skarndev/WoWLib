@@ -14,16 +14,21 @@ namespace IO::ADT
     MCSH();
 
     void Read(Common::ByteBuffer const& buf, std::size_t size, bool fix_last_row_col);
-    void Write(Common::ByteBuffer& buf);
+    void Write(Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
-    std::bitset<64 * 64>& shadowmap() { return _shadowmap; };
+    std::bitset<64 * 64>& Shadowmap() { return _shadowmap; };
 
     [[nodiscard]]
-    bool IsInitialized() const { return true; };
+    std::bitset<64 * 64> const& Shadowmap()const { return _shadowmap; };
+
+    [[nodiscard]]
+    bool IsInitialized() const { return _is_initialized; };
+
+    void Initialize() { _is_initialized = true; };
 
   private:
     std::bitset<64 * 64> _shadowmap;
-
+    bool _is_initialized = false;
   };
 }

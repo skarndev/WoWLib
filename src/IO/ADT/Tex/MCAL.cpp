@@ -8,13 +8,20 @@
 
 using namespace IO::ADT;
 
-void MCAL::Read(IO::Common::ByteBuffer const& buf, std::size_t size, std::uint8_t n_layers, AlphaFormat format
-                , AlphaCompression compression, bool fix_alpha)
+void MCAL::Read(IO::Common::ByteBuffer const& buf
+                , std::size_t size
+                , std::uint8_t n_layers
+                , AlphaFormat format
+                , Common::DataArrayChunk
+                  <
+                    DataStructures::SMLayer
+                    , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+                    , Common::FourCCEndian::LITTLE
+                    , 0
+                    , 4
+                  > const& alpha_layer_params
+                , bool fix_alpha)
 {
-  RequireF(CCodeZones::FILE_IO
-           , (compression == AlphaCompression::COMPRESSED && format != MCAL::AlphaFormat::LOWRES)
-           || (compression == AlphaCompression::UNCOMPRESSED)
-           , "Compression is only supported for 8 bit alpha depth.");
 
   RequireF(CCodeZones::FILE_IO, n_layers > 0 && n_layers < 4, "Only 3 alpha layers is supported.");
   RequireF(CCodeZones::FILE_IO, (fix_alpha && format == AlphaFormat::LOWRES) || !fix_alpha,
@@ -22,101 +29,106 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf, std::size_t size, std::uint8_
 
   LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCAL, size: %d.", size);
 
-  if (compression == AlphaCompression::UNCOMPRESSED)
+  if (format == AlphaFormat::HIGHRES)
   {
-    // 4096 uncompressed highres alpha
-    if (format == AlphaFormat::HIGHRES)
-    {
-      for (std::size_t layer_idx = 0; layer_idx < n_layers; ++layer_idx)
-      {
-        auto& alphamap = _alphamap_layers.emplace_back();
-        buf.Read(alphamap.begin(), alphamap.end());
-      }
-    }
-    // 2048 uncompressed lowres alpha
-    else
-    {
-      for (std::size_t layer_idx = 0; layer_idx < n_layers; ++layer_idx)
-      {
-        auto& alphamap = _alphamap_layers.emplace_back();
-
-        std::size_t pos = buf.Tell();
-        const char* raw_buffer = buf.Data() + pos;
-
-        for (std::size_t i = 0; i < 64; ++i)
-        {
-          for (std::size_t j = 0; j < 64; j += 2)
-          {
-            alphamap[i * 64 + j] = ((*raw_buffer & 0x0f) << 4) | (*raw_buffer & 0x0f);
-            alphamap[i * 64 + j + 1] = ((*raw_buffer & 0xf0) >> 4) | (*raw_buffer & 0xf0);
-            raw_buffer++;
-          }
-        }
-        buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(2048);
-
-        // Fill last row and column from the previous ones
-        if (fix_alpha)
-        {
-          for (std::size_t i = 0; i < 64; ++i)
-          {
-            alphamap[i * 64 + 63] = alphamap[i * 64 + 62];
-            alphamap[63 * 64 + i] = alphamap[62 * 64 + i];
-          }
-          // handle corner pixel
-          alphamap[63 * 64 + 63] = alphamap[62 * 64 + 62];
-        }
-      }
-
-      // normalize alpha for highres format
-      for (std::size_t i = 0; i < 64 * 64; ++i)
-      {
-        std::uint8_t a = 255;
-
-        for (auto it = _alphamap_layers.rbegin(); it < _alphamap_layers.rend(); ++it)
-        {
-          std::uint8_t val = MCAL::NormalizeLowresAlpha((*it)[i] * a);
-          EnsureF(CCodeZones::FILE_IO, a >= val, "Unexpected underflow.");
-          a -= val;
-          (*it)[i] = val;
-        }
-      }
-    }
-  }
-  // Read compressed highres 4096 alpha
-  else
-  {
-
     for (std::size_t layer_idx = 0; layer_idx < n_layers; ++layer_idx)
     {
-      auto& alphamap = _alphamap_layers.emplace_back();
+      auto compression_type = alpha_layer_params[layer_idx].flags.alpha_map_compressed
+          ? AlphaCompression::COMPRESSED : AlphaCompression::UNCOMPRESSED;
 
-      std::size_t pixel = 0;
-
-      while (pixel != 4096)
+      // 4096 uncompressed highres alpha
+      if (compression_type == AlphaCompression::UNCOMPRESSED)
       {
-        auto const& control_byte = buf.ReadView<DataStructures::CompressedAlphaByte>();
-
-        switch (control_byte.mode)
+        for (std::size_t layer_idx = 0; layer_idx < n_layers; ++layer_idx)
         {
-          case DataStructures::AlphaCompressionMode::COPY:
+          auto& alphamap = _alphamap_layers.emplace_back();
+          buf.Read(alphamap.begin(), alphamap.end());
+        }
+      }
+      // compressed highres alpha
+      else
+      {
+        auto& alphamap = _alphamap_layers.emplace_back();
+
+        std::size_t pixel = 0;
+
+        while (pixel != 4096)
+        {
+          auto const& control_byte = buf.ReadView<DataStructures::CompressedAlphaByte>();
+
+          switch (control_byte.mode)
           {
-            buf.Read(_alphamap_layers.begin() + pixel, _alphamap_layers.begin() + pixel + control_byte.count);
-            pixel += control_byte.count;
-            break;
-          }
-          case DataStructures::AlphaCompressionMode::FILL:
-          {
-            auto next_byte = buf.Read<std::uint8_t>();
-            std::fill(alphamap.begin() + pixel, alphamap.begin() + pixel + control_byte.count, next_byte);
-            pixel += control_byte.count;
-            break;
+            case DataStructures::AlphaCompressionMode::COPY:
+            {
+              buf.Read(alphamap.begin() + pixel, alphamap.begin() + pixel + control_byte.count);
+              pixel += control_byte.count;
+              break;
+            }
+            case DataStructures::AlphaCompressionMode::FILL:
+            {
+              auto next_byte = buf.Read<std::uint8_t>();
+              std::fill(alphamap.begin() + pixel, alphamap.begin() + pixel + control_byte.count, next_byte);
+              pixel += control_byte.count;
+              break;
+            }
           }
         }
       }
     }
+  }
+  // uncompressed 2048 alpha
+  else
+  {
+    for (std::size_t layer_idx = 0; layer_idx < n_layers; ++layer_idx)
+    {
+      RequireF(CCodeZones::FILE_IO, !alpha_layer_params[layer_idx].flags.alpha_map_compressed
+        , "Appha compression is not supported for 2048 alpha. Potentially corrupt file.");
 
+      auto& alphamap = _alphamap_layers.emplace_back();
+
+      std::size_t pos = buf.Tell();
+      const char* raw_buffer = buf.Data() + pos;
+
+      for (std::size_t i = 0; i < 64; ++i)
+      {
+        for (std::size_t j = 0; j < 64; j += 2)
+        {
+          alphamap[i * 64 + j] = ((*raw_buffer & 0x0f) << 4) | (*raw_buffer & 0x0f);
+          alphamap[i * 64 + j + 1] = ((*raw_buffer & 0xf0) >> 4) | (*raw_buffer & 0xf0);
+          raw_buffer++;
+        }
+      }
+      buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(2048);
+
+      // Fill last row and column from the previous ones
+      if (fix_alpha)
+      {
+        for (std::size_t i = 0; i < 64; ++i)
+        {
+          alphamap[i * 64 + 63] = alphamap[i * 64 + 62];
+          alphamap[63 * 64 + i] = alphamap[62 * 64 + i];
+        }
+        // handle corner pixel
+        alphamap[63 * 64 + 63] = alphamap[62 * 64 + 62];
+      }
+    }
+
+    // normalize alpha for highres format
+    for (std::size_t i = 0; i < 64 * 64; ++i)
+    {
+      std::uint8_t a = 255;
+
+      for (auto it = _alphamap_layers.rbegin(); it < _alphamap_layers.rend(); ++it)
+      {
+        std::uint8_t val = MCAL::NormalizeLowresAlpha((*it)[i] * a);
+        EnsureF(CCodeZones::FILE_IO, a >= val, "Unexpected underflow.");
+        a -= val;
+        (*it)[i] = val;
+      }
+    }
   }
 }
+
 
 void MCAL::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat format, MCAL::AlphaCompression compression) const
 {
@@ -309,7 +321,19 @@ MCAL::Alphamap const& MCAL::At(std::uint8_t index) const
 void MCAL::Remove(std::uint8_t index)
 {
   RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  _alphamap_layers.erase(index);
+  _alphamap_layers.erase(_alphamap_layers.begin() + index);
+}
+
+MCAL::Alphamap const& MCAL::operator[](std::size_t index) const
+{
+  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
+  return _alphamap_layers[index];
+}
+
+MCAL::Alphamap& MCAL::operator[](std::size_t index)
+{
+  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
+  return _alphamap_layers[index];
 }
 
 

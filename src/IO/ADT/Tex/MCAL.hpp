@@ -1,6 +1,8 @@
 #pragma once
 #include <IO/Common.hpp>
 #include <IO/ByteBuffer.hpp>
+#include <IO/ADT/DataStructures.hpp>
+#include <IO/ADT/ChunkIdentifiers.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -30,7 +32,16 @@ namespace IO::ADT
     void Read(Common::ByteBuffer const& buf
               , std::size_t size
               , std::uint8_t n_layers
-              , AlphaFormat format , AlphaCompression compression , bool fix_alpha);
+              , AlphaFormat format
+              , Common::DataArrayChunk
+                <
+                  DataStructures::SMLayer
+                  , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+                  , Common::FourCCEndian::LITTLE
+                  , 0
+                  , 4
+                > const& alpha_layer_params
+              , bool fix_alpha);
     void Write(Common::ByteBuffer& buf, AlphaFormat format, AlphaCompression compression) const;
 
     // access interface
@@ -59,6 +70,11 @@ namespace IO::ADT
     [[nodiscard]]
     Alphamaps ::const_iterator cend() const { return _alphamap_layers.cend(); };
 
+    Alphamap& operator[](std::size_t index);
+
+    Alphamap const& operator[](std::size_t index) const;
+
+
   private:
     static std::uint8_t NormalizeLowresAlpha(std::uint8_t alpha)
     {
@@ -70,6 +86,6 @@ namespace IO::ADT
       return alpha / div + (alpha % div <= (div >> 1) ? 0 : 1);
     };
 
-    std::vector<std::array<std::uint8_t, 64 * 64>> _alphamap_layers;
+    Alphamaps _alphamap_layers;
   };
 }

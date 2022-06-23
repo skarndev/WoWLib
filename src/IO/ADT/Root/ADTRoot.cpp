@@ -30,7 +30,7 @@ void ADTRoot::Read(ByteBuffer const& buf)
   RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
   RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
 
-  unsigned chunk_counter = 0;
+  std::size_t chunk_counter = 0;
 
   while (!buf.IsEof())
   {
@@ -48,6 +48,8 @@ void ADTRoot::Read(ByteBuffer const& buf)
         _flight_bounds.Read(buf, chunk_header.size);
         break;
       case ADTRootChunks::MCNK:
+        LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCNK (root) (%d / 255), size: %d."
+                  , chunk_counter, chunk_header.size);
         _chunks[chunk_counter++].Read(buf, chunk_header.size);
         break;
 
@@ -106,7 +108,7 @@ void ADTRoot::Write(ByteBuffer& buf)
 
   for (int i = 0; i < 256; ++i)
   {
-    LogDebugF(LCodeZones::FILE_IO, "Writing chunk: ADT-root MCNK (%d / 256).", i);
+    LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (root) (%d / 255).", i);
     _chunks[i].Write(buf);
   }
 

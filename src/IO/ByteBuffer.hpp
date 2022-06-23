@@ -91,7 +91,7 @@ namespace IO::Common
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     T Read() const;
 
-    // Reads object representation from buffer to an lhs object starting from current position.
+    // Reads object representation from buffer to a lhs object starting from current position.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Read(T& lhs) const;
 
@@ -115,15 +115,15 @@ namespace IO::Common
     // Writes n bytes into associated buffer starting at current buffer pos
     void Write(const char* src, std::size_t n);
 
-    // Writes implicit life time type T into associated buffer starting at absolute pos
+    // Writes implicit lifetime type T into associated buffer starting at absolute pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data, std::size_t offset);
 
-    // Writes implicit life time type T into associated buffer starting at current buffer pos
+    // Writes implicit lifetime type T into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data);
 
-    // Writes n implicit life time type T objects into associated buffer starting at current buffer pos
+    // Writes n implicit lifetime type T objects into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void WriteFill(T const& data, std::size_t n);
 

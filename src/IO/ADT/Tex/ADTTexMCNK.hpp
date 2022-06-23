@@ -6,21 +6,39 @@
 #include <IO/Common.hpp>
 #include <IO/ADT/Tex/MCSH.hpp>
 #include <IO/ADT/Tex/MCAL.hpp>
+#include <Utils/Misc/ForceInline.hpp>
 
 #include <bitset>
+#include <cstdint>
 
 namespace IO::ADT
 {
-  class ADTTexMCNK
+  class MCNKTex
   {
-  public:
-    ADTTexMCNK();
+    struct WriteParams
+    {
+      std::uint32_t ofs_layer;
+      std::uint32_t ofs_alpha;
+      std::uint32_t size_alpha;
+      std::uint32_t ofs_shadow;
+    };
 
-    void Read(Common::ByteBuffer const& buf, std::size_t size);
-    void Write(Common::ByteBuffer& buf);
+  public:
+    MCNKTex() = default;
+
+    void Read(Common::ByteBuffer const& buf
+              , std::size_t size
+              , std::uint8_t n_alpha_layers
+              , MCAL::AlphaFormat alpha_format
+              , bool fix_alphamap);
+    WriteParams Write(Common::ByteBuffer& buf
+                      , MCAL::AlphaFormat alpha_format
+                      , MCAL::AlphaCompression alpha_compression) const;
 
     [[nodiscard]]
     bool IsInitialized() const { return true; };
+
+    void AddShadow() { _shadowmap.Initialize(); };
 
   private:
     Common::DataArrayChunk
@@ -32,10 +50,18 @@ namespace IO::ADT
         , 4
       > _alpha_layers;
 
-    MCSH _shadow_map;
+    MCSH _shadowmap;
     MCAL _alphamaps;
 
+  // getters
+  public:
+    [[nodiscard]] FORCEINLINE auto& AlphaLayers() { return _alpha_layers; };
+    [[nodiscard]] FORCEINLINE auto const& AlphaLayers() const { return _alpha_layers; };
 
+    [[nodiscard]] FORCEINLINE auto& ShadowMap() { return _shadowmap; };
+    [[nodiscard]] FORCEINLINE auto const& ShadowMap() const { return _shadowmap; };
 
+    [[nodiscard]] FORCEINLINE auto& Alphamaps() { return _alphamaps; };
+    [[nodiscard]] FORCEINLINE auto const& Alphamaps() const { return _alphamaps; };
   };
 }

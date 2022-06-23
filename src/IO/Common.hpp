@@ -268,8 +268,13 @@ namespace IO::Common
     [[nodiscard]]
     typename ArrayImplT::const_iterator cend() const { return _data.end(); };
 
-    [[nodiscard]]
-    constexpr T& operator[](std::size_t index) 
+    T& operator[](std::size_t index)
+    {
+      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
+      return _data[index];
+    }
+
+    T const& operator[](std::size_t index) const
     {
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
       return _data[index];
