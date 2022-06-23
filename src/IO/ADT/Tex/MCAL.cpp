@@ -170,7 +170,6 @@ void MCAL::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat format, MCAL::Al
       }
 
       // actualy write lowres 2048 alpha
-
       for (auto& alphamap : temp_layers)
       {
         for (std::size_t i = 0; i < 2048; ++i)
@@ -283,6 +282,34 @@ void MCAL::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat format, MCAL::Al
   header.size = chunk_size;
   buf.Seek(end_pos);
   buf.Write(header);
+}
+
+MCAL::Alphamap& MCAL::Add()
+{
+  RequireF(CCodeZones::FILE_IO, _alphamap_layers.size() < 3, "3 alphamap layers are supported at max.");
+
+  auto& layer = _alphamap_layers.emplace_back();
+  std::fill(layer.begin(), layer.end(), 0);
+
+  return layer;
+}
+
+MCAL::Alphamap& MCAL::At(std::uint8_t index)
+{
+  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
+  return _alphamap_layers[index];
+}
+
+MCAL::Alphamap const& MCAL::At(std::uint8_t index) const
+{
+  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
+  return _alphamap_layers[index];
+}
+
+void MCAL::Remove(std::uint8_t index)
+{
+  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
+  _alphamap_layers.erase(index);
 }
 
 

@@ -10,6 +10,9 @@ namespace IO::ADT
 {
   class MCAL
   {
+    using Alphamap = std::array<std::uint8_t, 64 * 64>;
+    using Alphamaps = std::vector<Alphamap>;
+
   public:
 
     enum class AlphaFormat
@@ -27,12 +30,36 @@ namespace IO::ADT
     void Read(Common::ByteBuffer const& buf
               , std::size_t size
               , std::uint8_t n_layers
-              , AlphaFormat format
-              , AlphaCompression compression
-              , bool fix_alpha);
-
+              , AlphaFormat format , AlphaCompression compression , bool fix_alpha);
     void Write(Common::ByteBuffer& buf, AlphaFormat format, AlphaCompression compression) const;
 
+    // access interface
+    Alphamap& Add();
+
+    [[nodiscard]]
+    Alphamap& At(std::uint8_t index);
+
+    [[nodiscard]]
+    Alphamap const& At(std::uint8_t index) const;
+
+    void Clear() { _alphamap_layers.clear(); };
+
+    void Remove(std::uint8_t index);
+
+    // iterators
+    [[nodiscard]]
+    Alphamaps::iterator begin() { return _alphamap_layers.begin(); };
+
+    [[nodiscard]]
+    Alphamaps::iterator end() { return _alphamap_layers.end(); };
+
+    [[nodiscard]]
+    Alphamaps::const_iterator cbegin() const { return _alphamap_layers.cbegin(); };
+
+    [[nodiscard]]
+    Alphamaps ::const_iterator cend() const { return _alphamap_layers.cend(); };
+
+  private:
     static std::uint8_t NormalizeLowresAlpha(std::uint8_t alpha)
     {
       return alpha / 255 + (alpha % 255 <= 127 ? 0 : 1);
@@ -42,7 +69,7 @@ namespace IO::ADT
     {
       return alpha / div + (alpha % div <= (div >> 1) ? 0 : 1);
     };
-  private:
-      std::vector<std::array<std::uint8_t, 64 * 64>> _alphamap_layers;
+
+    std::vector<std::array<std::uint8_t, 64 * 64>> _alphamap_layers;
   };
 }

@@ -5,6 +5,7 @@
 #include <IO/WorldConstants.hpp>
 #include <IO/Common.hpp>
 #include <IO/ADT/Tex/MCSH.hpp>
+#include <IO/ADT/Tex/MCAL.hpp>
 
 #include <bitset>
 
@@ -32,6 +33,8 @@ namespace IO::ADT
       > _alpha_layers;
 
     MCSH _shadow_map;
+    MCAL _alphamaps;
+
 
 
   };
