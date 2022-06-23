@@ -261,6 +261,21 @@ namespace IO::ADT::DataStructures
     /*0x10*/
   };
 
+  namespace AlphaCompressionMode
+  {
+    enum eAlphaCompressionMode : std::uint8_t
+    {
+      COPY = 0,
+      FILL = 1
+    };
+  }
+
+  struct CompressedAlphaByte
+  {
+    std::uint8_t count : 7;
+    AlphaCompressionMode::eAlphaCompressionMode mode : 1;
+  };
+
   struct MCSHEntry
   {
     char shadow_map[64 * 64 / 8];

@@ -84,7 +84,7 @@ namespace IO::Common
 
     void Read(ByteBuffer const& buf, std::size_t size)
     {
-      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d"
+      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d."
         , FourCCStr<fourcc, fourcc_reversed>
         , sizeof(T));
 
@@ -99,7 +99,7 @@ namespace IO::Common
       if (!_is_initialized) [[unlikely]]
         return;
 
-      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d"
+      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d."
         , FourCCStr<fourcc, fourcc_reversed>
         , sizeof(T));
 

@@ -57,7 +57,11 @@ namespace IO::Common
 
     // Associated internal data buffer
     [[nodiscard]]
-    char* GetData() { return _data.get(); };
+    char* Data() { return _data.get(); };
+
+    // Associated internal constant data buffer
+    [[nodiscard]]
+    const char* Data() const { return _data.get(); };
 
     // Report if pos is at EOF
     [[nodiscard]]
@@ -118,7 +122,11 @@ namespace IO::Common
     // Writes implicit life time type T into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data);
-    
+
+    // Writes n implicit life time type T objects into associated buffer starting at current buffer pos
+    template<Utils::Meta::Concepts::ImplicitLifetimeType T>
+    void WriteFill(T const& data, std::size_t n);
+
     // Writes a range of object representations to buffer
     template<typename T>
     void Write(T begin, T end) requires std::contiguous_iterator<T>;

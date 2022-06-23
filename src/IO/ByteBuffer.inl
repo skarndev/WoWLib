@@ -120,6 +120,24 @@ void IO::Common::ByteBuffer::Write(T const& data)
   _cur_pos += sizeof(T);
 }
 
+template<Utils::Meta::Concepts::ImplicitLifetimeType T>
+void IO::Common::ByteBuffer::WriteFill(T const& data, std::size_t n)
+{
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos / sizeof(T) >= n, "Buffer size overflow on writing.");
+
+  if ((_cur_pos + sizeof(T) * n) > _size)
+  {
+    Reserve(_cur_pos + sizeof(T) * n - _size);
+  }
+
+  for (std::size_t i = 0; i < n; ++i)
+  {
+    std::memcpy(_data.get() + _cur_pos, &data, sizeof(T));
+    _cur_pos += sizeof(T);
+  }
+}
+
+
 template<IO::Common::ByteBuffer::ReservePolicy reserve_policy>
 void IO::Common::ByteBuffer::Reserve(std::size_t n)
 {
@@ -180,8 +198,8 @@ void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::contiguous
 template<typename T>
 void IO::Common::ByteBuffer::Write(T begin, T end) requires std::contiguous_iterator<T>
 {
-  static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<std::iterator_traits<T>::value_type>);
-  std::size_t size = std::distance(begin, end) * sizeof(std::iterator_traits<T>::value_type);
+  static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<typename std::iterator_traits<T>::value_type>);
+  std::size_t size = std::distance(begin, end) * sizeof(typename std::iterator_traits<T>::value_type);
 
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= size, "Buffer size overflow on writing.");
 

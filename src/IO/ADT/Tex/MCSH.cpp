@@ -29,17 +29,12 @@ void MCSH::Read(Common::ByteBuffer const& buf, std::size_t size, bool fix_last_r
 
   if (fix_last_row_col)
   {
-    // "fix" last row
     for (std::size_t i = 0; i < 64; ++i)
     {
       _shadowmap[63 * 64 + i] = _shadowmap[62 * 64 + i];
-    }
-
-    // "fix" last column
-    for (std::size_t i = 0; i < 64; ++i)
-    {
       _shadowmap[i * 64 + 63] = _shadowmap[i * 64 + 62];
     }
+    _shadowmap[63 * 64 + 63] = _shadowmap[62 * 64 + 62];
   }
 }
 

@@ -28,7 +28,7 @@ namespace Validation::Contracts
     
     std::string error_text{ "Contract check failed: %s(%s): " };
     error_text.append(msg);
-    Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
+    Validation::Log::impl_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
 
     return false;
   }
@@ -48,7 +48,7 @@ namespace Validation::Contracts
 
     std::string error_text{ "Contract check failed: %s(%s): " };
     error_text.append(msg);
-    Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
+    Validation::Log::impl_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
 
     return false;
   }
@@ -69,7 +69,7 @@ namespace Validation::Contracts
 
     std::string error_text{ "Contract check failed: %s(%s): " };
     error_text.append(msg);
-    Validation::Log::_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
+    Validation::Log::impl_LogErrorV(file, line, func, error_text.c_str(), type, expr, args...);
 
     return false;
 
@@ -203,18 +203,18 @@ namespace Validation::Contracts
 
   // Pre-condition (flagged, expression)
   #define RequireFE(FLAGS, EXPR, ...) \
-    CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__)) : static_cast<void>(0)   
+    (CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__)) : static_cast<void>(0))
   
   // Pre-condition (multiple conditions, flagged, expression)
   #define RequireMFE(FLAGS, EXPR, ...) \
-    CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__)) : static_cast<void>(0)      
+    (CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__)) : static_cast<void>(0))
   
   // Object invariant check (flagged, expression)
   #define InvariantFE(FLAGS, EXPR, ...) \
-    CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__)) :  static_cast<void>(0) 
+    (CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__)) :  static_cast<void>(0))
   
   // Object invariant check (multiple conditions, flagged, expression)
   #define InvariantMFE(FLAGS, EXPR, ...) \
-    CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__)) :  static_cast<void>(0) 
+    (CONTRACT_FLAGS & FLAGS ? Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__)) :  static_cast<void>(0));
 
 #endif
