@@ -31,7 +31,6 @@ namespace IO::ADT
 
     void Read(Common::ByteBuffer const& buf
               , std::size_t size
-              , std::uint8_t n_layers
               , AlphaFormat format
               , Common::DataArrayChunk
                 <
@@ -42,7 +41,17 @@ namespace IO::ADT
                   , 4
                 > const& alpha_layer_params
               , bool fix_alpha);
-    void Write(Common::ByteBuffer& buf, AlphaFormat format, AlphaCompression compression) const;
+
+    void Write(Common::ByteBuffer& buf
+               , AlphaFormat format
+               , Common::DataArrayChunk
+                  <
+                      DataStructures::SMLayer
+                      , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+                      , Common::FourCCEndian::LITTLE
+                      , 0
+                      , 4
+                  > const& alpha_layer_params) const;
 
     // access interface
     Alphamap& Add();
@@ -65,6 +74,12 @@ namespace IO::ADT
     Alphamaps::iterator end() { return _alphamap_layers.end(); };
 
     [[nodiscard]]
+    Alphamaps::const_iterator begin() const { return _alphamap_layers.cbegin(); };
+
+    [[nodiscard]]
+    Alphamaps::const_iterator end() const { return _alphamap_layers.cend(); };
+
+    [[nodiscard]]
     Alphamaps::const_iterator cbegin() const { return _alphamap_layers.cbegin(); };
 
     [[nodiscard]]
@@ -73,6 +88,9 @@ namespace IO::ADT
     Alphamap& operator[](std::size_t index);
 
     Alphamap const& operator[](std::size_t index) const;
+
+    [[nodiscard]]
+    FORCEINLINE bool IsInitialized() const { return true; };
 
 
   private:

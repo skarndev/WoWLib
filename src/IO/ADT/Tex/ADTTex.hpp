@@ -21,9 +21,10 @@ namespace IO::ADT
 
     void Read(Common::ByteBuffer const& buf
               , MCAL::AlphaFormat alpha_format
-              , std:uint8_t n_alpha_layers
+              , std::uint8_t n_alpha_layers
               , bool fix_alphamap);
-    void Write(Common::ByteBuffer& buf) const;
+
+    MCNKTex::WriteParams Write(Common::ByteBuffer& buf, MCAL::AlphaFormat alpha_format) const;
 
   private:
     std::uint32_t _file_data_id;

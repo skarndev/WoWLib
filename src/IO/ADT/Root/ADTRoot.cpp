@@ -106,7 +106,7 @@ void ADTRoot::Write(ByteBuffer& buf)
     _liquids.Write(buf);
   }
 
-  for (int i = 0; i < 256; ++i)
+  for (std::size_t i = 0; i < 256; ++i)
   {
     LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (root) (%d / 255).", i);
     _chunks[i].Write(buf);

@@ -132,7 +132,10 @@ namespace IO::Common
   >
   struct DataArrayChunk
   {
-    typedef std::conditional_t<size_max == size_min && size_max >= 0, std::array<T, static_cast<std::size_t>(size_max)>, std::vector<T>> ArrayImplT;
+    using ArrayImplT =  std::conditional_t<size_max == size_min && size_max >= 0
+      , std::array<T, static_cast<std::size_t>(size_max)>, std::vector<T>>;
+    using iterator = typename ArrayImplT::iterator;
+    using const_iterator = typename ArrayImplT::const_iterator;
 
     void Initialize() 
     { 
@@ -257,6 +260,12 @@ namespace IO::Common
     }
 
     [[nodiscard]]
+    typename ArrayImplT::const_iterator begin() const { return _data.cbegin(); };
+
+    [[nodiscard]]
+    typename ArrayImplT::const_iterator end() const { return _data.cend(); };
+
+    [[nodiscard]]
     typename ArrayImplT::iterator begin() { return _data.begin(); };
 
     [[nodiscard]]
@@ -266,14 +275,16 @@ namespace IO::Common
     typename ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
 
     [[nodiscard]]
-    typename ArrayImplT::const_iterator cend() const { return _data.end(); };
+    typename ArrayImplT::const_iterator cend() const { return _data.cend(); };
 
+    [[nodiscard]]
     T& operator[](std::size_t index)
     {
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
       return _data[index];
     }
 
+    [[nodiscard]]
     T const& operator[](std::size_t index) const
     {
       RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");

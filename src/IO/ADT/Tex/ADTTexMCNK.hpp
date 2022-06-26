@@ -15,6 +15,7 @@ namespace IO::ADT
 {
   class MCNKTex
   {
+  public:
     struct WriteParams
     {
       std::uint32_t ofs_layer;
@@ -31,27 +32,27 @@ namespace IO::ADT
               , std::uint8_t n_alpha_layers
               , MCAL::AlphaFormat alpha_format
               , bool fix_alphamap);
+
     WriteParams Write(Common::ByteBuffer& buf
-                      , MCAL::AlphaFormat alpha_format
-                      , MCAL::AlphaCompression alpha_compression) const;
+                      , MCAL::AlphaFormat alpha_format) const;
 
     [[nodiscard]]
-    bool IsInitialized() const { return true; };
+    FORCEINLINE bool IsInitialized() const { return true; };
 
-    void AddShadow() { _shadowmap.Initialize(); };
+    void AddShadow() { _shadowmap.Initialize(); }
 
-  private:
-    Common::DataArrayChunk
-      <
-        DataStructures::SMLayer
-        , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-        , Common::FourCCEndian::LITTLE
-        , 0
-        , 4
-      > _alpha_layers;
+    private:
+      Common::DataArrayChunk
+        <
+          DataStructures::SMLayer
+          , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+          , Common::FourCCEndian::LITTLE
+          , 0
+          , 4
+        > _alpha_layers;
 
-    MCSH _shadowmap;
-    MCAL _alphamaps;
+      MCSH _shadowmap;
+      MCAL _alphamaps;
 
   // getters
   public:
