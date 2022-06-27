@@ -59,9 +59,9 @@ void MCNKRoot::Read(Common::ByteBuffer const& buf, std::size_t size)
   }
 }
 
-void MCNKRoot::Write(Common::ByteBuffer& buf)
+void MCNKRoot::Write(Common::ByteBuffer& buf) const
 {
-  RequireF(CCodeZones::FILE_IO, _heightmap.IsInitialized() && _normals.IsInitialized(),
+  InvariantF(CCodeZones::FILE_IO, _heightmap.IsInitialized() && _normals.IsInitialized(),
     "MCVT and MCNR must be initialized to write root MCNK.");
 
   std::size_t pos = buf.Tell();
@@ -91,6 +91,4 @@ void MCNKRoot::Write(Common::ByteBuffer& buf)
   chunk_header.size = static_cast<std::uint32_t>(end_pos - pos);
   buf.Write(chunk_header);
   buf.Seek(end_pos);
-
-
 }

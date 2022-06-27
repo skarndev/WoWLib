@@ -13,7 +13,7 @@ namespace IO::ADT
     MCNKRoot();
 
     void Read(Common::ByteBuffer const& buf, std::size_t size);
-    void Write(Common::ByteBuffer& buf);
+    void Write(Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
     FORCEINLINE bool IsInitialized() const { return true; };

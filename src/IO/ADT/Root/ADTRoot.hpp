@@ -19,13 +19,12 @@ namespace IO::ADT
     std::uint32_t FileDataID() const { return _file_data_id; };
     
     void Read(Common::ByteBuffer const& buf);
-    void Write(Common::ByteBuffer& buf);
+    void Write(Common::ByteBuffer& buf) const;
 
   private:
     std::uint32_t _file_data_id;
 
     Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _version;
-    Common::DataChunk<DataStructures::MHDR, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
     std::array<MCNKRoot, 256> _chunks;
     MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;

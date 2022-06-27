@@ -31,7 +31,9 @@ namespace IO::ADT
     std::variant<DataStructures::MH2OHeightDepth, DataStructures::MH2OHeightTexCoord, DataStructures::MH2ODepth, DataStructures::MH2OHeightDepthTexCoord> vertex_data;
 
     void SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_object_or_lvf);
-    std::uint16_t GetLiquidObjectOrLVF();
+
+    [[nodiscard]]
+    std::uint16_t GetLiquidObjectOrLVF() const;
   };
 
   class LiquidChunk
@@ -48,7 +50,13 @@ namespace IO::ADT
     std::vector<LiquidLayer>& Layers() { return _layers; };
 
     [[nodiscard]]
+    std::vector<LiquidLayer>const& Layers() const { return _layers; };
+
+    [[nodiscard]]
     std::optional<LiquidAttributes>& Attributes() { return _attributes; };
+
+    [[nodiscard]]
+    std::optional<LiquidAttributes>const& Attributes() const { return _attributes; };
 
     LiquidAttributes& AddAttributes() { return _attributes.emplace(); };
 
@@ -75,7 +83,7 @@ namespace IO::ADT
     MH2O() = default;
 
     void Read(Common::ByteBuffer const& buf, std::size_t size);
-    void Write(Common::ByteBuffer& buf);
+    void Write(Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
     bool IsInitialized() const { return _is_initialized; }

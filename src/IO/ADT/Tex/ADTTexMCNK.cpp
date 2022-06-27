@@ -9,19 +9,19 @@ using namespace IO::Common;
 MCNKTex::WriteParams MCNKTex::Write(IO::Common::ByteBuffer& buf
                                     , MCAL::AlphaFormat alpha_format) const
 {
-  RequireF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be initialized to write TEX MCNK.");
+  InvariantF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be initialized to write TEX MCNK.");
 
   WriteParams write_params{};
-  write_params.ofs_layer = buf.Tell();
+  write_params.ofs_layer = static_cast<std::uint32_t>(buf.Tell());
   _alpha_layers.Write(buf);
 
-  write_params.ofs_alpha = buf.Tell();
+  write_params.ofs_alpha = static_cast<std::uint32_t>(buf.Tell());
   _alphamaps.Write(buf, alpha_format, _alpha_layers);
-  write_params.size_alpha = buf.Tell() - write_params.ofs_alpha;
+  write_params.size_alpha = static_cast<std::uint32_t>(buf.Tell() - write_params.ofs_alpha);
 
   if (_shadowmap.IsInitialized())
   {
-    write_params.ofs_shadow = buf.Tell();
+    write_params.ofs_shadow = static_cast<std::uint32_t>(buf.Tell());
     _shadowmap.Write(buf);
   }
   else
@@ -53,7 +53,7 @@ void MCNKTex::Read(IO::Common::ByteBuffer const& buf
       }
       case ChunkIdentifiers::ADTTexMCNKSubchunks::MCAL:
       {
-        RequireF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be processed first.");
+        InvariantF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be processed first.");
         _alphamaps.Read(buf, chunk_header.size, alpha_format, _alpha_layers, fix_alphamap);
         break;
 

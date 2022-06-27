@@ -141,7 +141,7 @@ void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
 
 }
 
-void MH2O::Write(Common::ByteBuffer& buf)
+void MH2O::Write(Common::ByteBuffer& buf) const
 {
   LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MH20.");
 
@@ -343,7 +343,7 @@ void LiquidLayer::SetLiquidObjectOrLiquidVertexFormat(std::uint16_t liquid_objec
   }
 }
 
-std::uint16_t IO::ADT::LiquidLayer::GetLiquidObjectOrLVF()
+std::uint16_t IO::ADT::LiquidLayer::GetLiquidObjectOrLVF() const
 {
   // TODO: get back here
   return static_cast<std::uint16_t>(this->liquid_vertex_format);

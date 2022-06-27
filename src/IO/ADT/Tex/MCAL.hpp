@@ -85,8 +85,10 @@ namespace IO::ADT
     [[nodiscard]]
     Alphamaps ::const_iterator cend() const { return _alphamap_layers.cend(); };
 
+    [[nodiscard]]
     Alphamap& operator[](std::size_t index);
 
+    [[nodiscard]]
     Alphamap const& operator[](std::size_t index) const;
 
     [[nodiscard]]

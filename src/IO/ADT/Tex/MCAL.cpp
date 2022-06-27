@@ -77,7 +77,7 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
   {
     for (std::size_t layer_idx = 0; layer_idx < alpha_layer_params.Size(); ++layer_idx)
     {
-      RequireF(CCodeZones::FILE_IO, !alpha_layer_params[layer_idx].flags.alpha_map_compressed
+      InvariantF(CCodeZones::FILE_IO, !alpha_layer_params[layer_idx].flags.alpha_map_compressed
         , "Appha compression is not supported for 2048 alpha. Potentially corrupt file.");
 
       auto& alphamap = _alphamap_layers.emplace_back();
@@ -300,7 +300,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
 
 MCAL::Alphamap& MCAL::Add()
 {
-  RequireF(CCodeZones::FILE_IO, _alphamap_layers.size() < 3, "3 alphamap layers are supported at max.");
+  InvariantF(CCodeZones::FILE_IO, _alphamap_layers.size() < 3, "3 alphamap layers are supported at max.");
 
   auto& layer = _alphamap_layers.emplace_back();
   std::fill(layer.begin(), layer.end(), 0);

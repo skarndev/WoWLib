@@ -55,7 +55,7 @@ namespace IO::Common
                            '\0'
                          };
 
-    return std::string(&fourcc_str[0]);
+    return {&fourcc_str[0]};
   }
 
   struct ChunkHeader
@@ -244,11 +244,18 @@ namespace IO::Common
       return ret;
     };
 
-    void Remove(std::size_t index)  requires (std::is_same_v<ArrayImplT, std::vector<T>>)
-    { 
-      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector.");
+    void Remove(std::size_t index) requires (std::is_same_v<ArrayImplT, std::vector<T>>)
+    {
+      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector element.");
       RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
       _data.erase(_data.begin() + index);
+    }
+
+    void Remove(typename ArrayImplT::iterator& it) requires (std::is_same_v<ArrayImplT, std::vector<T>>)
+    {
+      RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds remove of underlying chunk vector element.");
+      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
+      _data.erase(it);
     }
 
     [[nodiscard]]
