@@ -3,6 +3,7 @@
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <IO/ADT/Obj/ADTObjMCNK.hpp>
+#include <IO/WorldConstants.hpp>
 
 #include <cstdint>
 #include <array>
@@ -24,7 +25,7 @@ namespace IO::ADT
   protected:
     Common::DataArrayChunk<DataStructures::MDDF, ChunkIdentifiers::ADTObj0Chunks::MDDF> _model_placements;
     Common::DataArrayChunk<DataStructures::MODF, ChunkIdentifiers::ADTObj0Chunks::MODF> _map_object_placements;
-    std::array<MCNKObj, 16 * 16> _chunks;
+    std::array<MCNKObj, Common::WorldConstants::CHUNKS_PER_TILE> _chunks;
   };
 
   class AdtObj1SpecificData
@@ -64,7 +65,7 @@ namespace IO::ADT
 
     // common obj0 & obj1 chunks
     Common::DataArrayChunk<char, ChunkIdentifiers::ADTObjCommonChunks::MLMB> _lod_map_object_batches;
-    Common::DataArrayChunk<std::int16_t, ChunkIdentifiers::ADTObjCommonChunks::MWDS> _wmo_dooodadset_overrides;
+    Common::DataArrayChunk<std::int16_t, ChunkIdentifiers::ADTObjCommonChunks::MWDS> _wmo_doodadset_overrides;
     Common::DataArrayChunk<DataStructures::MWDR, ChunkIdentifiers::ADTObjCommonChunks::MWDR> _wmo_doodadset_overrides_ranges;
   };
 
@@ -98,7 +99,7 @@ namespace IO::ADT
           _wmo_doodadset_overrides_ranges.Read(buf, chunk_header.size);
           continue;
         case ChunkIdentifiers::ADTObjCommonChunks::MWDS:
-          _wmo_dooodadset_overrides.Read(buf, chunk_header.size);
+          _wmo_doodadset_overrides.Read(buf, chunk_header.size);
           continue;
         case ChunkIdentifiers::ADTObjCommonChunks::MLMB:
           _lod_map_object_batches.Read(buf, chunk_header.size);
@@ -160,11 +161,55 @@ namespace IO::ADT
         }
       }
     }
+
+    EnsureF(CCodeZones::FILE_IO
+           , (lod_level == ADTObjLodLevel::NORMAL && chunk_counter == Common::WorldConstants::CHUNKS_PER_TILE)
+           || lod_level == ADTObjLodLevel::LOD, "Expected to read exactly 256 chunks, got %d.", chunk_counter);
   }
 
   template<ADTObjLodLevel lod_level>
   inline void ADTObj<lod_level>::Write(Common::ByteBuffer& buf) const
   {
+    LogDebugF(LCodeZones::FILE_IO, "Writing ADT Obj%d. Filedata ID: %d"
+              , static_cast<std::uint8_t>(lod_level), _file_data_id);
+    LogIndentScoped;
+
+    Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
+    version.Write(buf);
+
+    // handle obj0 specific chunks
+    if constexpr (lod_level == ADTObjLodLevel::NORMAL)
+    {
+      for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
+      {
+        LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
+        this->_chunks.Write(buf);
+      }
+
+      InvariantF(CCodeZones::FILE_IO
+                 , this->_model_placements.IsInitialized() && this->_map_object_placements.IsInitialized()
+                 , "Model and map object placements must be initialized.");
+
+      this->_model_placements.Write(buf);
+      this->_map_object_placements.Write(buf);
+    }
+    // handle obj1 specific chunks
+    else
+    {
+      // TODO: invariant validation here is needed
+      this->_lod_map_object_placements.Write(buf);
+      this->_lod_map_object_extents.Write(buf);
+      this->_lod_model_placements.Write(buf);
+      this->_lod_model_extents.Write(buf);
+      this->_lod_model_unknown.Write(buf);
+      this->_lod_mapping.Write(buf);
+      this->_map_object_lod_batches.Write(buf);
+    }
+
+    // handle other common chunks
+    _wmo_doodadset_overrides_ranges.Write(buf);
+    _wmo_doodadset_overrides.Write(buf);
+    _lod_map_object_batches.Write(buf);
 
   }
 
@@ -172,7 +217,7 @@ namespace IO::ADT
   inline void ADTObj<lod_level>::GenerateLod(ADTObj<ADTObjLodLevel::NORMAL> const& tile_obj)
   requires (lod_level == ADTObjLodLevel::LOD)
   {
-
+    // TODO: generate LOD data here
   }
 
 }
