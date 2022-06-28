@@ -12,7 +12,6 @@ using namespace IO::Common;
 ADTRoot::ADTRoot(std::uint32_t file_data_id)
   : _file_data_id(file_data_id)
 {
-  _version.Initialize(18);
 }
 
 ADTRoot::ADTRoot(std::uint32_t file_data_id, ByteBuffer const& buf)
@@ -39,8 +38,12 @@ void ADTRoot::Read(ByteBuffer const& buf)
     switch (chunk_header.fourcc)
     {
       case ADTCommonChunks::MVER:
-        _version.Read(buf, chunk_header.size);
+      {
+        Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{};
+        version.Read(buf, chunk_header.size);
+        EnsureF(CCodeZones::FILE_IO, version.data == 18, "Version must be 18.");
         break;
+      }
       case ADTRootChunks::MHDR:
         header.Read(buf, chunk_header.size);
         break;
@@ -80,7 +83,7 @@ void ADTRoot::Read(ByteBuffer const& buf)
   }
 
   EnsureF(CCodeZones::FILE_IO, header.IsInitialized(), "Header was not parsed.");
-  EnsureF(CCodeZones::FILE_IO, chunk_counter == 256, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
+  EnsureF(CCodeZones::FILE_IO, chunk_counter == WorldConstants::CHUNKS_PER_TILE, "Expected exactly 256 MCNKs to be read, got %d instead.", chunk_counter);
 
   
   LogDebugF(LCodeZones::FILE_IO, "Done reading ADT Root. Filedata ID: %d.", _file_data_id); 
@@ -92,10 +95,8 @@ void ADTRoot::Write(ByteBuffer& buf) const
   LogDebugF(LCodeZones::FILE_IO, "Writing ADT Root. Filedata ID: %d.", _file_data_id);
   LogIndentScoped;
 
-  InvariantF(CCodeZones::FILE_IO, _version.IsInitialized(),
-    "Attempted writing ADT file without version initialized.");
-
-  _version.Write(buf);
+  Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
+  version.Write(buf);
 
   Common::DataChunk<DataStructures::MHDR, ChunkIdentifiers::ADTRootChunks::MHDR> header{};
   header.Initialize();
@@ -109,7 +110,7 @@ void ADTRoot::Write(ByteBuffer& buf) const
     _liquids.Write(buf);
   }
 
-  for (std::size_t i = 0; i < 256; ++i)
+  for (std::size_t i = 0; i < WorldConstants::CHUNKS_PER_TILE; ++i)
   {
     LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (root) (%d / 255).", i);
     _chunks[i].Write(buf);

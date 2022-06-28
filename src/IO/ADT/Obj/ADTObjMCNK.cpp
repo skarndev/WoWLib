@@ -35,7 +35,7 @@ void MCNKObj::Write(IO::Common::ByteBuffer& buf)
   std::size_t pos = buf.Tell();
 
   // writing chunk header to initialize buffer bytes
-  Common::ChunkHeader chunk_header {ChunkIdentifiers::ADTObj1Chunks::MCNK, 0};
+  Common::ChunkHeader chunk_header {ChunkIdentifiers::ADTObj0Chunks::MCNK, 0};
   buf.Write(chunk_header);
 
   _model_references.Write(buf);

@@ -6,7 +6,6 @@ using namespace IO::ADT;
 ADTTex::ADTTex(std::uint32_t file_data_id)
 : _file_data_id(file_data_id)
 {
-  _version.Initialize(18);
   _diffuse_textures.Initialize();
   _height_textures.Initialize();
 }
@@ -42,7 +41,9 @@ void ADTTex::Read(IO::Common::ByteBuffer const& buf
     {
       case ChunkIdentifiers::ADTCommonChunks::MVER:
       {
-        _version.Read(buf, chunk_header.size);
+        Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{};
+        version.Read(buf, chunk_header.size);
+        EnsureF(CCodeZones::FILE_IO, version.data == 18, "Version must be 18.");
         break;
       }
       case ChunkIdentifiers::ADTTexChunks::MDID:
@@ -78,10 +79,11 @@ MCNKTex::WriteParams ADTTex::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaForma
   LogDebugF(LCodeZones::FILE_IO, "Writing ADT Tex. Filedata ID: %d.", _file_data_id);
   LogIndentScoped;
 
-  InvariantF(CCodeZones::FILE_IO, _version.IsInitialized() && _diffuse_textures.IsInitialized()
-    , "Attempted writing ADT file (tex) without version and texture chunks initialized.");
+  InvariantF(CCodeZones::FILE_IO,  _diffuse_textures.IsInitialized()
+    , "Attempted writing ADT file (tex) without diffuse textures initialized.");
 
-  _version.Write(buf);
+  Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
+  version.Write(buf);
 
   InvariantF(CCodeZones::FILE_IO
              , _height_textures.IsInitialized() ? _diffuse_textures.Size() == _height_textures.Size() : true

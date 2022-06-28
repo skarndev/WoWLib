@@ -24,7 +24,6 @@ namespace IO::ADT
   private:
     std::uint32_t _file_data_id;
 
-    Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _version;
     std::array<MCNKRoot, 256> _chunks;
     MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;

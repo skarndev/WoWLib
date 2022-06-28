@@ -66,6 +66,16 @@ namespace IO::ADT::ChunkIdentifiers
     };
   }
 
+  namespace ADTObjCommonChunks
+  {
+    enum eADTObjCommonChunks
+    {
+      MLMB = IO::Common::FourCC<"MLMB">,
+      MWDR = IO::Common::FourCC<"MWDR">,
+      MWDS = IO::Common::FourCC<"MWDS">
+    };
+  }
+
   namespace ADTObj0Chunks
   {
     enum eADTObj0Chunks : std::uint32_t
@@ -73,9 +83,6 @@ namespace IO::ADT::ChunkIdentifiers
       MDDF = IO::Common::FourCC<"MDDF">,
       MODF = IO::Common::FourCC<"MODF">,
       MCNK = IO::Common::FourCC<"MCNK">,
-      MLMB = IO::Common::FourCC<"MLMB">,
-      MWDR = IO::Common::FourCC<"MWDR">,
-      MWDS = IO::Common::FourCC<"MWDS">
     };
   }
 
@@ -88,22 +95,17 @@ namespace IO::ADT::ChunkIdentifiers
     };
   }
 
-
   namespace ADTObj1Chunks
   {
     enum eADTObj1Chunks : std::uint32_t
     {
-      MCNK = IO::Common::FourCC<"MCNK">,
       MLMD = IO::Common::FourCC<"MLMD">,
       MLMX = IO::Common::FourCC<"MLMX">,
       MLDD = IO::Common::FourCC<"MLDD">,
       MLDX = IO::Common::FourCC<"MLDX">,
       MLDL = IO::Common::FourCC<"MLDL">,
       MLFD = IO::Common::FourCC<"MLFD">,
-      MLMB = IO::Common::FourCC<"MLMB">,
-      MLDB = IO::Common::FourCC<"MLDB">,
-      MWDR = IO::Common::FourCC<"MWDR">,
-      MWDS = IO::Common::FourCC<"MWDS">
+      MLDB = IO::Common::FourCC<"MLDB">
     };
   }
 

@@ -3,6 +3,7 @@
 #include <IO/ByteBuffer.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
+#include <IO/WorldConstants.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -12,7 +13,7 @@ namespace IO::ADT
 {
   class MCAL
   {
-    using Alphamap = std::array<std::uint8_t, 64 * 64>;
+    using Alphamap = std::array<std::uint8_t, Common::WorldConstants::N_PIXELS_PER_ALPHAMAP>;
     using Alphamaps = std::vector<Alphamap>;
 
   public:
@@ -38,7 +39,7 @@ namespace IO::ADT
                   , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
                   , Common::FourCCEndian::LITTLE
                   , 0
-                  , 4
+                  , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                 > const& alpha_layer_params
               , bool fix_alpha);
 
@@ -50,7 +51,7 @@ namespace IO::ADT
                       , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
                       , Common::FourCCEndian::LITTLE
                       , 0
-                      , 4
+                      , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                   > const& alpha_layer_params) const;
 
     // access interface
@@ -93,7 +94,6 @@ namespace IO::ADT
 
     [[nodiscard]]
     FORCEINLINE bool IsInitialized() const { return true; };
-
 
   private:
     static std::uint8_t NormalizeLowresAlpha(std::uint8_t alpha)

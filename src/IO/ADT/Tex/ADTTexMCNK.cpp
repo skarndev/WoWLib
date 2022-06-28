@@ -56,12 +56,11 @@ void MCNKTex::Read(IO::Common::ByteBuffer const& buf
         InvariantF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be processed first.");
         _alphamaps.Read(buf, chunk_header.size, alpha_format, _alpha_layers, fix_alphamap);
         break;
-
-        case ChunkIdentifiers::ADTTexMCNKSubchunks::MCSH:
-        {
-          _shadowmap.Read(buf, chunk_header.size, fix_alphamap);
-          break;
-        }
+      }
+      case ChunkIdentifiers::ADTTexMCNKSubchunks::MCSH:
+      {
+        _shadowmap.Read(buf, chunk_header.size, fix_alphamap);
+        break;
       }
     }
   }

@@ -1,5 +1,6 @@
 #include <IO/ADT/Tex/MCAL.hpp>
 #include <IO/ADT/DataStructures.hpp>
+#include <IO/WorldConstants.hpp>
 #include <Validation/Log.hpp>
 #include <Validation/Contracts.hpp>
 #include <Utils/Meta/Future.hpp>
@@ -7,22 +8,26 @@
 #include <algorithm>
 
 using namespace IO::ADT;
+using namespace IO::Common;
+using namespace IO::ADT::ChunkIdentifiers;
 
-void MCAL::Read(IO::Common::ByteBuffer const& buf
+void MCAL::Read(ByteBuffer const& buf
                 , std::size_t size
                 , AlphaFormat format
-                , Common::DataArrayChunk
+                , DataArrayChunk
                   <
                     DataStructures::SMLayer
-                    , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                    , Common::FourCCEndian::LITTLE
+                    , ADTTexMCNKSubchunks::MCLY
+                    , FourCCEndian::LITTLE
                     , 0
-                    , 4
+                    , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                   > const& alpha_layer_params
                 , bool fix_alpha)
 {
 
-  RequireF(CCodeZones::FILE_IO, alpha_layer_params.Size() > 0 && alpha_layer_params.Size() < 4, "Only 3 alpha layers is supported.");
+  RequireF(CCodeZones::FILE_IO
+           , alpha_layer_params.Size() > 0 && alpha_layer_params.Size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
+           , "Only 3 alpha layers is supported.");
   RequireF(CCodeZones::FILE_IO, (fix_alpha && format == AlphaFormat::LOWRES) || !fix_alpha,
           "Alpha fixing is only needed for lowres alpha.");
 
@@ -30,7 +35,7 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
 
   if (format == AlphaFormat::HIGHRES)
   {
-    for (std::size_t layer_idx = 0; layer_idx < alpha_layer_params.Size(); ++layer_idx)
+    for (std::size_t layer_idx = 1; layer_idx < alpha_layer_params.Size(); ++layer_idx)
     {
       auto compression_type = alpha_layer_params[layer_idx].flags.alpha_map_compressed
           ? AlphaCompression::COMPRESSED : AlphaCompression::UNCOMPRESSED;
@@ -48,7 +53,7 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
 
         std::size_t pixel = 0;
 
-        while (pixel != 4096)
+        while (pixel != Common::WorldConstants::N_BYTES_PER_HIGHRES_ALPHA)
         {
           auto const& control_byte = buf.ReadView<DataStructures::CompressedAlphaByte>();
 
@@ -75,7 +80,7 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
   // uncompressed 2048 alpha
   else
   {
-    for (std::size_t layer_idx = 0; layer_idx < alpha_layer_params.Size(); ++layer_idx)
+    for (std::size_t layer_idx = 1; layer_idx < alpha_layer_params.Size(); ++layer_idx)
     {
       InvariantF(CCodeZones::FILE_IO, !alpha_layer_params[layer_idx].flags.alpha_map_compressed
         , "Appha compression is not supported for 2048 alpha. Potentially corrupt file.");
@@ -85,12 +90,12 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
       std::size_t pos = buf.Tell();
       const char* raw_buffer = buf.Data() + pos;
 
-      for (std::size_t i = 0; i < 64; ++i)
+      for (std::size_t i = 0; i < WorldConstants::ALPHAMAP_DIM; ++i)
       {
-        for (std::size_t j = 0; j < 64; j += 2)
+        for (std::size_t j = 0; j < WorldConstants::ALPHAMAP_DIM; j += 2)
         {
-          alphamap[i * 64 + j] = ((*raw_buffer & 0x0f) << 4) | (*raw_buffer & 0x0f);
-          alphamap[i * 64 + j + 1] = ((*raw_buffer & 0xf0) >> 4) | (*raw_buffer & 0xf0);
+          alphamap[i * WorldConstants::ALPHAMAP_DIM + j] = ((*raw_buffer & 0x0f) << 4) | (*raw_buffer & 0x0f);
+          alphamap[i * WorldConstants::ALPHAMAP_DIM + j + 1] = ((*raw_buffer & 0xf0) >> 4) | (*raw_buffer & 0xf0);
           raw_buffer++;
         }
       }
@@ -99,26 +104,32 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
       // Fill last row and column from the previous ones
       if (fix_alpha)
       {
-        for (std::size_t i = 0; i < 64; ++i)
+        constexpr std::uint32_t last_pixel_idx = WorldConstants::ALPHAMAP_DIM - 1;
+        constexpr std::uint32_t pre_last_pixel_idx = last_pixel_idx - 1;
+
+        for (std::size_t i = 0; i < WorldConstants::ALPHAMAP_DIM; ++i)
         {
-          alphamap[i * 64 + 63] = alphamap[i * 64 + 62];
-          alphamap[63 * 64 + i] = alphamap[62 * 64 + i];
+          alphamap[i * WorldConstants::ALPHAMAP_DIM + last_pixel_idx]
+            = alphamap[i * WorldConstants::ALPHAMAP_DIM + pre_last_pixel_idx];
+          alphamap[last_pixel_idx * WorldConstants::ALPHAMAP_DIM + i]
+            = alphamap[pre_last_pixel_idx * WorldConstants::ALPHAMAP_DIM + i];
         }
         // handle corner pixel
-        alphamap[63 * 64 + 63] = alphamap[62 * 64 + 62];
+        alphamap[pre_last_pixel_idx * WorldConstants::ALPHAMAP_DIM + last_pixel_idx]
+          = alphamap[pre_last_pixel_idx * WorldConstants::ALPHAMAP_DIM + pre_last_pixel_idx];
       }
     }
 
     // normalize alpha for highres format
-    for (std::size_t i = 0; i < 64 * 64; ++i)
+    for (std::size_t i = 0; i < WorldConstants::N_PIXELS_PER_ALPHAMAP; ++i)
     {
-      std::uint8_t a = 255;
+      std::uint8_t max_alpha = 255;
 
       for (auto it = _alphamap_layers.rbegin(); it < _alphamap_layers.rend(); ++it)
       {
-        std::uint8_t val = MCAL::NormalizeLowresAlpha((*it)[i] * a);
-        EnsureF(CCodeZones::FILE_IO, a >= val, "Unexpected underflow.");
-        a -= val;
+        std::uint8_t val = MCAL::NormalizeLowresAlpha((*it)[i] * max_alpha);
+        EnsureF(CCodeZones::FILE_IO, max_alpha >= val, "Unexpected underflow.");
+        max_alpha -= val;
         (*it)[i] = val;
       }
     }
@@ -128,21 +139,22 @@ void MCAL::Read(IO::Common::ByteBuffer const& buf
 
 void MCAL::Write(IO::Common::ByteBuffer& buf
                  , MCAL::AlphaFormat format
-                 ,  Common::DataArrayChunk
+                 , DataArrayChunk
                     <
                         DataStructures::SMLayer
-                        , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                        , Common::FourCCEndian::LITTLE
+                        , ADTTexMCNKSubchunks::MCLY
+                        , FourCCEndian::LITTLE
                         , 0
-                        , 4
+                        , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                     > const& alpha_layer_params) const
 {
 
 
-  RequireF(CCodeZones::FILE_IO, !_alphamap_layers.empty() && _alphamap_layers.size() < 4
+  RequireF(CCodeZones::FILE_IO
+           , !_alphamap_layers.empty() && _alphamap_layers.size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
            , "Only alpha layers is supported.");
 
-  Common::ChunkHeader header {Common::FourCC<"MCAL">};
+  ChunkHeader header {Common::FourCC<"MCAL">};
   std::size_t chunk_pos = buf.Tell();
   buf.Write(header);
 
@@ -162,16 +174,16 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
       // compressed
       else
       {
-        for (std::size_t i = 0; i < 64; ++i)
+        for (std::size_t i = 0; i < WorldConstants::ALPHAMAP_DIM; ++i)
         {
           // we go line by line and identify contigious blocks in the current line of pixels
           std::vector<std::pair<std::uint8_t, std::size_t>> compression_blocks {};
 
-          auto& cur_block = compression_blocks.emplace_back(std::pair{alphamap[i * 64], 1});
+          auto& cur_block = compression_blocks.emplace_back(std::pair{alphamap[i * WorldConstants::ALPHAMAP_DIM], 1});
 
-          for (std::size_t j = 1; j < 64; ++j)
+          for (std::size_t j = 1; j < WorldConstants::ALPHAMAP_DIM; ++j)
           {
-            std::uint8_t cur_pixel = alphamap[i * 64 + j];
+            std::uint8_t cur_pixel = alphamap[i * WorldConstants::ALPHAMAP_DIM + j];
 
             if (cur_pixel != cur_block.first)
             {
@@ -253,16 +265,16 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
   else
   {
     // convert alpha format from 4096 uncompressed to 2048 uncompressed
-    std::vector<std::array<std::uint8_t, 64 * 64>> temp_layers{};
+    std::vector<std::array<std::uint8_t, WorldConstants::N_PIXELS_PER_ALPHAMAP>> temp_layers{};
     temp_layers.resize(temp_layers.size());
 
-    for (std::size_t i = 0; i < 64 * 64; ++i)
+    for (std::size_t i = 0; i < WorldConstants::N_PIXELS_PER_ALPHAMAP; ++i)
     {
-      std::int32_t a = 255;
+      std::int32_t max_alpha = 255;
 
       for (auto&& [alphamap, temp_alphamap] : future::zip(_alphamap_layers, temp_layers))
       {
-        if (a <= 0) [[unlikely]]
+        if (max_alpha <= 0) [[unlikely]]
         {
           temp_alphamap[i] = 0;
         }
@@ -270,8 +282,8 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
         {
           std::uint8_t pixel = alphamap[i];
 
-          temp_alphamap[i] = MCAL::NormalizeHighresAlpha(pixel * 255, a);
-          a -= pixel;
+          temp_alphamap[i] = MCAL::NormalizeHighresAlpha(pixel * 255, max_alpha);
+          max_alpha -= pixel;
         }
       }
     }
@@ -279,7 +291,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
     // actualy write lowres 2048 alpha
     for (auto& alphamap : temp_layers)
     {
-      for (std::size_t i = 0; i < 2048; ++i)
+      for (std::size_t i = 0; i < WorldConstants::N_BYTES_PER_LOWRES_ALPHA; ++i)
       {
         std::uint8_t nibble_1 = (alphamap[i * 2] & 0xF0) >> 4;
         std::uint8_t nibble_2 = (alphamap[(i * 2) + 1] & 0xF0);
@@ -293,7 +305,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
 
   std::size_t end_pos = buf.Tell();
   std::size_t chunk_size = end_pos - (chunk_pos + 8);
-  header.size = chunk_size;
+  header.size = static_cast<std::uint32_t>(chunk_size);
   buf.Seek(end_pos);
   buf.Write(header);
 }

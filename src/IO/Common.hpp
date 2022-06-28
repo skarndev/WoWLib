@@ -69,6 +69,14 @@ namespace IO::Common
   {
     typedef std::conditional_t<sizeof(T) <= sizeof(std::size_t), T, T const&> InterfaceType;
 
+    DataChunk() = default;
+
+    explicit DataChunk(InterfaceType data_block)
+    {
+      data = data_block;
+      _is_initialized = true;
+    }
+
     void Initialize()
     {
       RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");

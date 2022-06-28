@@ -25,8 +25,8 @@ namespace IO::ADT
         float
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT
         , Common::FourCCEndian::LITTLE
-        , Common::WorldConstants::CHUNKBUFSIZE
-        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
       > _heightmap;
 
     Common::DataArrayChunk
@@ -34,8 +34,8 @@ namespace IO::ADT
         Common::DataStructures::CArgb
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV
         , Common::FourCCEndian::LITTLE
-        , Common::WorldConstants::CHUNKBUFSIZE
-        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
       > _vertex_lighting;
 
     Common::DataArrayChunk
@@ -43,8 +43,8 @@ namespace IO::ADT
         DataStructures::MCCVEntry
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV
         , Common::FourCCEndian::LITTLE
-        , Common::WorldConstants::CHUNKBUFSIZE
-        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
       > _vertex_color;
 
     Common::DataArrayChunk
@@ -52,8 +52,8 @@ namespace IO::ADT
         DataStructures::MCNREntry
         , ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR
         , Common::FourCCEndian::LITTLE
-        , Common::WorldConstants::CHUNKBUFSIZE
-        , Common::WorldConstants::CHUNKBUFSIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
+        , Common::WorldConstants::CHUNK_BUF_SIZE
       > _normals;
 
     Common::DataArrayChunk

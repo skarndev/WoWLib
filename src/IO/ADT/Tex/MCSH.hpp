@@ -3,6 +3,7 @@
 #include <IO/Common.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <IO/ADT/DataStructures.hpp>
+#include <IO/WorldConstants.hpp>
 
 #include <bitset>
 
@@ -17,10 +18,10 @@ namespace IO::ADT
     void Write(Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
-    std::bitset<64 * 64>& Shadowmap() { return _shadowmap; };
+    std::bitset<Common::WorldConstants::N_PIXELS_PER_SHADOWMAP>& Shadowmap() { return _shadowmap; };
 
     [[nodiscard]]
-    std::bitset<64 * 64> const& Shadowmap()const { return _shadowmap; };
+    std::bitset<Common::WorldConstants::N_PIXELS_PER_SHADOWMAP> const& Shadowmap()const { return _shadowmap; };
 
     [[nodiscard]]
     bool IsInitialized() const { return _is_initialized; };
@@ -28,7 +29,7 @@ namespace IO::ADT
     void Initialize() { _is_initialized = true; };
 
   private:
-    std::bitset<64 * 64> _shadowmap;
+    std::bitset<Common::WorldConstants::N_PIXELS_PER_SHADOWMAP> _shadowmap;
     bool _is_initialized = false;
   };
 }
