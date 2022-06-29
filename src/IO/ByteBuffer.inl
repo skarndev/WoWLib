@@ -9,7 +9,7 @@ template
   IO::Common::ByteBuffer::SeekDir seek_dir,
   IO::Common::ByteBuffer::SeekType seek_type
 >
-void IO::Common::ByteBuffer::Seek(std::size_t offset) const
+inline void IO::Common::ByteBuffer::Seek(std::size_t offset) const
 {
   if constexpr (seek_type == SeekType::Absolute)
   {
@@ -41,7 +41,7 @@ void IO::Common::ByteBuffer::Seek(std::size_t offset) const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-const T& IO::Common::ByteBuffer::Peek(std::size_t offset) const
+inline const T& IO::Common::ByteBuffer::Peek(std::size_t offset) const
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= _cur_pos, "Buffer pos overflow.");
   EnsureF(CCodeZones::FILE_IO, _cur_pos + offset + sizeof(T) <= _size, "Requested read larger than EOF.");
@@ -49,7 +49,7 @@ const T& IO::Common::ByteBuffer::Peek(std::size_t offset) const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-const T& IO::Common::ByteBuffer::ReadView() const
+inline const T& IO::Common::ByteBuffer::ReadView() const
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - sizeof(T) >= _cur_pos, "Buffer pos overflow.");
   EnsureF(CCodeZones::FILE_IO, _cur_pos + sizeof(T) <= _size, "Requested read larger than EOF.");
@@ -61,7 +61,7 @@ const T& IO::Common::ByteBuffer::ReadView() const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-T IO::Common::ByteBuffer::Read() const
+inline T IO::Common::ByteBuffer::Read() const
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - sizeof(T) >= _cur_pos, "Buffer pos overflow.");
   EnsureF(CCodeZones::FILE_IO, _cur_pos + sizeof(T) <= _size, "Requested read larger than EOF.");
@@ -73,7 +73,7 @@ T IO::Common::ByteBuffer::Read() const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Read(T& lhs) const
+inline void IO::Common::ByteBuffer::Read(T& lhs) const
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - sizeof(T) >= _cur_pos, "Buffer pos overflow.");
   EnsureF(CCodeZones::FILE_IO, _cur_pos + sizeof(T) <= _size, "Requested read larger than EOF.");
@@ -85,7 +85,7 @@ void IO::Common::ByteBuffer::Read(T& lhs) const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Read(T& lhs, std::size_t offset) const
+inline void IO::Common::ByteBuffer::Read(T& lhs, std::size_t offset) const
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= _size, "Buffer pos overflow.");
   RequireF(CCodeZones::FILE_IO, offset + sizeof(T) <= _size, "Requested read larger than EOF.");
@@ -93,9 +93,10 @@ void IO::Common::ByteBuffer::Read(T& lhs, std::size_t offset) const
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Write(T const& data, std::size_t offset)
+inline void IO::Common::ByteBuffer::Write(T const& data, std::size_t offset)
 {
-  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= sizeof(T), "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - offset >= sizeof(T)
+           , "Buffer size overflow on writing.");
 
   if ((offset + sizeof(T)) > _size)
   {
@@ -106,9 +107,10 @@ void IO::Common::ByteBuffer::Write(T const& data, std::size_t offset)
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::Write(T const& data)
+inline void IO::Common::ByteBuffer::Write(T const& data)
 {
-  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= sizeof(T), "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= sizeof(T)
+           , "Buffer size overflow on writing.");
 
   if ((_cur_pos + sizeof(T)) > _size)
   {
@@ -121,9 +123,10 @@ void IO::Common::ByteBuffer::Write(T const& data)
 }
 
 template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-void IO::Common::ByteBuffer::WriteFill(T const& data, std::size_t n)
+inline void IO::Common::ByteBuffer::WriteFill(T const& data, std::size_t n)
 {
-  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos / sizeof(T) >= n, "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos / sizeof(T) >= n
+           , "Buffer size overflow on writing.");
 
   if ((_cur_pos + sizeof(T) * n) > _size)
   {
@@ -139,9 +142,10 @@ void IO::Common::ByteBuffer::WriteFill(T const& data, std::size_t n)
 
 
 template<IO::Common::ByteBuffer::ReservePolicy reserve_policy>
-void IO::Common::ByteBuffer::Reserve(std::size_t n)
+inline void IO::Common::ByteBuffer::Reserve(std::size_t n)
 {
-  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _size >= n, "Buffer size overflow on attempt to alloc more memory.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _size >= n
+           , "Buffer size overflow on attempt to alloc more memory.");
   InvariantF(CCodeZones::FILE_IO, _is_data_owned, "Attempted reserve on a non-owned buffer.");
 
   if constexpr (reserve_policy == ReservePolicy::Strict)
@@ -165,7 +169,8 @@ void IO::Common::ByteBuffer::Reserve(std::size_t n)
 
       while (new_size < required_at_least)
       {
-        EnsureF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - new_size >= _buf_size, "Buffer size overflow on attempt to alloc more memory.");
+        EnsureF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - new_size >= _buf_size
+                , "Buffer size overflow on attempt to alloc more memory.");
         new_size += _buf_size;
       }
 
@@ -180,14 +185,15 @@ void IO::Common::ByteBuffer::Reserve(std::size_t n)
 }
 
 template<typename T>
-void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::contiguous_iterator<T>
+inline void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::contiguous_iterator<T>
 {
   static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<typename std::iterator_traits<T>::value_type>);
 
   std::size_t size = std::distance(begin, end) * sizeof(typename std::iterator_traits<T>::value_type);
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - size >= _cur_pos, "Read adress overflow");
   RequireF(CCodeZones::FILE_IO, _cur_pos + size <= _size, "Attempted reading past EOF.");
-  RequireF(CCodeZones::FILE_IO, !(size % sizeof(typename std::iterator_traits<T>::value_type)), "Provided size is not evenly divisble by element type.");
+  RequireF(CCodeZones::FILE_IO, !(size % sizeof(typename std::iterator_traits<T>::value_type))
+           , "Provided size is not evenly divisble by element type.");
   RequireF(CCodeZones::FILE_IO, (begin + size) == end, "Out of bounds on target array.");
 
   std::memcpy(&(*begin), _data.get() + _cur_pos, size);
@@ -196,12 +202,13 @@ void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::contiguous
 }
 
 template<typename T>
-void IO::Common::ByteBuffer::Write(T begin, T end) requires std::contiguous_iterator<T>
+inline void IO::Common::ByteBuffer::Write(T begin, T end) requires std::contiguous_iterator<T>
 {
   static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<typename std::iterator_traits<T>::value_type>);
   std::size_t size = std::distance(begin, end) * sizeof(typename std::iterator_traits<T>::value_type);
 
-  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= size, "Buffer size overflow on writing.");
+  RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= size
+           , "Buffer size overflow on writing.");
 
   if ((_cur_pos + size) > _size)
   {

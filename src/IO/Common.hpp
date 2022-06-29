@@ -1,9 +1,11 @@
-#pragma once
+#ifndef IO_COMMON_HPP
+#define IO_COMMON_HPP
 
 #include <IO/ByteBuffer.hpp>
 #include <Utils/Meta/Traits.hpp>
 #include <Validation/Contracts.hpp>
 #include <Validation/Log.hpp>
+#include <Config/CodeZones.hpp>
 #include <unordered_map>
 #include <fstream>
 #include <type_traits>
@@ -11,6 +13,7 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <limits>
 
 namespace IO::Common
 {
@@ -58,6 +61,31 @@ namespace IO::Common
     return {&fourcc_str[0]};
   }
 
+  enum class FileHandlingPolicy
+  {
+    FILENAME = 0,
+    FILEDATA_ID = 1,
+    MIXED = 2
+  };
+
+  enum class ClientVersion
+  {
+    CLASSIC = 0,
+    TBC = 1,
+    WOTLK = 2,
+    CATA = 3,
+    MOP = 4,
+    WOD = 5,
+    LEGION = 6,
+    BFA = 7,
+    SL = 8,
+    DF = 9,
+
+    CLASSIC_NEW = 100,
+    TBC_NEW = 101,
+    WOTLK_NEW = 102
+  };
+
   struct ChunkHeader
   {
     std::uint32_t fourcc;
@@ -71,52 +99,15 @@ namespace IO::Common
 
     DataChunk() = default;
 
-    explicit DataChunk(InterfaceType data_block)
-    {
-      data = data_block;
-      _is_initialized = true;
-    }
+    explicit DataChunk(InterfaceType data_block);
 
-    void Initialize()
-    {
-      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-      std::memset(&data, 0, sizeof(T));
-      _is_initialized = true;
-    };
+    void Initialize();
 
-    void Initialize(InterfaceType data_block)
-    {
-      data = data_block;
-      _is_initialized = true;
-    };
+    void Initialize(InterfaceType data_block);
 
-    void Read(ByteBuffer const& buf, std::size_t size)
-    {
-      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d."
-        , FourCCStr<fourcc, fourcc_reversed>
-        , sizeof(T));
+    void Read(ByteBuffer const& buf, std::size_t size);
 
-      RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)), "Provided size is not the same as the size of underlying structure.");
-
-      buf.Read(data);
-      _is_initialized = true;
-    }
-
-    void Write(ByteBuffer& buf) const
-    {
-      if (!_is_initialized) [[unlikely]]
-        return;
-
-      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d."
-        , FourCCStr<fourcc, fourcc_reversed>
-        , sizeof(T));
-
-      ChunkHeader header{};
-      header.fourcc = fourcc;
-      header.size = sizeof(T);
-
-      buf.Write(data);
-    }
+    void Write(ByteBuffer& buf) const;
 
     [[nodiscard]]
     std::size_t ByteSize() const { return sizeof(T); };
@@ -135,105 +126,25 @@ namespace IO::Common
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
     , FourCCEndian fourcc_reversed = FourCCEndian::LITTLE
-    , std::int64_t size_min = -1
-    , std::int64_t size_max = -1
+    , std::size_t size_min = std::numeric_limits<std::size_t>::max()
+    , std::size_t size_max = std::numeric_limits<std::size_t>::max()
   >
   struct DataArrayChunk
   {
-    using ArrayImplT =  std::conditional_t<size_max == size_min && size_max >= 0
-      , std::array<T, static_cast<std::size_t>(size_max)>, std::vector<T>>;
+    using ArrayImplT =  std::conditional_t<size_max == size_min && size_max < std::numeric_limits<std::size_t>::max()
+      , std::array<T, size_max>, std::vector<T>>;
     using iterator = typename ArrayImplT::iterator;
     using const_iterator = typename ArrayImplT::const_iterator;
 
-    void Initialize() 
-    { 
-      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-      _is_initialized = true;
-    };
+    void Initialize();
 
-    void Initialize(T const& data_block, std::size_t n) 
-    { 
-      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-      RequireF(LCodeZones::FILE_IO, (size_min < 0 || n >= size_min, size_max < 0 || n <= size_max),
-        "Attempted to initialize size-constrained chunk with mismatching size (%d), min: %d, max: %d.", n, size_min, size_max);
+    void Initialize(T const& data_block, std::size_t n);
 
-      if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
-      {
-        _data.resize(n);
-        std::fill(_data.begin(), _data.end(), data_block);
-        _is_initialized = true;
-      }
-      else
-      {
-        RequireF(LCodeZones::FILE_IO, n == _data.size(), "Attempted to initialize static chunk with non-matching size (%d).", n);
-        std::fill(_data.begin(), _data.end(), data_block);
-        _is_initialized = true;
-      }
-    };
+    void Initialize(ArrayImplT const& data_array);
 
-    void Initialize(ArrayImplT const& data_array)
-    {
-      RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-      _data = data_array;
-      _is_initialized = true;
-    }
+    void Read(ByteBuffer const& buf, std::size_t size);
 
-    void Read(ByteBuffer const& buf, std::size_t size)
-    {
-      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d"
-        , FourCCStr<fourcc, fourcc_reversed>
-        , size);
-
-      RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
-        "Provided size is not evenly divisible divisible by the size of underlying structure.");
-
-      std::size_t n_elements;
-
-      if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
-      {
-        n_elements = size / sizeof(T);
-        _data.resize(n_elements);
-      }
-      else
-      {
-        n_elements = _data.size();
-      }
-
-      EnsureF(LCodeZones::FILE_IO, (size_min < 0 || n_elements >= static_cast<std::size_t>(size_min), size_max < 0 ||
-        static_cast<std::size_t>(n_elements) <= size_max),
-        "Expected to read satisfying size constraint (min: %d, max: %d), got size %d instead.", size_min, size_max, n_elements);
-
-      buf.Read(_data.begin(), _data.end());
-
-      _is_initialized = true;
-
-    }
-
-    void Write(ByteBuffer& buf) const
-    {
-      if (!_is_initialized) [[unlikely]]
-        return;
-
-      LogDebugF(LCodeZones::FILE_IO, "Writing array chunk: %s, length: %d, size: %d"
-        , FourCCStr<fourcc, fourcc_reversed>
-        , _data.size()
-        , _data.size() * sizeof(T));
-
-      RequireF(LCodeZones::FILE_IO, (size_min < 0 || _data.size() >= size_min, size_max < 0 || _data.size() <= size_max),
-        "Expected to write chunk with size constraint (min: %d, max : %d), got size %d instead.", size_min, size_max, _data.size());
-
-      ChunkHeader header{};
-      header.fourcc = fourcc;
-      EnsureF(CCodeZones::FILE_IO, (_data.size() * sizeof(T)) <= std::numeric_limits<std::uint32_t>::max(), "Chunk size overflow.");
-      header.size = static_cast<std::uint32_t>(_data.size() * sizeof(T));
-
-      buf.Write(header);
-
-      for (auto& element : _data)
-      {
-        buf.Write(element);
-      }
-    }
+    void Write(ByteBuffer& buf) const;
 
     [[nodiscard]]
     bool IsInitialized() const { return _is_initialized; };
@@ -244,35 +155,17 @@ namespace IO::Common
     [[nodiscard]]
     std::size_t ByteSize() const { return _data.size() * sizeof(T); };
 
-    T& Add() requires (std::is_same_v<ArrayImplT, std::vector<T>>)
-    { 
-      _is_initialized = true;
-      T& ret = _data.emplace_back();
-      std::memset(&ret, 0, sizeof(T));
-      return ret;
-    };
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    T& Add() requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
 
-    void Remove(std::size_t index) requires (std::is_same_v<ArrayImplT, std::vector<T>>)
-    {
-      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector element.");
-      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
-      _data.erase(_data.begin() + index);
-    }
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    void Remove(std::size_t index) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
 
-    void Remove(typename ArrayImplT::iterator& it) requires (std::is_same_v<ArrayImplT, std::vector<T>>)
-    {
-      RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds remove of underlying chunk vector element.");
-      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
-      _data.erase(it);
-    }
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    void Remove(typename ArrayImplT_::iterator& it) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
 
     [[nodiscard]]
-    T& At(std::size_t index) 
-    { 
-      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-      RequireF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
-      return _data[index]; 
-    }
+    T& At(std::size_t index);
 
     [[nodiscard]]
     typename ArrayImplT::const_iterator begin() const { return _data.cbegin(); };
@@ -293,23 +186,43 @@ namespace IO::Common
     typename ArrayImplT::const_iterator cend() const { return _data.cend(); };
 
     [[nodiscard]]
-    T& operator[](std::size_t index)
-    {
-      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-      return _data[index];
-    }
+    T& operator[](std::size_t index);
 
     [[nodiscard]]
-    T const& operator[](std::size_t index) const
-    {
-      RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-      return _data[index];
-    }
-
+    T const& operator[](std::size_t index) const;
 
   private:
     ArrayImplT _data;
     bool _is_initialized = false;
   };
 
+  template
+  <
+     std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed = FourCCEndian::LITTLE
+    , std::size_t size_min = std::numeric_limits<std::size_t>::max()
+    , std::size_t size_max = std::numeric_limits<std::size_t>::max()
+  >
+  struct StringBlockChunk
+  {
+    StringBlockChunk() = default;
+
+    void Initialize();
+
+    void Initialize(std::vector<std::string> const& strings);
+
+    void Read(ByteBuffer const& buf, std::size_t size);
+
+    void Write(ByteBuffer& buf) const;
+
+    [[nodiscard]]
+    std::vector<std::string> const& Data() { return _data; };
+
+  private:
+    bool _is_initialized = false;
+    std::vector<std::string> _data;
+  };
+
 }
+#include <IO/Common.inl>
+#endif // IO_COMMON_HPP

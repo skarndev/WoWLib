@@ -1,16 +1,23 @@
+#pragma once
 #include <IO/ADT/Tex/ADTTex.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
+#include <Config/CodeZones.hpp>
 
-using namespace IO::ADT;
 
-ADTTex::ADTTex(std::uint32_t file_data_id)
+template<IO::Common::FileHandlingPolicy file_policy>
+IO::ADT::ADTTex<file_policy>::ADTTex(std::uint32_t file_data_id)
 : _file_data_id(file_data_id)
 {
   _diffuse_textures.Initialize();
-  _height_textures.Initialize();
+
+  if constexpr (file_policy == Common::FileHandlingPolicy::FILEDATA_ID)
+  {
+    this->_height_textures.Initialize();
+  }
 }
 
-ADTTex::ADTTex(std::uint32_t file_data_id
+template<IO::Common::FileHandlingPolicy file_policy>
+IO::ADT::ADTTex<file_policy>::ADTTex(std::uint32_t file_data_id
                , Common::ByteBuffer const& buf
                , MCAL::AlphaFormat alpha_format
                , std::uint8_t n_alpha_layers
@@ -20,7 +27,8 @@ ADTTex::ADTTex(std::uint32_t file_data_id
   Read(buf, alpha_format, n_alpha_layers, fix_alphamap);
 }
 
-void ADTTex::Read(IO::Common::ByteBuffer const& buf
+template<IO::Common::FileHandlingPolicy file_policy>
+void IO::ADT::ADTTex<file_policy>::Read(IO::Common::ByteBuffer const& buf
                   , MCAL::AlphaFormat alpha_format
                   , std::uint8_t n_alpha_layers
                   , bool fix_alphamap)
@@ -53,7 +61,7 @@ void ADTTex::Read(IO::Common::ByteBuffer const& buf
       }
       case ChunkIdentifiers::ADTTexChunks::MHID:
       {
-        _height_textures.Read(buf, chunk_header.size);
+        this->_height_textures.Read(buf, chunk_header.size);
         break;
       }
       case ChunkIdentifiers::ADTTexChunks::MCNK:
@@ -74,7 +82,8 @@ void ADTTex::Read(IO::Common::ByteBuffer const& buf
  }
 }
 
-MCNKTex::WriteParams ADTTex::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat alpha_format) const
+template<IO::Common::FileHandlingPolicy file_policy>
+IO::ADT::MCNKTex::WriteParams IO::ADT::ADTTex<file_policy>::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat alpha_format) const
 {
   LogDebugF(LCodeZones::FILE_IO, "Writing ADT Tex. Filedata ID: %d.", _file_data_id);
   LogIndentScoped;
@@ -85,12 +94,16 @@ MCNKTex::WriteParams ADTTex::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaForma
   Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
   version.Write(buf);
 
-  InvariantF(CCodeZones::FILE_IO
-             , _height_textures.IsInitialized() ? _diffuse_textures.Size() == _height_textures.Size() : true
-             , "Number of diffuse and height textures must match.");
+  if constexpr (file_policy == Common::FileHandlingPolicy::FILEDATA_ID)
+  {
+    InvariantF(CCodeZones::FILE_IO
+               , this->_height_textures.IsInitialized()
+                 ? _diffuse_textures.Size() == this->_height_textures.Size() : true
+               , "Number of diffuse and height textures must match.");
+  }
 
   _diffuse_textures.Write(buf);
-  _height_textures.Write(buf);
+  this->_height_textures.Write(buf);
 
   for (std::size_t i = 0; i < 256; ++i)
   {

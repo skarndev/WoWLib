@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IO_BYTEBUFFER_HPP
+#define IO_BYTEBUFFER_HPP
 
 #include <Utils/Meta/Concepts.hpp>
 #include <Validation/Contracts.hpp>
@@ -81,15 +82,15 @@ namespace IO::Common
 
     // Peeks into the internal buffer at absolute position and returns read-only view.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    const T& Peek(std::size_t offset) const;
+    [[nodiscard]] const T& Peek(std::size_t offset) const;
 
     // Reads a constant view representation of object at current position in the buffer.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    const T& ReadView() const;
+    [[nodiscard]] const T& ReadView() const;
 
     // Reads object representation from buffer at current position and returns its copy.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
-    T Read() const;
+    [[nodiscard]] T Read() const;
 
     // Reads object representation from buffer to a lhs object starting from current position.
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
@@ -109,6 +110,10 @@ namespace IO::Common
     // Reads n bytes into provided char array starting at current buffer pos
     void Read(char* dest, std::size_t n) const;
 
+    // Read a null terminated string starting at current buffer pos
+    [[nodiscard]]
+    std::string ReadString() const;
+
     // Writes n bytes into associated buffer starting at absolute pos (offset)
     void Write(const char* src, std::size_t n, std::size_t offset);
 
@@ -122,6 +127,9 @@ namespace IO::Common
     // Writes implicit lifetime type T into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data);
+
+    // Writes a null terminated string into associated buffer starting at current buffer pos
+    void WriteString(std::string const& data);
 
     // Writes n implicit lifetime type T objects into associated buffer starting at current buffer pos
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
@@ -153,6 +161,9 @@ namespace IO::Common
     std::unique_ptr<char> _data;
 
   };
+
+
 }
 
 #include <IO/ByteBuffer.inl>
+#endif // IO_BYTEBUFFER_HPP
