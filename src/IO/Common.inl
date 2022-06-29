@@ -295,6 +295,35 @@ namespace IO::Common
     return _data[index];
   }
 
+  template
+  <
+    Utils::Meta::Concepts::PODType T
+    , std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  template<typename..., typename ArrayImplT_>
+  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Clear()
+  requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
+  {
+    _data.clear();
+  }
+
+  template
+  <
+    Utils::Meta::Concepts::PODType T
+    , std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline T const& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::operator[](std::size_t index) const
+  {
+    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
+    return _data[index];
+  }
+
   // StringBlockChunk
   template
   <
@@ -391,4 +420,113 @@ namespace IO::Common
     buf.Write(header);
     buf.Seek(end_pos);
   }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  std::size_t StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::ByteSize() const
+  {
+    std::size_t size = 0;
+
+    for (auto& string : _data)
+    {
+      size += (string.size() + 1);
+    }
+
+    return size;
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  void StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::PushBack(const std::string& string)
+  {
+    _data.push_back(string);
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  void StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::Remove(std::size_t index)
+  {
+    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
+    _data.erase(_data.begin() + index);
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  void StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::Remove(std::vector<std::string>::iterator& it)
+  {
+    RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds removed.");
+    _data.erase(it);
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  void StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::Remove(std::vector<std::string>::const_iterator& it)
+  {
+    RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds removed.");
+    _data.erase(it);
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  void StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::Clear()
+  {
+    _data.clear();
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  std::string const& StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::At(std::size_t index) const
+  {
+    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
+    return _data[index];
+  }
+
+  template
+  <
+    std::uint32_t fourcc
+    , FourCCEndian fourcc_reversed
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  std::string const& StringBlockChunk<fourcc, fourcc_reversed, size_min, size_max>::operator[](std::size_t index) const
+  {
+    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
+    return _data[index];
+  }
+
 }
