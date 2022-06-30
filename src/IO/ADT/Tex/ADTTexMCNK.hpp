@@ -16,25 +16,17 @@ namespace IO::ADT
   class MCNKTex
   {
   public:
-    struct WriteParams
-    {
-      std::uint32_t ofs_layer;
-      std::uint32_t ofs_alpha;
-      std::uint32_t size_alpha;
-      std::uint32_t ofs_shadow;
-    };
 
   public:
     MCNKTex() = default;
 
     void Read(Common::ByteBuffer const& buf
               , std::size_t size
-              , std::uint8_t n_alpha_layers
               , MCAL::AlphaFormat alpha_format
               , bool fix_alphamap);
 
-    WriteParams Write(Common::ByteBuffer& buf
-                      , MCAL::AlphaFormat alpha_format) const;
+    void  Write(Common::ByteBuffer& buf
+                , MCAL::AlphaFormat alpha_format) const;
 
     [[nodiscard]]
     FORCEINLINE bool IsInitialized() const { return true; };

@@ -50,7 +50,7 @@ namespace Validation::Log
     PrintFormattedLine(LOG_MSG_TOKEN);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
+  }
 
   template<typename ... Args>
   FORCEINLINE void impl_LogDebugV(const char* file, int line, const char* func, const char* format, const Args&... args)
@@ -58,7 +58,7 @@ namespace Validation::Log
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN, file, func, line);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
+  }
 
   template<typename ... Args>
   FORCEINLINE void impl_LogDebug(const char* format, const Args&... args)
@@ -66,7 +66,7 @@ namespace Validation::Log
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
+  }
 
   template<typename ... Args>
   FORCEINLINE void impl_LogError(const char* format, const Args&... args)
@@ -74,7 +74,7 @@ namespace Validation::Log
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
+  }
 
   template<typename ... Args>
   FORCEINLINE void impl_LogErrorV(const char* file, int line, const char* func, const char* format, const Args&... args)
@@ -82,7 +82,7 @@ namespace Validation::Log
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN, file, func, line);
     std::printf(format, args...);
     std::cout << std::endl;
-  };
+  }
 
   struct impl_LogLevelScopedSetter
   {
@@ -121,19 +121,21 @@ namespace Validation::Log
   // Basic verbose debug logger 
   #define LogDebugF(FLAGS, ...)  \
     if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0) \
-    {                                                           \
-      Validation::Log::impl_LogDebug(__VA_ARGS__);                  \
-    }
+    {\
+      Validation::Log::impl_LogDebug(__VA_ARGS__);\
+    }\
+    static_assert(true)
 
   // Flagged verbose debug logger
   #define LogDebugV(...) Validation::Log::impl_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__)
   
   // Flagged debug logger
   #define LogDebugVF(FLAGS, ...) \
-  if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0)                       \
-  {                                                                                 \
-    Validation::Log::impl_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__); \
-  }
+  if constexpr ((LOGGING_FLAGS & static_cast<unsigned>(FLAGS)) != 0)\
+  {\
+    Validation::Log::impl_LogDebugV(__FILE__, __LINE__, CURRENT_FUNCTION, __VA_ARGS__);\
+  }\
+  static_assert(true)
 
 #endif
 

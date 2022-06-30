@@ -6,35 +6,20 @@
 using namespace IO::ADT;
 using namespace IO::Common;
 
-MCNKTex::WriteParams MCNKTex::Write(IO::Common::ByteBuffer& buf
-                                    , MCAL::AlphaFormat alpha_format) const
+void MCNKTex::Write(IO::Common::ByteBuffer& buf, MCAL::AlphaFormat alpha_format) const
 {
   InvariantF(CCodeZones::FILE_IO, _alpha_layers.IsInitialized(), "MCLY should be initialized to write TEX MCNK.");
-
-  WriteParams write_params{};
-  write_params.ofs_layer = static_cast<std::uint32_t>(buf.Tell());
   _alpha_layers.Write(buf);
-
-  write_params.ofs_alpha = static_cast<std::uint32_t>(buf.Tell());
   _alphamaps.Write(buf, alpha_format, _alpha_layers);
-  write_params.size_alpha = static_cast<std::uint32_t>(buf.Tell() - write_params.ofs_alpha);
 
   if (_shadowmap.IsInitialized())
   {
-    write_params.ofs_shadow = static_cast<std::uint32_t>(buf.Tell());
     _shadowmap.Write(buf);
   }
-  else
-  {
-    write_params.ofs_shadow = 0;
-  }
-
-  return write_params;
 }
 
 void MCNKTex::Read(IO::Common::ByteBuffer const& buf
                    , std::size_t size
-                   , std::uint8_t n_alpha_layers
                    , MCAL::AlphaFormat alpha_format
                    , bool fix_alphamap)
 {

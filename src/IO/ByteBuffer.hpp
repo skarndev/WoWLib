@@ -66,7 +66,7 @@ namespace IO::Common
 
     // Report if pos is at EOF
     [[nodiscard]]
-    bool IsEof() const { return _cur_pos == _size; };
+    bool IsEof() const;
 
     // Returns true if data is owned by this buffer
     [[nodiscard]]

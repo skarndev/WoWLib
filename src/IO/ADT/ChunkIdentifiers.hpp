@@ -51,7 +51,10 @@ namespace IO::ADT::ChunkIdentifiers
       MTXF = IO::Common::FourCC<"MTXF">,
       MTXP = IO::Common::FourCC<"MTXP">,
       MTCG = IO::Common::FourCC<"MTCG">,
-      MAMP = IO::Common::FourCC<"MAMP">
+      MAMP = IO::Common::FourCC<"MAMP">,
+
+      // older clients
+      MTEX = IO::Common::FourCC<"MTEX">
     };
   }
 

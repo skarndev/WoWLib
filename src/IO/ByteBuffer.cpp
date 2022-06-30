@@ -63,6 +63,12 @@ ByteBuffer::~ByteBuffer()
   }
 }
 
+bool ByteBuffer::IsEof() const
+{
+  InvariantF(CCodeZones::FILE_IO, _cur_pos <= _size, "Current pos is never supposed to be past EOF.");
+  return _cur_pos == _size;
+}
+
 void ByteBuffer::Read(char* dest, std::size_t offset, std::size_t n) const
 {
   RequireF(CCodeZones::FILE_IO, dest != nullptr, "Can't read to nullptr.");

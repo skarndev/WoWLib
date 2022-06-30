@@ -26,7 +26,7 @@ namespace IO::Common
   {
     data = data_block;
     _is_initialized = true;
-  };
+  }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
   inline void DataChunk<T, fourcc, fourcc_reversed>::Read(ByteBuffer const& buf, std::size_t size)
@@ -86,7 +86,7 @@ namespace IO::Common
                                                                                          , std::size_t n)
   {
     InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-    RequireF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || n >= size_min
+    RequireMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || n >= size_min
         , size_max == std::numeric_limits<std::size_t>::max() || n <= size_max),
         "Attempted to initialize size-constrained chunk with mismatching size (%d), min: %d, max: %d."
         , n, size_min, size_max);
@@ -151,7 +151,7 @@ namespace IO::Common
       n_elements = _data.size();
     }
 
-    EnsureF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max()
+    EnsureMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max()
                                   || n_elements >= static_cast<std::size_t>(size_min)
         , size_max == std::numeric_limits<std::size_t>::max()
           || static_cast<std::size_t>(n_elements) <= size_max),
@@ -186,7 +186,7 @@ namespace IO::Common
         "Expected to write chunk with size constraint (min: %d, max : %d), got size %d instead."
         , size_min, size_max, _data.size());
 
-    ChunkHeader header{};
+    ChunkHeader header {};
     header.fourcc = fourcc;
     EnsureF(CCodeZones::FILE_IO, (_data.size() * sizeof(T)) <= std::numeric_limits<std::uint32_t>::max()
             , "Chunk size overflow.");
@@ -310,20 +310,6 @@ namespace IO::Common
     _data.clear();
   }
 
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  inline T const& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::operator[](std::size_t index) const
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-    return _data[index];
-  }
-
   // StringBlockChunk
   template
   <
@@ -373,7 +359,7 @@ namespace IO::Common
       _data.emplace_back(buf.ReadString());
     }
 
-    EnsureF(LCodeZones::FILE_IO
+    EnsureMF(LCodeZones::FILE_IO
             , (size_min == std::numeric_limits<std::size_t>::max()
                || _data.size()  >= static_cast<std::size_t>(size_min)
         , size_max == std::numeric_limits<std::size_t>::max()
@@ -400,7 +386,7 @@ namespace IO::Common
               , FourCCStr<fourcc, fourcc_reversed>
               , _data.size());
 
-    InvariantF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || _data.size() >= size_min
+    InvariantMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || _data.size() >= size_min
         , size_max == std::numeric_limits<std::size_t>::max() || _data.size() <= size_max),
         "Expected to write chunk with size constraint (min: %d, max : %d), got size %d instead."
                , size_min, size_max, _data.size());

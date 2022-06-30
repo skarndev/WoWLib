@@ -161,45 +161,51 @@ namespace Validation::Contracts
   
   // Pre-condition (flagged)
   #define RequireF(FLAGS, EXPR, ...) \
-    if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                    \
-    {                                                                                                                                                        \
+    if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)\
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__));\
-    }
+    }\
+    static_assert(true)
 
   // Pre-condition (multiple conditions, flagged)
   #define RequireMF(FLAGS, EXPR, ...) \
     if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                    \
-    {                                                                                                                                                        \
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Require", __VA_ARGS__));\
-    }
+    }\
+    static_assert(true)
 
   // Post-condition (flagged)
   #define EnsureF(FLAGS, EXPR, ...) \
     if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                    \
-    {                                                                                                                                                        \
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Ensure", __VA_ARGS__)); \
-    }
+    }\
+    static_assert(true)
 
   // Post-condition (multiple conditions, flagged)
   #define EnsureMF(FLAGS, EXPR, ...) \
     if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                    \
-    {                                                                                                                                                        \
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Ensure", __VA_ARGS__)); \
-    }
+    }\
+    static_assert(true)
 
   // Object invariant check (flagged)
   #define InvariantF(FLAGS, EXPR, ...) \
     if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                      \
-    {                                                                                                                                                          \
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract((EXPR), #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__));\
-    }
-  
+    }\
+    static_assert(true)
+
   // Object invariant check (multiple conditions, flagged)
   #define InvariantMF(FLAGS, EXPR, ...) \
     if constexpr ((CONTRACT_FLAGS & FLAGS) != 0)                                                                                                                      \
-    {                                                                                                                                                          \
+    {\
       Validation::Contracts::RaiseAbort(Validation::Contracts::ResolveContract(Utils::Meta::Templates::MakeArray<bool> EXPR, #EXPR, __FILE__, __LINE__, CURRENT_FUNCTION, "Invariant", __VA_ARGS__));\
-    }
+    }\
+    static_assert(true)
 
   // Pre-condition (flagged, expression)
   #define RequireFE(FLAGS, EXPR, ...) \
