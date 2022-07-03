@@ -12,6 +12,7 @@
 
 namespace IO::ADT
 {
+  // Enables support for FileDataID-based storage of textures.
   class ADTTexTextureStorageFDID
   {
   protected:
@@ -19,12 +20,15 @@ namespace IO::ADT
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTTexChunks::MHID> _height_textures;
   };
 
+  // Enables support for filepath-based storage of textures.
   class ADTTexTextureStorageFilepath
   {
   protected:
-    Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTTexChunks::MDID> _diffuse_textures;
+    Common::StringBlockChunk<Common::StringBlockChunkType::NORMAL
+      , ChunkIdentifiers::ADTTexChunks::MTEX> _diffuse_textures;
   };
 
+  // Enables support for texture parameters (scaling / height based blending)
   class ADTTexTextureParameters
   {
   protected:
@@ -32,6 +36,7 @@ namespace IO::ADT
   };
   class ADTTextNoTextureParameters {};
 
+  // Enables support for the color grading feature
   class ADTTexColorGrading
   {
   protected:

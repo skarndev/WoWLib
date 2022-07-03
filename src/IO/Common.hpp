@@ -230,7 +230,7 @@ namespace IO::Common
     // Removes an element by its iterator in the underlying vector. Bounds checks are debug-only, no exceptions.
     // (dynamic size only).
     template<typename..., typename ArrayImplT_ = ArrayImplT>
-    void Remove(typename ArrayImplT_::iterator& it) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
+    void Remove(typename ArrayImplT_::iterator it) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
 
     // Clears the underlying vector (dynamic size only).
     template<typename..., typename ArrayImplT_ = ArrayImplT>
@@ -240,6 +240,9 @@ namespace IO::Common
     // Bounds checks are debug-only. No difference to [] operator.
     [[nodiscard]]
     T& At(std::size_t index);
+
+    [[nodiscard]]
+    T const& At(std::size_t index) const;
 
     [[nodiscard]]
     typename ArrayImplT::const_iterator begin() const { return _data.cbegin(); };
@@ -275,22 +278,38 @@ namespace IO::Common
   /* StringBlockChunk represents a common pattern within WoW files where a chunk is an
      array of 0-terminated strings. It provides similar interface and options to DataArrayChunk.
    */
+
+  enum class StringBlockChunkType
+  {
+    // Simple array of null-terminated strings
+    NORMAL = 0,
+
+    // Offset map of null-terminated strings
+    OFFSET = 1
+  };
+
   template
   <
-     std::uint32_t fourcc
+    StringBlockChunkType type
+    , std::uint32_t fourcc
     , FourCCEndian fourcc_reversed = FourCCEndian::LITTLE
     , std::size_t size_min = std::numeric_limits<std::size_t>::max()
     , std::size_t size_max = std::numeric_limits<std::size_t>::max()
   >
   struct StringBlockChunk
   {
+    using ArrayImplT =  std::conditional_t<type == StringBlockChunkType::NORMAL, std::vector<std::string>
+        , std::vector<std::pair<std::uint32_t, std::string>>>;
+
     StringBlockChunk() = default;
 
     void Initialize();
 
-    void Initialize(std::vector<std::string> const& strings);
+    void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::NORMAL);
+    void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::OFFSET);
 
-    void Read(ByteBuffer const& buf, std::size_t size);
+    void Read(ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::NORMAL);
+    void Read(ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::OFFSET);
 
     void Write(ByteBuffer& buf) const;
 
@@ -313,43 +332,56 @@ namespace IO::Common
     void Remove(std::size_t index);
 
     // Removes an element by its iterator in the underlying vector. Bounds checks are debug-only, no exceptions.
-    void Remove(std::vector<std::string>::iterator& it);
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    void Remove(typename ArrayImplT_::iterator it);
 
     // Removes an element by its iterator in the underlying vector. Bounds checks are debug-only, no exceptions.
-    void Remove(std::vector<std::string>::const_iterator& it);
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    void Remove(typename ArrayImplT_::const_iterator it);
 
     // Clears the underlying vector.
     void Clear();
 
     // Returns reference to the element of the underlying vector by its index.
     // Bounds checks are debug-only. No difference to [] operator.
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
     [[nodiscard]]
-    std::string const& At(std::size_t index) const;
+    typename ArrayImplT_::value_type const& At(std::size_t index) const;
+
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    [[nodiscard]]
+    typename ArrayImplT_::value_type& At(std::size_t index);
 
     [[nodiscard]]
-    typename std::vector<std::string>::const_iterator begin() const { return _data.cbegin(); };
+    typename ArrayImplT::const_iterator begin() const { return _data.cbegin(); };
 
     [[nodiscard]]
-    typename std::vector<std::string>::const_iterator end() const { return _data.cend(); };
+    typename ArrayImplT::const_iterator end() const { return _data.cend(); };
 
     [[nodiscard]]
-    typename std::vector<std::string>::iterator begin() { return _data.begin(); };
+    typename ArrayImplT::iterator begin() { return _data.begin(); };
 
     [[nodiscard]]
-    typename std::vector<std::string>::iterator end() { return _data.end(); };
+    typename ArrayImplT::iterator end() { return _data.end(); };
 
     [[nodiscard]]
-    typename std::vector<std::string>::const_iterator cbegin() const { return _data.cbegin(); };
+    typename ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
 
     [[nodiscard]]
-    typename std::vector<std::string>::const_iterator cend() const { return _data.cend(); };
+    typename ArrayImplT::const_iterator cend() const { return _data.cend(); };
 
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
     [[nodiscard]]
-    std::string const& operator[](std::size_t index) const;
+    typename ArrayImplT_::value_type const& operator[](std::size_t index) const;
+
+    template<typename..., typename ArrayImplT_ = ArrayImplT>
+    [[nodiscard]]
+    typename ArrayImplT_::value_type& operator[](std::size_t index);
+
 
   private:
     bool _is_initialized = false;
-    std::vector<std::string> _data;
+    ArrayImplT _data;
   };
 
 }

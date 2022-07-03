@@ -86,6 +86,12 @@ namespace IO::ADT::ChunkIdentifiers
       MDDF = IO::Common::FourCC<"MDDF">,
       MODF = IO::Common::FourCC<"MODF">,
       MCNK = IO::Common::FourCC<"MCNK">,
+
+      // older clients
+      MMDX = IO::Common::FourCC<"MMDX">,
+      MMID = IO::Common::FourCC<"MMID">,
+      MWMO = IO::Common::FourCC<"MWMO">,
+      MWID = IO::Common::FourCC<"MWID">
     };
   }
 

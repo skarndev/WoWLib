@@ -53,23 +53,36 @@ namespace IO::ADT::DataStructures
       mddf_unk_4 = 0x4,                     // Legion+ᵘ
       mddf_unk_8 = 0x8,                     // Legion+ᵘ
       flag_liquidKnown = 0x20, // Legion+ᵘ
-      mddf_entry_is_filedata_id = 0x40,     // Legion+ᵘ nameId is a file data id to directly load
+      mddf_entry_is_filedata_id = 0x40,     // Legion+ᵘ name_id is a file data id to directly load
       mddf_unk_100 = 0x100,                 // Legion+ᵘ
     };
   }
 
   struct MDDF
   {
-    /*0x00*/  std::uint32_t nameId;              // references an entry in the MMID chunk, specifying the model to use.
+    /*0x00*/  std::uint32_t name_id;              // references an entry in the MMID chunk, specifying the model to use.
                                             // if flag mddf_entry_is_filedata_id is set, a file data id instead, ignoring MMID.
-    /*0x04*/  std::uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map. Blizzard has 
+    /*0x04*/  std::uint32_t unique_id;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map. Blizzard has
                                             // these unique for the whole game.
     /*0x08*/  Common::DataStructures::C3Vector position;           // This is relative to a corner of the map. Subtract 17066 from the non vertical values and you should start to see 
                                             // something that makes sense. You'll then likely have to negate one of the non vertical values in whatever 
                                             // coordinate system you're using to finally move it into place.
     /*0x14*/  Common::DataStructures::C3Vector rotation;           // degrees. This is not the same coordinate system orientation like the ADT itself! (see history.)
     /*0x20*/  std::uint16_t scale;               // 1024 is the default size equaling 1.0f.
-    /*0x22*/  std::uint16_t flags;               // values from enum MDDFFlags.
+    /*0x22*/
+              struct MDDFFlags
+              {
+                std::uint16_t biodome : 1;
+                std::uint16_t shrubbery : 1;
+                std::uint16_t unk_0x4 : 1;
+                std::uint16_t unk_0x8 : 1;
+                std::uint16_t unk_0x10_maybe_unused : 1;
+                std::uint16_t unk_liquid_related_0x20 : 1;
+                std::uint16_t use_filedata_id : 1;
+                std::uint16_t unk_0x80_maybe_unused : 1;
+                std::uint16_t unk_0x100 : 1;
+                std::uint16_t _unused : 7;
+              } flags;
     /*0x24*/
   };
 
@@ -92,7 +105,18 @@ namespace IO::ADT::DataStructures
     /*0x08*/  Common::DataStructures::C3Vector position;
     /*0x14*/  Common::DataStructures::C3Vector rotation;           // same as in MDDF.
     /*0x20*/  Common::DataStructures::CAaBox extents;              // position plus the transformed wmo bounding box. used for defining if they are rendered as well as collision.
-    /*0x38*/  std::uint16_t flags;               // values from enum MODFFlags.
+    /*0x38*/  struct MODFFlags
+              {
+                std::uint16_t destroyable : 1;
+                std::uint16_t use_lod : 1;
+                std::uint16_t has_scale : 1;
+                std::uint16_t use_filedata_id : 1;
+                std::uint16_t unk_0x10_maybe_unused: 1;
+                std::uint16_t unk_0x20_maybe_unused: 1;
+                std::uint16_t unk_0x40_maybe_unused: 1;
+                std::uint16_t use_doodad_set_overrides: 1;
+                std::uint16_t _unused : 8;
+              } flags;             // values from enum MODFFlags.
     /*0x3A*/  std::uint16_t doodadSet;           // which WMO doodad set is used. Traditionally references WMO#MODS_chunk, if modf_use_sets_from_mwds is set, references #MWDR_.28Shadowlands.2B.29
     /*0x3C*/  std::uint16_t nameSet;             // which WMO name set is used. Used for renaming goldshire inn to northshire inn while using the same model.
     /*0x3E*/  std::uint16_t scale;               // Legion+: scale, 1024 means 1 (same as MDDF). Padding in 0.5.3 alpha. 

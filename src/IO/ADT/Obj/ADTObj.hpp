@@ -1,4 +1,6 @@
-#pragma once
+#ifndef IO_ADT_OBJ_ADTOBJ_HPP
+#define  IO_ADT_OBJ_ADTOBJ_HPP
+
 #include <IO/Common.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
@@ -13,11 +15,38 @@ namespace IO::ADT
 {
   enum class ADTObjLodLevel
   {
+    // obj0 file
     NORMAL = 0,
+
+    // obj1 file
     LOD = 1
   };
 
-  class AdtObj0SpecificData
+  // ADT obj0-specific
+
+  // Enables storing textures by filepath
+  class ADTObj0ModelStorageFilepath
+  {
+  protected:
+    Common::StringBlockChunk<Common::StringBlockChunkType::OFFSET
+                              , ChunkIdentifiers::ADTObj0Chunks::MMDX
+                            > _model_filenames;
+
+    Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0Chunks::MMID> _model_filename_offsets;
+
+    Common::StringBlockChunk<Common::StringBlockChunkType::OFFSET
+                              , ChunkIdentifiers::ADTObj0Chunks::MWMO
+                            > _map_object_filenames;
+
+    Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0Chunks::MWID> _map_object_filename_offsets;
+  };
+  class ADTObj0NoModelStorageFilepath {};
+
+  template<Common::ClientVersion client_version>
+  class AdtObj0SpecificData : public std::conditional_t<client_version >= Common::ClientVersion::BFA
+                                                        , ADTObj0NoModelStorageFilepath
+                                                        , ADTObj0ModelStorageFilepath
+                                                       >
   {
   public:
     AdtObj0SpecificData();
@@ -28,8 +57,24 @@ namespace IO::ADT
     std::array<MCNKObj, Common::WorldConstants::CHUNKS_PER_TILE> _chunks;
   };
 
-  class AdtObj1SpecificData
+  // ADT obj-1 specific
+
+  // Enables support for WMO lod batches in obj1
+  class ADTObj1SpecificDataObjLodBatches
   {
+  protected:
+    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _map_object_lod_batches;
+  };
+  class ADTObj1SpecificDataNoObjLodBatches {};
+
+  template<Common::ClientVersion client_version>
+  class AdtObj1SpecificData
+    : public std::conditional_t<client_version >= Common::ClientVersion::SL
+                                , ADTObj1SpecificDataObjLodBatches
+                                , ADTObj1SpecificDataNoObjLodBatches
+                               >
+  {
+  static_assert(client_version >= Common::ClientVersion::LEGION && "Obj1 files are only supported since Legion.");
   public:
     AdtObj1SpecificData();
 
@@ -40,187 +85,99 @@ namespace IO::ADT
     Common::DataArrayChunk<DataStructures::MLDX, ChunkIdentifiers::ADTObj1Chunks::MLDX> _lod_model_extents;
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj1Chunks::MLDL> _lod_model_unknown;
     Common::DataArrayChunk<DataStructures::MLFD, ChunkIdentifiers::ADTObj1Chunks::MLFD> _lod_mapping;
-    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _map_object_lod_batches;
   };
 
-  template<ADTObjLodLevel lod_level>
+  // switch the implementation (obj0 vs obj1)
+  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
+  using LodLevelImpl = std::conditional_t<static_cast<std::uint8_t>(lod_level)
+                                              , AdtObj1SpecificData<client_version>
+                                              , AdtObj0SpecificData<client_version>
+                                             >;
+
+  // Enables support for LOD map object batches (BfA+).
+  class ADTObjWithLodMapObjectBatches
+  {
+  protected:
+    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObjCommonChunks::MLMB> _lod_map_object_batches;
+  };
+  class ADTObjNoLodMapObjectBatches {};
+
+  class ADTObjWithDoodadsetOverrides
+  {
+  protected:
+    Common::DataArrayChunk<std::int16_t, ChunkIdentifiers::ADTObjCommonChunks::MWDS> _wmo_doodadset_overrides;
+    Common::DataArrayChunk<DataStructures::MWDR
+        , ChunkIdentifiers::ADTObjCommonChunks::MWDR
+    > _wmo_doodadset_overrides_ranges;
+  };
+
+  class ADTObjNoDoodadsetOverides {};
+
+
+
+  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
   class ADTObj
-      : public std::conditional_t<static_cast<std::uint8_t>(lod_level), AdtObj1SpecificData, AdtObj0SpecificData>
+      : public LodLevelImpl<client_version, lod_level>
+      , public std::conditional_t<client_version >= Common::ClientVersion::BFA
+                                  , ADTObjWithLodMapObjectBatches
+                                  , ADTObjNoLodMapObjectBatches
+                                 >
+      , public std::conditional_t<client_version >= Common::ClientVersion::SL
+                                  , ADTObjWithDoodadsetOverrides
+                                  , ADTObjNoDoodadsetOverides
+                                >
   {
   public:
     explicit ADTObj(std::uint32_t file_data_id)
-        : std::conditional_t<static_cast<std::uint8_t>(lod_level), AdtObj1SpecificData, AdtObj0SpecificData>()
+        : LodLevelImpl<client_version, lod_level>()
         , _file_data_id(file_data_id)
     {
     };
 
-    void Read(Common::ByteBuffer const& buf, std::size_t size);
+    void Read(Common::ByteBuffer const& buf);
 
     void Write(Common::ByteBuffer& buf) const;
 
-    void GenerateLod(ADTObj<ADTObjLodLevel::NORMAL> const& tile_obj) requires (lod_level == ADTObjLodLevel::LOD);
+    template<Common::ClientVersion client_v>
+    void GenerateLod(ADTObj<client_v, ADTObjLodLevel::NORMAL> const& tile_obj)
+    requires (lod_level == ADTObjLodLevel::LOD);
 
   private:
+    // obj0
+
+    [[nodiscard]]
+    bool ReadObj0SpecificChunk(Common::ByteBuffer& buf
+                               , Common::ChunkHeader const& chunk_header
+                               , std::uint32_t& chunk_counter) requires (lod_level == ADTObjLodLevel::NORMAL);
+
+    void WriteObj0SpecificChunk(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::NORMAL);
+
+    // This method converts MODF/MDDF references to filename offsets into filename indices.
+    void PatchObjectFilenameReferences() requires (lod_level == ADTObjLodLevel::NORMAL);
+
+    // TODO: chunk protocol concepts here
+    template<typename FilepathOffsetStorage, typename FilepathStorage, typename InstanceStorage>
+    void PatchObjectFilenameReferences_detail(FilepathOffsetStorage& offset_storage
+                                              , FilepathStorage& filepath_storage
+                                              , InstanceStorage& instance_storage)
+    requires (lod_level == ADTObjLodLevel::NORMAL);
+
+    // obj1
+
+    [[nodiscard]]
+    bool ReadObj1SpecificChunk(Common::ByteBuffer& buf, Common::ChunkHeader const& chunk_header)
+    requires (lod_level == ADTObjLodLevel::LOD);
+
+    void WriteObj1SpecificChunk(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::LOD);
+
     std::uint32_t _file_data_id;
 
-    // common obj0 & obj1 chunks
-    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObjCommonChunks::MLMB> _lod_map_object_batches;
-    Common::DataArrayChunk<std::int16_t, ChunkIdentifiers::ADTObjCommonChunks::MWDS> _wmo_doodadset_overrides;
-    Common::DataArrayChunk<DataStructures::MWDR, ChunkIdentifiers::ADTObjCommonChunks::MWDR> _wmo_doodadset_overrides_ranges;
   };
 
-  // impl
-
-  template<ADTObjLodLevel lod_level>
-  inline void ADTObj<lod_level>::Read(IO::Common::ByteBuffer const& buf, std::size_t size)
-  {
-    LogDebugF(LCodeZones::FILE_IO, "Reading ADT Obj%d. Filedata ID: %d."
-              , static_cast<std::uint8_t>(lod_level), _file_data_id);
-    LogIndentScoped;
-
-    RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
-    RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-
-    std::size_t chunk_counter = 0;
-
-    while (!buf.IsEof())
-    {
-      auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
-
-      switch (chunk_header.fourcc)
-      {
-        case ChunkIdentifiers::ADTCommonChunks::MVER:
-        {
-          Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
-          version.Read(buf, chunk_header.size);
-          continue;
-        }
-        case ChunkIdentifiers::ADTObjCommonChunks::MWDR:
-          _wmo_doodadset_overrides_ranges.Read(buf, chunk_header.size);
-          continue;
-        case ChunkIdentifiers::ADTObjCommonChunks::MWDS:
-          _wmo_doodadset_overrides.Read(buf, chunk_header.size);
-          continue;
-        case ChunkIdentifiers::ADTObjCommonChunks::MLMB:
-          _lod_map_object_batches.Read(buf, chunk_header.size);
-          continue;
-      }
-
-      // handle the obj0-specific stuff here
-      if constexpr(lod_level == ADTObjLodLevel::NORMAL)
-      {
-        switch (chunk_header.fourcc)
-        {
-          case ChunkIdentifiers::ADTObj0Chunks::MCNK:
-            LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCNK (obj0) (%d / 255), size: %d."
-                      , chunk_counter, chunk_header.size);
-            this->_chunks[chunk_counter++].Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj0Chunks::MDDF:
-            this->_model_placements.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj0Chunks::MODF:
-            this->_map_object_placements.Read(buf, chunk_header.size);
-            break;
-          default:
-            buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
-            LogError("Encountered unknown ADT Obj0 chunk %s.", Common::FourCCToStr(chunk_header.fourcc).c_str());
-            break;
-        }
-      }
-      else
-      // handle the obj1-specific stuff here
-      {
-        switch (chunk_header.fourcc)
-        {
-          case ChunkIdentifiers::ADTObj1Chunks::MLMD:
-            this->_lod_map_object_placements.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLMX:
-            this->_lod_map_object_extents.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLDD:
-            this->_lod_model_placements.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLDX:
-            this->_lod_model_extents.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLDL:
-            this->_lod_model_unknown.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLFD:
-            this->_lod_mapping.Read(buf, chunk_header.size);
-            break;
-          case ChunkIdentifiers::ADTObj1Chunks::MLDB:
-            this->_map_object_lod_batches.Read(buf, chunk_header.size);
-            break;
-          default:
-            buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
-            LogError("Encountered unknown ADT Obj1 chunk %s.", Common::FourCCToStr(chunk_header.fourcc).c_str());
-            break;
-        }
-      }
-    }
-
-    EnsureF(CCodeZones::FILE_IO
-           , (lod_level == ADTObjLodLevel::NORMAL && chunk_counter == Common::WorldConstants::CHUNKS_PER_TILE)
-           || lod_level == ADTObjLodLevel::LOD, "Expected to read exactly 256 chunks, got %d.", chunk_counter);
-  }
-
-  template<ADTObjLodLevel lod_level>
-  inline void ADTObj<lod_level>::Write(Common::ByteBuffer& buf) const
-  {
-    LogDebugF(LCodeZones::FILE_IO, "Writing ADT Obj%d. Filedata ID: %d"
-              , static_cast<std::uint8_t>(lod_level), _file_data_id);
-    LogIndentScoped;
-
-    Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
-    version.Write(buf);
-
-    // handle obj0 specific chunks
-    if constexpr (lod_level == ADTObjLodLevel::NORMAL)
-    {
-      for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
-      {
-        LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
-        this->_chunks.Write(buf);
-      }
-
-      InvariantF(CCodeZones::FILE_IO
-                 , this->_model_placements.IsInitialized() && this->_map_object_placements.IsInitialized()
-                 , "Model and map object placements must be initialized.");
-
-      this->_model_placements.Write(buf);
-      this->_map_object_placements.Write(buf);
-    }
-    // handle obj1 specific chunks
-    else
-    {
-      // TODO: invariant validation here is needed
-      this->_lod_map_object_placements.Write(buf);
-      this->_lod_map_object_extents.Write(buf);
-      this->_lod_model_placements.Write(buf);
-      this->_lod_model_extents.Write(buf);
-      this->_lod_model_unknown.Write(buf);
-      this->_lod_mapping.Write(buf);
-      this->_map_object_lod_batches.Write(buf);
-    }
-
-    // handle other common chunks
-    _wmo_doodadset_overrides_ranges.Write(buf);
-    _wmo_doodadset_overrides.Write(buf);
-    _lod_map_object_batches.Write(buf);
-
-  }
-
-  template<ADTObjLodLevel lod_level>
-  inline void ADTObj<lod_level>::GenerateLod(ADTObj<ADTObjLodLevel::NORMAL> const& tile_obj)
-  requires (lod_level == ADTObjLodLevel::LOD)
-  {
-    // TODO: generate LOD data here
-  }
+#include <IO/ADT/Obj/ADTObj.inl>
 
 }
 
+#endif //  IO_ADT_OBJ_ADTOBJ_HPP
 
 
