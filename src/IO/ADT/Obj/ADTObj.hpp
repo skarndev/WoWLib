@@ -43,9 +43,9 @@ namespace IO::ADT
   class ADTObj0NoModelStorageFilepath {};
 
   template<Common::ClientVersion client_version>
-  class AdtObj0SpecificData : public std::conditional_t<client_version >= Common::ClientVersion::BFA
-                                                        , ADTObj0NoModelStorageFilepath
+  class AdtObj0SpecificData : public std::conditional_t<client_version < Common::ClientVersion::BFA
                                                         , ADTObj0ModelStorageFilepath
+                                                        , ADTObj0NoModelStorageFilepath
                                                        >
   {
   public:
@@ -60,18 +60,18 @@ namespace IO::ADT
   // ADT obj-1 specific
 
   // Enables support for WMO lod batches in obj1
-  class ADTObj1SpecificDataObjLodBatches
+  class ADTObj1SpecificDataDoodadLodBatches
   {
   protected:
-    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _map_object_lod_batches;
+    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _model_lod_batches;
   };
-  class ADTObj1SpecificDataNoObjLodBatches {};
+  class ADTObj1SpecificDataNoDoodadLodBatches {};
 
   template<Common::ClientVersion client_version>
   class AdtObj1SpecificData
     : public std::conditional_t<client_version >= Common::ClientVersion::SL
-                                , ADTObj1SpecificDataObjLodBatches
-                                , ADTObj1SpecificDataNoObjLodBatches
+                                , ADTObj1SpecificDataDoodadLodBatches
+                                , ADTObj1SpecificDataNoDoodadLodBatches
                                >
   {
   static_assert(client_version >= Common::ClientVersion::LEGION && "Obj1 files are only supported since Legion.");
@@ -150,7 +150,7 @@ namespace IO::ADT
                                , Common::ChunkHeader const& chunk_header
                                , std::uint32_t& chunk_counter) requires (lod_level == ADTObjLodLevel::NORMAL);
 
-    void WriteObj0SpecificChunk(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::NORMAL);
+    void WriteObj0SpecificChunks(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::NORMAL);
 
     // This method converts MODF/MDDF references to filename offsets into filename indices.
     void PatchObjectFilenameReferences() requires (lod_level == ADTObjLodLevel::NORMAL);
@@ -168,7 +168,7 @@ namespace IO::ADT
     bool ReadObj1SpecificChunk(Common::ByteBuffer& buf, Common::ChunkHeader const& chunk_header)
     requires (lod_level == ADTObjLodLevel::LOD);
 
-    void WriteObj1SpecificChunk(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::LOD);
+    void WriteObj1SpecificChunks(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::LOD);
 
     std::uint32_t _file_data_id;
 

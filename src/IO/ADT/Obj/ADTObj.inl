@@ -97,37 +97,21 @@ namespace IO::ADT
     // handle obj0 specific chunks
     if constexpr (lod_level == ADTObjLodLevel::NORMAL)
     {
-      for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
-      {
-        LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
-        this->_chunks.Write(buf);
-      }
-
-      InvariantF(CCodeZones::FILE_IO
-                 , this->_model_placements.IsInitialized() && this->_map_object_placements.IsInitialized()
-                 , "Model and map object placements must be initialized.");
-
-      this->_model_placements.Write(buf);
-      this->_map_object_placements.Write(buf);
+      WriteObj0SpecificChunks(buf);
     }
       // handle obj1 specific chunks
     else
     {
-      // TODO: invariant validation here is needed
-      this->_lod_map_object_placements.Write(buf);
-      this->_lod_map_object_extents.Write(buf);
-      this->_lod_model_placements.Write(buf);
-      this->_lod_model_extents.Write(buf);
-      this->_lod_model_unknown.Write(buf);
-      this->_lod_mapping.Write(buf);
-      this->_map_object_lod_batches.Write(buf);
+      WriteObj1SpecificChunks(buf);
     }
 
     // handle other common chunks
-    _wmo_doodadset_overrides_ranges.Write(buf);
-    _wmo_doodadset_overrides.Write(buf);
-    _lod_map_object_batches.Write(buf);
-
+    if constexpr(client_version >= Common::ClientVersion::SL)
+    {
+      this->_wmo_doodadset_overrides_ranges.Write(buf);
+      this->_wmo_doodadset_overrides.Write(buf);
+      this->_lod_map_object_batches.Write(buf);
+    }
   }
 
 
@@ -176,10 +160,44 @@ namespace IO::ADT
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline void ADTObj<client_version, lod_level>::WriteObj0SpecificChunk(Common::ByteBuffer& buf) const
+  inline void ADTObj<client_version, lod_level>::WriteObj0SpecificChunks(Common::ByteBuffer& buf) const
   requires (lod_level == ADTObjLodLevel::NORMAL)
   {
+    if constexpr (client_version < Common::ClientVersion::BFA)
+    {
+      // contracts
+      {
+        InvariantF(CCodeZones::FILE_IO, this->_model_filename_offsets.IsInitialized()
+                                        && this->_model_filenames.IsInitialized()
+                                        && this->_map_object_filename_offsets.IsInitialized()
+                                        && this->_map_object_filenames.IsInitialized()
+                   , "Essential chunks MMDX, MMID, MWMO, MWID are not initialized.");
 
+        InvariantF(CCodeZones::FILE_IO, this->_model_filename_offsets.Size() == this->_model_filenames.Size()
+                                        && this->_map_object_filename_offsets.Size() == this->_map_object_filenames.Size()
+                   , "Filename storage should match with offsets map in size.");
+
+
+        InvariantF(CCodeZones::FILE_IO
+                   , this->_model_placements.IsInitialized() && this->_map_object_placements.IsInitialized()
+                   , "Model and map object placements must be initialized.");
+
+      }
+
+      this->_model_filenames.Write(buf);
+      this->_model_filename_offsets.Write(buf);
+      this->_map_object_filenames.Write(buf);
+      this->_map_object_filename_offsets.Write(buf);
+    }
+
+    this->_model_placements.Write(buf);
+    this->_map_object_placements.Write(buf);
+
+    for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
+    {
+      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
+      this->_chunks[i].Write(buf);
+    }
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
@@ -222,10 +240,31 @@ namespace IO::ADT
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  void ADTObj<client_version, lod_level>::WriteObj1SpecificChunk(Common::ByteBuffer& buf) const
+  void ADTObj<client_version, lod_level>::WriteObj1SpecificChunks(Common::ByteBuffer& buf) const
   requires (lod_level == ADTObjLodLevel::LOD)
   {
+    InvariantF(CCodeZones::FILE_IO, this->_lod_map_object_placements.IsInitialized()
+                                    && this->_lod_map_object_extents.IsInitialized()
+                                    && this->_lod_model_placements.IsInitialized()
+                                    && this->_lod_model_extents.IsInitialized()
+                                    && this->_lod_mapping.IsInitialized()
+              , "Essential chunk(s) not initialized.");
 
+    this->_lod_map_object_placements.Write(buf);
+    this->_lod_map_object_extents.Write(buf);
+    this->_lod_model_placements.Write(buf);
+    this->_lod_model_extents.Write(buf);
+    this->_lod_mapping.Write(buf);
+
+    if (this->_lod_model_unknown.IsInitialized())
+    {
+      this->_lod_model_unknown.Write(buf);
+    }
+
+    if constexpr (client_version >= Common::ClientVersion::SL)
+    {
+      this->_model_lod_batches.Write(buf);
+    }
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
