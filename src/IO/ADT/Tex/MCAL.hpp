@@ -47,11 +47,11 @@ namespace IO::ADT
                , AlphaFormat format
                , Common::DataArrayChunk
                   <
-                      DataStructures::SMLayer
-                      , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                      , Common::FourCCEndian::LITTLE
-                      , 0
-                      , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
+                    DataStructures::SMLayer
+                    , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+                    , Common::FourCCEndian::LITTLE
+                    , 0
+                    , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                   > const& alpha_layer_params) const;
 
     // access interface
@@ -84,7 +84,7 @@ namespace IO::ADT
     Alphamaps::const_iterator cbegin() const { return _alphamap_layers.cbegin(); };
 
     [[nodiscard]]
-    Alphamaps ::const_iterator cend() const { return _alphamap_layers.cend(); };
+    Alphamaps::const_iterator cend() const { return _alphamap_layers.cend(); };
 
     [[nodiscard]]
     Alphamap& operator[](std::size_t index);

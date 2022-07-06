@@ -298,7 +298,7 @@ namespace IO::Common
   >
   struct StringBlockChunk
   {
-    using ArrayImplT =  std::conditional_t<type == StringBlockChunkType::NORMAL, std::vector<std::string>
+    using ArrayImplT = std::conditional_t<type == StringBlockChunkType::NORMAL, std::vector<std::string>
         , std::vector<std::pair<std::uint32_t, std::string>>>;
 
     StringBlockChunk() = default;
@@ -326,7 +326,8 @@ namespace IO::Common
     std::size_t ByteSize() const;
 
     // Pushes a string to the end of the underlying vector
-    void PushBack(std::string const& string);
+    // Ensures uniqueness for the offset map variant
+    void Add(std::string const& string);
 
     // Removes an element by its index in the underlying vector. Bounds checks are debug-only, no exceptions.
     void Remove(std::size_t index);

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IO_ADT_ROOT_ADTROOT_HPP
+#define IO_ADT_ROOT_ADTROOT_HPP
 #include <IO/Common.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/Root/ADTRootMCNK.hpp>
@@ -9,7 +10,21 @@
 
 namespace IO::ADT
 {
-  class ADTRoot 
+  class ADTRootWithBlendMeshes
+  {
+  protected:
+    Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
+    Common::DataArrayChunk<DataStructures::MBBB, ChunkIdentifiers::ADTRootChunks::MBBB> _blend_mesh_bounding_boxes;
+    Common::DataArrayChunk<DataStructures::MBNV, ChunkIdentifiers::ADTRootChunks::MBNV> _blend_mesh_vertices;
+    Common::DataArrayChunk<std::uint16_t, ChunkIdentifiers::ADTRootChunks::MBMI> _blend_mesh_indices;
+  };
+  class ADTRootNoBlendMeshes {};
+
+  template<Common::ClientVersion client_version>
+  class ADTRoot : public std::conditional_t<client_version >= Common::ClientVersion::MOP
+                                            , ADTRootWithBlendMeshes
+                                            , ADTRootNoBlendMeshes
+                                           >
   {
   public:
     ADTRoot(std::uint32_t file_data_id);
@@ -24,14 +39,15 @@ namespace IO::ADT
   private:
     std::uint32_t _file_data_id;
 
-    std::array<MCNKRoot, 256> _chunks;
+    std::array<MCNKRoot<client_version>, 256> _chunks;
     MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
-    Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
-    Common::DataArrayChunk<DataStructures::MBBB, ChunkIdentifiers::ADTRootChunks::MBBB> _blend_mesh_bounding_boxes;
-    Common::DataArrayChunk<DataStructures::MBNV, ChunkIdentifiers::ADTRootChunks::MBNV> _blend_mesh_vertices;
-    Common::DataArrayChunk<std::uint16_t, ChunkIdentifiers::ADTRootChunks::MBMI> _blend_mesh_indices;
+
   };
 
 
 }
+
+#include <IO/ADT/Root/ADTRoot.hpp>
+
+#endif // IO_ADT_ROOT_ADTROOT_HPP

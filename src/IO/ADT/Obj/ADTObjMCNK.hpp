@@ -12,7 +12,7 @@ namespace IO::ADT
     MCNKObj() = default;
 
     void Read(Common::ByteBuffer const& buf, std::size_t size);
-    void Write(Common::ByteBuffer& buf);
+    void Write(Common::ByteBuffer& buf) const;
 
   private:
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0MCNKSubchunks::MCRD> _model_references;

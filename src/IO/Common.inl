@@ -436,7 +436,8 @@ namespace IO::Common
 
     while (buf.Tell() != end_pos)
     {
-      _data.emplace_back(std::pair<std::uint32_t, std::string>{buf.Tell() - start_pos, buf.ReadString()});
+      _data.emplace_back(std::pair<std::uint32_t, std::string>{static_cast<std::uint32_t>(buf.Tell() - start_pos)
+                                                               , buf.ReadString()});
     }
 
     EnsureMF(LCodeZones::FILE_IO
@@ -538,11 +539,16 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::PushBack(const std::string& string)
+  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Add(const std::string& string)
   {
-
     if constexpr (type == StringBlockChunkType::NORMAL)
     {
+      // ensure we do not add the same string more than once
+      if (std::find(_data.begin(), _data.end(), string) != _data.end())
+      {
+        return;
+      }
+
       _data.push_back(string);
     }
     else
@@ -553,6 +559,13 @@ namespace IO::Common
       }
       else
       {
+        // ensure we do not add the same string more than once
+        if (std::find_if(_data.begin(), _data.end(), [string](auto const& str) -> bool { return str == string; })
+          != _data.end())
+        {
+          return;
+        }
+
         _data.emplace_back(std::pair<std::uint32_t, std::string>
               {_data.back().first + _data.back().second.size() + 1, string}
             );

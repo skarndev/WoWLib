@@ -100,8 +100,8 @@ namespace IO::ADT::DataStructures
 
   struct MODF
   {
-    /*0x00*/  std::uint32_t nameId;              // references an entry in the MWID chunk, specifying the model to use.
-    /*0x04*/  std::uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map.
+    /*0x00*/  std::uint32_t name_id;              // references an entry in the MWID chunk, specifying the model to use.
+    /*0x04*/  std::uint32_t unique_id;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map.
     /*0x08*/  Common::DataStructures::C3Vector position;
     /*0x14*/  Common::DataStructures::C3Vector rotation;           // same as in MDDF.
     /*0x20*/  Common::DataStructures::CAaBox extents;              // position plus the transformed wmo bounding box. used for defining if they are rendered as well as collision.

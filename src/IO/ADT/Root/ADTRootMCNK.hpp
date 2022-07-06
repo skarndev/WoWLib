@@ -1,4 +1,6 @@
-#pragma once
+#ifndef IO_ADT_ROOT_ADTROOTMCNK_HPP
+#define IO_ADT_ROOT_ADTROOTMCNK_HPP
+
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <IO/WorldConstants.hpp>
@@ -7,7 +9,26 @@
 
 namespace IO::ADT
 {
-  class MCNKRoot
+  class MCNKRootWithBlendBatches
+  {
+  protected:
+    Common::DataArrayChunk
+      <
+        DataStructures::MCBB
+        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB
+        , Common::FourCCEndian::LITTLE
+        , 0
+        , 256
+      > _blend_batches;
+  };
+
+  class MCNKRootNoBlendBatches {};
+
+  template<Common::ClientVersion client_version>
+  class MCNKRoot : public std::conditional_t<client_version >= Common::ClientVersion::MOP
+                                              , MCNKRootWithBlendBatches
+                                              , MCNKRootNoBlendBatches
+                                             >
   {
   public:
     MCNKRoot();
@@ -56,15 +77,6 @@ namespace IO::ADT
         , Common::WorldConstants::CHUNK_BUF_SIZE
       > _normals;
 
-    Common::DataArrayChunk
-      <
-        DataStructures::MCBB
-        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB
-        , Common::FourCCEndian::LITTLE
-        , 0
-        , 256
-      > _blend_batches;
-
     Common::DataChunk<DataStructures::MCLQ, ChunkIdentifiers::ADTRootMCNKSubchunks::MCLQ> _tbc_water;
     Common::DataArrayChunk<DataStructures::MCSE, ChunkIdentifiers::ADTRootMCNKSubchunks::MCSE> _sound_emitters;
     Common::DataChunk<std::uint64_t, ChunkIdentifiers::ADTRootMCNKSubchunks::MCDD> _groundeffect_disable;
@@ -81,11 +93,22 @@ namespace IO::ADT
     [[nodiscard]] FORCEINLINE auto const& VertexColor() const { return _vertex_color; };
 
     [[nodiscard]] FORCEINLINE auto& Normals() { return _normals; };
-    [[nodiscard]] FORCEINLINE auto const& Normalsr() const { return _normals; };
+    [[nodiscard]] FORCEINLINE auto const& Normals() const { return _normals; };
 
-    [[nodiscard]] FORCEINLINE auto& BlendBatches() { return _blend_batches; };
-    [[nodiscard]] FORCEINLINE auto const& BlendBatches() const { return _blend_batches; };
+    [[nodiscard]] FORCEINLINE auto& BlendBatches() requires (client_version >= Common::ClientVersion::MOP)
+    {
+      return this->_blend_batches;
+    };
+
+    [[nodiscard]] FORCEINLINE auto const& BlendBatches() const requires (client_version >= Common::ClientVersion::MOP)
+    {
+      return this->_blend_batches;
+    };
 
 
   };
 }
+
+#include <IO/ADT/Root/ADTRootMCNK.hpp>
+
+#endif // IO_ADT_ROOT_ADTROOTMCNK_HPP

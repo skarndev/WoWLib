@@ -59,11 +59,11 @@ namespace IO::ADT
 
   // ADT obj-1 specific
 
-  // Enables support for WMO lod batches in obj1
+  // Enables support for model lod batches in obj1
   class ADTObj1SpecificDataDoodadLodBatches
   {
   protected:
-    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _model_lod_batches;
+    Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _lod_model_batches;
   };
   class ADTObj1SpecificDataNoDoodadLodBatches {};
 
@@ -127,6 +127,7 @@ namespace IO::ADT
                                   , ADTObjNoDoodadsetOverides
                                 >
   {
+  static_assert(client_version >= Common::ClientVersion::CATA && "Split files did not exist before Cataclysm.");
   public:
     explicit ADTObj(std::uint32_t file_data_id)
         : LodLevelImpl<client_version, lod_level>()
@@ -146,7 +147,7 @@ namespace IO::ADT
     // obj0
 
     [[nodiscard]]
-    bool ReadObj0SpecificChunk(Common::ByteBuffer& buf
+    bool ReadObj0SpecificChunk(Common::ByteBuffer const& buf
                                , Common::ChunkHeader const& chunk_header
                                , std::uint32_t& chunk_counter) requires (lod_level == ADTObjLodLevel::NORMAL);
 
@@ -165,7 +166,7 @@ namespace IO::ADT
     // obj1
 
     [[nodiscard]]
-    bool ReadObj1SpecificChunk(Common::ByteBuffer& buf, Common::ChunkHeader const& chunk_header)
+    bool ReadObj1SpecificChunk(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
     requires (lod_level == ADTObjLodLevel::LOD);
 
     void WriteObj1SpecificChunks(Common::ByteBuffer& buf) const requires (lod_level == ADTObjLodLevel::LOD);
@@ -173,11 +174,8 @@ namespace IO::ADT
     std::uint32_t _file_data_id;
 
   };
-
-#include <IO/ADT/Obj/ADTObj.inl>
-
 }
-
+#include <IO/ADT/Obj/ADTObj.inl>
 #endif //  IO_ADT_OBJ_ADTOBJ_HPP
 
 

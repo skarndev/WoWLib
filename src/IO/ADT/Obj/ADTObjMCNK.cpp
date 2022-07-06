@@ -28,7 +28,7 @@ void MCNKObj::Read(IO::Common::ByteBuffer const& buf, std::size_t size)
   }
 }
 
-void MCNKObj::Write(IO::Common::ByteBuffer& buf)
+void MCNKObj::Write(IO::Common::ByteBuffer& buf) const
 {
   InvariantF(CCodeZones::FILE_IO, _model_references.IsInitialized() && _map_object_references.IsInitialized()
            , "Model and map objects references must be initialized");

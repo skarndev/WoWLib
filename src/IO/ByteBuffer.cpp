@@ -124,7 +124,7 @@ void ByteBuffer::Flush(std::ostream& stream) const
 }
 
 
-inline void IO::Common::ByteBuffer::WriteString(std::string const& data)
+void ByteBuffer::WriteString(std::string const& data)
 {
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - _cur_pos >= data.size() + 1
            , "Buffer size overflow on writing.");

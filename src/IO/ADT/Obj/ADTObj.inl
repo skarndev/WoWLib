@@ -116,7 +116,7 @@ namespace IO::ADT
 
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline bool ADTObj<client_version, lod_level>::ReadObj0SpecificChunk(Common::ByteBuffer& buf
+  inline bool ADTObj<client_version, lod_level>::ReadObj0SpecificChunk(Common::ByteBuffer const& buf
                                                            , Common::ChunkHeader const& chunk_header
                                                            , std::uint32_t& chunk_counter)
   requires (lod_level == ADTObjLodLevel::NORMAL)
@@ -174,7 +174,7 @@ namespace IO::ADT
                    , "Essential chunks MMDX, MMID, MWMO, MWID are not initialized.");
 
         InvariantF(CCodeZones::FILE_IO, this->_model_filename_offsets.Size() == this->_model_filenames.Size()
-                                        && this->_map_object_filename_offsets.Size() == this->_map_object_filenames.Size()
+                   && this->_map_object_filename_offsets.Size()== this->_map_object_filenames.Size()
                    , "Filename storage should match with offsets map in size.");
 
 
@@ -201,7 +201,7 @@ namespace IO::ADT
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline bool ADTObj<client_version, lod_level>::ReadObj1SpecificChunk(Common::ByteBuffer& buf
+  inline bool ADTObj<client_version, lod_level>::ReadObj1SpecificChunk(Common::ByteBuffer const& buf
                                                                        , Common::ChunkHeader const& chunk_header)
   requires (lod_level == ADTObjLodLevel::LOD)
   {
@@ -231,7 +231,7 @@ namespace IO::ADT
     {
       if (chunk_header.fourcc == ChunkIdentifiers::ADTObj1Chunks::MLDB)
       {
-        this->_map_object_lod_batches.Read(buf, chunk_header.size);
+        this->_lod_model_batches.Read(buf, chunk_header.size);
         return true;
       }
     }
@@ -263,7 +263,7 @@ namespace IO::ADT
 
     if constexpr (client_version >= Common::ClientVersion::SL)
     {
-      this->_model_lod_batches.Write(buf);
+      this->_lod_model_batches.Write(buf);
     }
   }
 
@@ -321,7 +321,7 @@ namespace IO::ADT
                                , [offset](auto& pair) -> bool { return pair.first == offset; });
 
         EnsureF(CCodeZones::FILE_IO, it != filepath_storage.cend(), "Offset referenced not found. Corrupted file.");
-        model_placement.name_id = std::distance(filepath_storage.cbegin(), it);
+        model_placement.name_id = static_cast<std::uint32_t>(std::distance(filepath_storage.cbegin(), it));
       }
     }
   }
