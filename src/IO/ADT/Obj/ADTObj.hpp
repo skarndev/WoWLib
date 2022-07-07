@@ -1,5 +1,5 @@
 #ifndef IO_ADT_OBJ_ADTOBJ_HPP
-#define  IO_ADT_OBJ_ADTOBJ_HPP
+#define IO_ADT_OBJ_ADTOBJ_HPP
 
 #include <IO/Common.hpp>
 #include <IO/ADT/DataStructures.hpp>
@@ -145,7 +145,6 @@ namespace IO::ADT
 
   private:
     // obj0
-
     [[nodiscard]]
     bool ReadObj0SpecificChunk(Common::ByteBuffer const& buf
                                , Common::ChunkHeader const& chunk_header
@@ -157,14 +156,15 @@ namespace IO::ADT
     void PatchObjectFilenameReferences() requires (lod_level == ADTObjLodLevel::NORMAL);
 
     // TODO: chunk protocol concepts here
-    template<typename FilepathOffsetStorage, typename FilepathStorage, typename InstanceStorage>
+    template<Common::Concepts::DataArrayChunkProtocol FilepathOffsetStorage
+        , Common::Concepts::StringBlockChunkProtocol FilepathStorage
+        , Common::Concepts::DataArrayChunkProtocol InstanceStorage>
     void PatchObjectFilenameReferences_detail(FilepathOffsetStorage& offset_storage
                                               , FilepathStorage& filepath_storage
                                               , InstanceStorage& instance_storage)
     requires (lod_level == ADTObjLodLevel::NORMAL);
 
     // obj1
-
     [[nodiscard]]
     bool ReadObj1SpecificChunk(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
     requires (lod_level == ADTObjLodLevel::LOD);
@@ -176,6 +176,6 @@ namespace IO::ADT
   };
 }
 #include <IO/ADT/Obj/ADTObj.inl>
-#endif //  IO_ADT_OBJ_ADTOBJ_HPP
+#endif // IO_ADT_OBJ_ADTOBJ_HPP
 
 

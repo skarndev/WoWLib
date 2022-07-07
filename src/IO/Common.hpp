@@ -1,6 +1,7 @@
 #ifndef IO_COMMON_HPP
 #define IO_COMMON_HPP
 
+#include <IO/CommonConcepts.hpp>
 #include <IO/ByteBuffer.hpp>
 #include <Utils/Meta/Traits.hpp>
 #include <Validation/Contracts.hpp>
@@ -110,11 +111,12 @@ namespace IO::Common
      Example: ADT::MHDR and other header-like chunks.
      Convinience conversion operators are provided to cast it to the underlying T.
    */
-  template<Utils::Meta::Concepts::PODType T //  Data structure that this chunk holds
+  template<Utils::Meta::Concepts::PODType T // Data structure that this chunk holds
       , std::uint32_t fourcc // FourCC identifier
       , FourCCEndian fourcc_reversed = FourCCEndian::LITTLE> // FourCC endianness
   struct DataChunk
   {
+    using ValueType = T;
     typedef std::conditional_t<sizeof(T) <= sizeof(std::size_t), T, T const&> InterfaceType;
 
     DataChunk() = default;
@@ -143,6 +145,7 @@ namespace IO::Common
     bool IsInitialized() const { return _is_initialized; };
 
     // These operators are intended for supporting convenient conversions to underlying type
+
     [[nodiscard]]
     operator T&() { return data; };
 
@@ -155,12 +158,19 @@ namespace IO::Common
     [[nodiscard]]
     operator const T*() const {return &data; };
 
+    [[nodiscard]]
+    operator T() const { return data; };
+
     // Underlying data structure
     T data;
+    static const std::uint32_t magic = fourcc;
 
   private:
     bool _is_initialized = false;
   };
+
+  // Interface validity check
+  static_assert(Concepts::DataChunkProtocol<DataChunk<std::uint32_t, 1>>);
 
   /* DataArrayChunk represents a common patter within WoW files where
      a file chunk holds header.size / sizeof(T) instances of T.
@@ -186,7 +196,8 @@ namespace IO::Common
   >
   struct DataArrayChunk
   {
-    using ArrayImplT =  std::conditional_t<size_max == size_min && size_max < std::numeric_limits<std::size_t>::max()
+    using ValueType = T;
+    using ArrayImplT = std::conditional_t<size_max == size_min && size_max < std::numeric_limits<std::size_t>::max()
       , std::array<T, size_max>, std::vector<T>>;
     using iterator = typename ArrayImplT::iterator;
     using const_iterator = typename ArrayImplT::const_iterator;
@@ -268,12 +279,18 @@ namespace IO::Common
     [[nodiscard]]
     T const& operator[](std::size_t index) const;
 
+    static const std::uint32_t magic = fourcc;
+
   private:
     // Array of data structures (either std::vector or std::array depending on size constraints).
     ArrayImplT _data;
 
     bool _is_initialized = false;
   };
+
+  // Interface validity checks
+  static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1>>);
+  static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1, FourCCEndian::LITTLE, 2, 2>>);
 
   /* StringBlockChunk represents a common pattern within WoW files where a chunk is an
      array of 0-terminated strings. It provides similar interface and options to DataArrayChunk.
@@ -379,11 +396,16 @@ namespace IO::Common
     [[nodiscard]]
     typename ArrayImplT_::value_type& operator[](std::size_t index);
 
+    static const std::uint32_t magic = fourcc;
 
   private:
     bool _is_initialized = false;
     ArrayImplT _data;
   };
+
+  // Interface validity checks
+  static_assert(Concepts::StringBlockChunkProtocol<StringBlockChunk<StringBlockChunkType::NORMAL, 1>>);
+  static_assert(Concepts::StringBlockChunkProtocol<StringBlockChunk<StringBlockChunkType::OFFSET, 0>>);
 
 }
 #include <IO/Common.inl>

@@ -116,6 +116,7 @@ add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_link_libraries(EpsilonAddon d3d11.lib minhook)
 target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/ordered-map/include")
 
 # tests
 if(BUILD_TESTS)

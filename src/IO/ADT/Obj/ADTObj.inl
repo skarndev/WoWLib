@@ -38,7 +38,7 @@ namespace IO::ADT
         }
       }
 
-      // sl +
+      // sl+
       if constexpr (client_version >= Common::ClientVersion::SL)
       {
         switch (chunk_header.fourcc)
@@ -57,7 +57,7 @@ namespace IO::ADT
       }
 
       // handle the obj0-specific chunks here
-      if constexpr(lod_level == ADTObjLodLevel::NORMAL)
+      if constexpr (lod_level == ADTObjLodLevel::NORMAL)
       {
         if (ReadObj0SpecificChunk(buf, chunk_header, chunk_counter))
           continue;
@@ -301,7 +301,10 @@ namespace IO::ADT
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  template<typename FilepathOffsetStorage, typename FilepathStorage, typename InstanceStorage>
+  template<Common::Concepts::DataArrayChunkProtocol FilepathOffsetStorage
+            , Common::Concepts::StringBlockChunkProtocol FilepathStorage
+            , Common::Concepts::DataArrayChunkProtocol InstanceStorage
+          >
   void ADTObj<client_version, lod_level>::PatchObjectFilenameReferences_detail(FilepathOffsetStorage& offset_storage
                                                                                , FilepathStorage& filepath_storage
                                                                                , InstanceStorage& instance_storage)
