@@ -2,13 +2,19 @@
 
 namespace IO::Common::WorldConstants
 {
-   // Size of one map tile (ADT) in yards.
+   /**
+   * Size of one map tile (ADT) in yards.
+   */
    constexpr float TILE_SIZE = 533.33333f;
 
-   // Half size of one map tile (ADT) in yards.
+   /**
+    * Half size of one map tile (ADT) in yards.
+    */
    constexpr float TILE_HALFSIZE = TILE_SIZE / 2.f;
 
-   // Size of one map chunk (ADT::MCNK) in yards.
+   /**
+    * Size of one map chunk (ADT::MCNK) in yards.
+    */
    constexpr float CHUNK_SIZE = TILE_SIZE / 16.f;
 
    // Size of one mini chunk (ADT::MCNK / 4) in yards.

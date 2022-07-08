@@ -66,7 +66,7 @@ namespace IO::Common::Concepts
    && requires (T t)
    {
      { t.Initialize(std::vector<std::string>{}) } -> std::same_as<void>;
-     // { static_cast<void(T::*)(std::vector<std::string> const&)>(&T::Initialize)};
+     // { static_cast<void(T::*)(std::vector<std::string> const&)>(&T::Initialize)}; // TODO: report bug to MSVC
      { static_cast<std::size_t(T::*)() const>(&T::Size)};
      { static_cast<void(T::*)(std::string const&)>(&T::Add)};
      { static_cast<void(T::*)(std::size_t)>(&T::Remove)};

@@ -98,6 +98,21 @@ namespace IO::Common
     WOTLK_NEW = 102
   };
 
+  enum class ClientLocale
+  {
+    AUTO,
+    enGB,
+    enUS,
+    deDE,
+    koKR,
+    frFR,
+    zhCN,
+    zhTW,
+    esES,
+    esMX,
+    ruRU
+  };
+
   // Each file chunk starts with this control structure.
   struct ChunkHeader
   {

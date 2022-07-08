@@ -27,7 +27,7 @@ namespace IO::ADT
                                            >
   {
   public:
-    ADTRoot(std::uint32_t file_data_id);
+    explicit ADTRoot(std::uint32_t file_data_id);
     ADTRoot(std::uint32_t file_data_id, Common::ByteBuffer const& buf);
 
     [[nodiscard]]

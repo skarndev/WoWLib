@@ -18,7 +18,8 @@ namespace CCodeZones
 {
   enum  eCCodeZones : unsigned
   {
-    FILE_IO = 0x1
+    FILE_IO = 0x1,
+    STORAGE = 0x2
   };
 }
 

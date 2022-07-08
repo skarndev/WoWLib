@@ -1,5 +1,6 @@
 #include <Validation/Contracts.hpp>
 #include <Config/CodeZones.hpp>
+#include <StormLib.h>
 
 #if defined(_MSC_VER) & !defined(__INTEL_COMPILER)
   #pragma warning(push)
@@ -25,6 +26,7 @@ int ContractedFunctionExample(int x, int y)
 int main()
 {
   backward::SignalHandling sh;
+  SFileOpenArchive(nullptr, 0, 0, nullptr);
   ContractedFunctionExample(1, 0);
   return 0;
 }

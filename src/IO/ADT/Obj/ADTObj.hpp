@@ -155,7 +155,6 @@ namespace IO::ADT
     // This method converts MODF/MDDF references to filename offsets into filename indices.
     void PatchObjectFilenameReferences() requires (lod_level == ADTObjLodLevel::NORMAL);
 
-    // TODO: chunk protocol concepts here
     template<Common::Concepts::DataArrayChunkProtocol FilepathOffsetStorage
         , Common::Concepts::StringBlockChunkProtocol FilepathStorage
         , Common::Concepts::DataArrayChunkProtocol InstanceStorage>
