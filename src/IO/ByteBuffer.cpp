@@ -55,6 +55,26 @@ ByteBuffer::ByteBuffer(std::size_t size)
 {
 }
 
+ByteBuffer::ByteBuffer(ByteBuffer&& other) noexcept
+: _size(other._size)
+, _buf_size(other._size)
+, _cur_pos(other._cur_pos)
+, _is_data_owned(other._is_data_owned)
+{
+  _data.reset(other._data.release());
+}
+
+ByteBuffer::ByteBuffer(ByteBuffer const& other)
+: _size(other._size)
+, _buf_size(other._size)
+, _cur_pos(other._cur_pos)
+, _is_data_owned(true)
+{
+  _data.reset(new char[other._buf_size]);
+  std::memcpy(_data.get(), other._data.get(), _buf_size);
+}
+
+
 ByteBuffer::~ByteBuffer()
 {
   if (!_is_data_owned)
@@ -141,27 +161,23 @@ void ByteBuffer::WriteString(std::string const& data)
   _cur_pos += data.size() + sizeof(char);
 }
 
-std::string ByteBuffer::ReadString() const
+std::string_view ByteBuffer::ReadString() const
 {
   std::string cur_string {};
 
-  char cur_char;
-  do
+  std::size_t str_len = 0;
+
+  while(_data.get()[_cur_pos + str_len])
   {
-    EnsureF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - sizeof(char) >= _cur_pos
-             , "Buffer pos overflow.");
-    EnsureF(CCodeZones::FILE_IO, _cur_pos + sizeof(char) <= _size, "Requested read larger than EOF.");
+    EnsureF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - str_len >= _cur_pos
+            , "Buffer pos overflow.");
+    EnsureF(CCodeZones::FILE_IO, _cur_pos + str_len <= _size, "Requested read larger than EOF.");
 
-    cur_char = Read<char>();
-
-    if (cur_char)
-    {
-      cur_string += cur_char;
-    }
-
-  } while(cur_char);
-
-  _cur_pos += (cur_string.size() + sizeof(char));
-
-  return cur_string;
+    str_len++;
+  }
+  std::string_view sv(_data.get() + _cur_pos, str_len);
+  _cur_pos += (str_len + sizeof(char));
+  return sv;
 }
+
+

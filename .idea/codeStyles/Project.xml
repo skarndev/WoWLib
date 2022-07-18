@@ -1,5 +1,8 @@
 <component name="ProjectCodeStyleConfiguration">
   <code_scheme name="Project" version="173">
+    <CMakeCodeStyleSettings>
+      <option name="FORCE_COMMANDS_CASE" value="1" />
+    </CMakeCodeStyleSettings>
     <Objective-C>
       <option name="INDENT_NAMESPACE_MEMBERS" value="2" />
       <option name="INDENT_C_STRUCT_MEMBERS" value="2" />
@@ -76,7 +79,7 @@
     <codeStyleSettings language="ObjectiveC">
       <option name="BLANK_LINES_AFTER_IMPORTS" value="2" />
       <option name="BRACE_STYLE" value="2" />
-      <option name="CLASS_BRACE_STYLE" value="5" />
+      <option name="CLASS_BRACE_STYLE" value="2" />
       <option name="ELSE_ON_NEW_LINE" value="true" />
       <option name="CATCH_ON_NEW_LINE" value="true" />
       <option name="SPECIAL_ELSE_IF_TREATMENT" value="false" />

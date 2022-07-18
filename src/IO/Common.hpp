@@ -100,18 +100,21 @@ namespace IO::Common
 
   enum class ClientLocale
   {
-    AUTO,
-    enGB,
-    enUS,
-    deDE,
-    koKR,
-    frFR,
-    zhCN,
-    zhTW,
-    esES,
-    esMX,
-    ruRU
+    enGB = 0,
+    enUS = 1,
+    deDE = 2,
+    koKR = 3,
+    frFR = 4,
+    zhCN = 5,
+    zhTW = 6,
+    esES = 7,
+    esMX = 8,
+    ruRU = 9,
+    AUTO = 10
   };
+
+  inline constexpr std::array<std::string_view, 10> ClientLocaleStr
+  { "enGB", "enUS", "deDE", "koKR", "frFR", "zhCN", "zhTW", "esES", "esMX", "ruRU" };
 
   // Each file chunk starts with this control structure.
   struct ChunkHeader
@@ -187,7 +190,7 @@ namespace IO::Common
   // Interface validity check
   static_assert(Concepts::DataChunkProtocol<DataChunk<std::uint32_t, 1>>);
 
-  /* DataArrayChunk represents a common patter within WoW files where
+  /* DataArrayChunk represents a common pattern within WoW files where
      a file chunk holds header.size / sizeof(T) instances of T.
      Size constraints are provided to validate and control the max and min
      number of elements in the underlying container, when it is required

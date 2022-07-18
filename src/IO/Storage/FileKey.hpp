@@ -1,6 +1,4 @@
-#ifndef IO_STORAGE_FILEKEY_HPP
-#define IO_STORAGE_FILEKEY_HPP
-
+#pragma once
 #include <IO/Common.hpp>
 
 #include <stdexcept>
@@ -8,72 +6,72 @@
 
 namespace IO::Storage
 {
-  namespace Exceptions
-  {
-    class FileNotFoundError : public std::runtime_error
-    {
-    public:
-      FileNotFoundError(std::string const& msg = "") : std::runtime_error(msg) {};
-    };
-  }
-
-  template<Common::ClientVersion client_version>
   class ClientStorage;
-
-  enum class FileExistPolicy
-  {
-    /**
-     * Throw exception when file is not found.
-     */
-    STRICT = 0,
-
-    /**
-     * Do not throw when file is not found.
-     */
-    WEAK = 1,
-
-    /**
-     * Create file if not found.
-     */
-    CREATE = 2
-  };
-
-  enum class FilePathCorrectionPolicy
-  {
-    CORRECT = 0,
-    TRUST = 1,
-  };
 
   /**
    * FileKey class provides a generalized way to adress files within WoW formats.
    * file can be requested by FileDataID (real CASC one or runtime-generated for pre-CASC clients)
    * or its string filepath. Internally always a FileDataID.
-   * @tparam client_version Version of WoW client
-   * @tparam exist_policy Controls handling of cases when requested file is not present in the storage.
-   * @tparam filepath_correction Filepath correction policy (conversion of / into \\, lower-case).
    */
-  template<Common::ClientVersion client_version
-            , FileExistPolicy exist_policy = FileExistPolicy::WEAK
-            , FilePathCorrectionPolicy filepath_correction = FilePathCorrectionPolicy::TRUST>
   struct FileKey
   {
+
+    enum class FileExistPolicy
+    {
+      STRICT, ///< Throw exception when file is not found in listfile.
+      WEAK, ///< Do not throw exception if file is not found in listfile.
+      CREATE ///< Create file if not found.
+    };
+
+    enum class FilePathCorrectionPolicy
+    {
+      CORRECT, ///< Always format the filepath to the appropriate game format.
+      TRUST ///< Trust the filepath to already be preformatted into the appropriate game format. (Still validated in Debug).
+    };
+
+    /**
+     * Defines possible states of file reading operation.
+     */
+    enum class FileReadStatus
+    {
+      SUCCESS, ///< File read was successful.
+      FILE_NOT_FOUND, ///< File was not found in client storage.
+      FILE_OPEN_FAILED_OS, ///< File open failed from OS.
+      FILE_OPEN_FAILED_CLIENT, ///< File open failed from client storage.
+      FILE_READ_FAILED, ///< File read failed.
+      INVALID_FILEDATAID, ///< FileDataID stored in FileKey is invalid (0).
+      NOT_ENOUGH_MEMORY ///< Not enough memory to allocate the file buffer.
+    };
+
+    enum class FileWriteStatus
+    {
+      SUCCESS, ///< File write was successful.
+      FILE_WRITE_FAILED ///< File write failed.
+    };
+
     /**
      * Construct FileKey based on FileDataID.
      * @param storage WoW client storage.
      * @param file_data_id FileDataID.
+     * @param file_exist_policy File exist policy determines what to do if file is not found.
+     * @throws IO::Storage::Exceptions::FileNotFoundError Thrown if FileDataID does not exists in archive (only for STRICT).
      */
-    FileKey(ClientStorage<client_version>& storage, std::uint32_t file_data_id)
-    requires (exist_policy != FileExistPolicy::CREATE);
+    FileKey(ClientStorage& storage
+            , std::uint32_t file_data_id
+            , FileExistPolicy file_exist_policy = FileExistPolicy::WEAK);
 
     /**
      * Construct FileKey based on filepath.
      * @param storage WoW client storage.
      * @param filepath Filepath (either in project dir, or storage).
+     * @throws IO::Storage::Exceptions::FileNotFoundError Thrown if filepath does not exist in listfile (only for STRICT).
      */
-    FileKey(ClientStorage<client_version>& storage, std::string const& filepath);
+    FileKey(ClientStorage& storage
+            , std::string const& filepath
+            , FileExistPolicy file_exist_policy = FileExistPolicy::WEAK);
 
     /**
-     * @return Return associated FileDataID.
+     * @return Return associated FileDataID. 0 is not a valid FileDataID.
      */
     [[nodiscard]]
     std::uint32_t FileDataID() const { return _file_data_id; };
@@ -88,29 +86,33 @@ namespace IO::Storage
      * @return Returns reference to associated client storage.
      */
     [[nodiscard]]
-    ClientStorage<client_version>& Storage() const { return _storage; };
-
-    // Filepath helpers
+    ClientStorage& Storage() const { return *_storage; };
 
     /**
-     * Normalize filepath to match game client rules (all uppercase, using \\ as separator).
-     * @param filepath Filepath.
-     * @return Normalized filepath.
+     * Read file from associated storage into an instance of ByteBuffer.
+     * @param buf Self-owned ByteBuffer instance.
+     * @return Status of operation.
      */
-    static std::string NormalizeFilepathGame(std::string const& filepath);
+    [[nodiscard]]
+    FileReadStatus Read(Common::ByteBuffer& buf) const;
 
     /**
-     * Normalize filepath to match Unix filesystem requirements (/ as separator) and lowercase it.
-     * @param filepath Filepath.
-     * @return Normalized filepath.
+     * Write file into project directory.
+     * @param buf Self-owned ByteBuffer instance.
+     * @return Status of operation.
      */
-    static std::string NormalizeFilepathUnix(std::string const& filepath);
+    [[nodiscard]]
+    FileWriteStatus Write(Common::ByteBuffer const& buf) const;
+
+    /**
+     * Check if file exists in the associated storage.
+     * @return true if exists, else false.
+     */
+     [[nodiscard]]
+     bool Exists() const;
 
   private:
-    std::uint32_t _file_data_id;
-    ClientStorage<client_version>* const _storage;
+    std::uint32_t _file_data_id = 0;
+    ClientStorage* const _storage;
   };
-
 }
-#include <IO/Storage/FileKey.hpp>
-#endif // IO_STORAGE_FILEKEY_HPP

@@ -159,11 +159,12 @@ set(CASC_BUILD_STATIC_LIB ON)
 add_subdirectory (${casc_SOURCE_DIR} ${casc_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_compile_definitions(EpsilonAddon PRIVATE CASCLIB_NO_AUTO_LINK_LIBRARY)
 
-target_link_libraries(EpsilonAddon d3d11.lib minhook storm casc)
+target_link_libraries(EpsilonAddon d3d11.lib minhook storm casc_static)
 target_include_directories (EpsilonAddon PRIVATE "${storm_SOURCE_DIR}/src")
 target_include_directories (EpsilonAddon PRIVATE "${casc_SOURCE_DIR}/src")
 target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src")
 target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/ordered-map/include")
+target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/ste-unordered_bimap")
 
 
 # tests
@@ -194,7 +195,6 @@ if(DOXYGEN_FOUND)
 
   # request to configure the file
   configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-  message("Doxygen build started")
 
   add_custom_target( docs
           COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}

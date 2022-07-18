@@ -1,89 +1,154 @@
 #pragma once
 #include <IO/Common.hpp>
+#include <IO/Storage/Listfile.hpp>
+#include <IO/Storage/FileKey.hpp>
+
+#include <stdexcept>
+#include <memory>
+#include <filesystem>
 
 namespace IO::Storage
 {
+  namespace Exceptions
+  {
+    struct FileNotFoundError : std::runtime_error
+    {
+      explicit FileNotFoundError(std::string const& msg) : std::runtime_error(msg) {};
+    };
+  }
+
+  namespace ClientLoaders
+  {
+    class BaseLoader;
+  }
+
   enum class ClientStorageOpenMode
   {
     CLIENT = 0,
     LOCAL = 1
   };
 
-  template<Common::ClientVersion client_version, ClientStorageOpenMode open_mode>
   class ClientStorage
   {
+    friend struct FileKey;
+  public:
     /**
-     * Constructs and opens an MPQ based client storage.
-     * @param path Path to WoW client root directory
-     * @param project_path Path to a local directory used as a project path
-     * @param locale Locale of the client
+     * Constructs and opens an MPQ-based client storage. Implementation depends on client version.
+     * In Debug passing a CASC-based client version is asserted, in Release such behavior is undefined.
+     * @param path Path to WoW client root directory.
+     * @param project_path Path to a local directory used as a project path.
+     * @param client_version Version of WoW client (< WOD).
+     * @param open_mode Defines whether ClientStorage operates on a client, or an extracted data directory.
+     * @param locale Locale of the client.
+     * @throws IO::Storage::ClientLoaders::Exceptions::LocaleDirNotFoundError Thrown if no locale dir was found.
+     * @throws IO::Storage::Storage::Exceptions::ArchiveLoadingFailureError Thrown if MPQ failed loading.
      */
     ClientStorage(std::string const& path
                   , std::string const& project_path
-                  , Common::ClientLocale locale = Common::ClientLocale::AUTO)
-    requires (open_mode == ClientStorageOpenMode::CLIENT && client_version < Common::ClientVersion::WOD);
+                  , Common::ClientVersion client_version
+                  , Common::ClientLocale locale = Common::ClientLocale::AUTO);
 
     /**
-    * Constructs and opens a CASC based client storage.
-    * @param path Path to WoW client root directory
-    * @param project_path Path to a local directory used as a project path
-    * @param locale Locale of the client
-    */
+     * Constructs and opens a local CASC-based client storage.
+     * In Debug passing an MPQ-based client version is asserted, in Release such behavior is undefined.
+     * @param path Path to WoW client directory containing "Data" folder.
+     * @param project_path Path to a local directory used as a project path.
+     * @param client_version Version of WoW client (>= WOD).
+     * @param product A product code name. See list of known products on WoWDev (https://wowdev.wiki/TACT#Products).
+     * @param locale Locale of the client.
+     */
     ClientStorage(std::string const& path
                   , std::string const& project_path
-                  , Common::ClientLocale locale = Common::ClientLocale::AUTO)
-    requires (open_mode == ClientStorageOpenMode::CLIENT && client_version > Common::ClientVersion::WOD);
+                  , Common::ClientVersion client_version
+                  , std::string const& product
+                  , Common::ClientLocale locale = Common::ClientLocale::AUTO);
+
 
     /**
-    * Constructs and opens a local storage (directory)
-    * @param path Path to WoW client root directory
-    * @param project_path Path to a local directory used as a project path (can be the same as "path").
-    * @param locale Locale of the client
-    */
-    ClientStorage(std::string const& path
+     * Constructs and opens an online custom-hosted CASC-based client storage.
+     * In Debug passing an MPQ-based client version is asserted, in Release such behavior is undefined.
+     * @param cdn_url A custom CDN URL hosting TACT storage in the following format http://mysite.com:8000.
+     * @param project_path Path to a local directory used as a project path.
+     * @param client_version Version of WoW client (>= WOD).
+     * @param product A product code name. See list of known products on WoWDev (https://wowdev.wiki/TACT#Products).
+     * @param region A region for the product.
+     * @param locale Locale of the client.
+     */
+    ClientStorage(std::string const& cdn_url
                   , std::string const& project_path
-                  , Common::ClientLocale locale = Common::ClientLocale::AUTO)
-    requires (open_mode == ClientStorageOpenMode::LOCAL);
+                  , Common::ClientVersion client_version
+                  , std::string const& product
+                  , std::string const& region
+                  , Common::ClientLocale locale = Common::ClientLocale::AUTO);
 
     /**
-     * Returns FileDataID for provided filepath.
-     * @param filepath Filepath in storage or local project folder.
-     * @return FileDataID or 0 if no known FileDataID is associated with this filepath.
+     * Gets underlying listfile.
+     * @return Reference to listfile.
      */
     [[nodiscard]]
-    std::uint32_t FileDataIDForFilepath(std::string const& filepath) const;
+    Listfile& Listfile() { return _listfile; };
 
     /**
-     * Returns filepath for provided FileDataID.
-     * @param file_data_id FileDataID.
-     * @return Filepath or generic filepath (stringified FileDataID) if filepath is not known.
+     * Gets client locale.
+     * @return Client locale enum.
      */
     [[nodiscard]]
-    std::string const& FilepathForFileDataID(std::uint32_t file_data_id) const;
+    Common::ClientLocale Locale() const { return _locale; };
 
     /**
-     * Create a new FileDataID entry for provided path.
-     * Does not check if FileDataID is already present.
-     * @param filepath Filepath
-     * @return FileDataID
+     * Gets the project path of storage.
+     * @return Project path.
      */
     [[nodiscard]]
-    std::uint32_t CreateFileDataIDForPath(std::string const& filepath);
+    std::filesystem::path const& ProjectPath() const { return _project_path; };
 
     /**
-     * Checks if file exists.
-     * @param file_data_id FileDataID.
-     * @return True if file exists in storage and project dir.
+     * Gets the path of storage.
+     * @return Storage path.
+     */
+     [[nodiscard]]
+     std::filesystem::path const& Path() const { return _path; };
+
+     /**
+      * Gets the client version this storage is constructed for.
+      * @return Client version.
+      */
+     [[nodiscard]]
+     Common::ClientVersion ClientVersion() const { return _client_version; };
+  private:
+    /**
+     * Reads the file content into the provided buffer.
+     * @param file_key File key.
+     * @param buf ByteBuffer instance to read data into.
+     * @return Status of the file reading operation.
      */
     [[nodiscard]]
-    bool FileExists(std::uint32_t file_data_id) const;
+    FileKey::FileReadStatus ReadFile(FileKey const& file_key, Common::ByteBuffer& buf) const;
 
     /**
-    * Checks if file exists.
-    * @param file_data_id FileDataID.
-    * @return True if file exists in storage and project dir.
-    */
+     * Writes the file content from the provided buffer into project dir.
+     * @param file_key File key.
+     * @param buf ByteBuffer instance to read data from.
+     * @return Status of the file writing operation.
+     */
     [[nodiscard]]
-    bool FileExists(std::string const& filepath) const;
+    FileKey::FileWriteStatus WriteFile(FileKey const& file_key, Common::ByteBuffer const& buf) const;
+
+    /**
+     * Check if file exists in the storage.
+     * @param file_key File key.
+     * @return true if exists, else false.
+     */
+    [[nodiscard]]
+    bool Exists(FileKey const& file_key) const;
+
+  private:
+    class Listfile _listfile;
+    std::filesystem::path _project_path;
+    std::filesystem::path _path;
+    std::unique_ptr<ClientLoaders::BaseLoader> _loader;
+    Common::ClientLocale _locale;
+    Common::ClientVersion _client_version;
   };
 }
+

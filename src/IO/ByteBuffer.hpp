@@ -38,41 +38,108 @@ namespace IO::Common
       Double
     };
 
+    /**
+     * Construct borrowed read-only ByteBuffer given pre-allocated storage.
+     * @param data Raw data buffer (const).
+     * @param size Size of raw data buffer.
+     */
     explicit ByteBuffer(const char* data, std::size_t size);
+
+    /**
+     * Constrct borrowed ByteBuffer given pre-allocated storage.
+     * @param data Raw data buffer.
+     * @param size Size of raw data buffer.
+     */
     explicit ByteBuffer(char* data, std::size_t size);
+
+    /**
+     * Construct self-owning ByteBuffer given a filestream.
+     * @param stream File stream.
+     * @param size Number of bytes to read from stream.
+     */
     explicit ByteBuffer(std::fstream& stream, std::size_t size);
+
+    /**
+     * Construct self-owning ByteBuffer given a filestream. Stream is read till EOF.
+     * @param stream File stream.
+     */
     explicit ByteBuffer(std::fstream& stream);
+
+    /**
+     * Construct a self-owning ByteBuffer.
+     * @param size Number of bytes to allocate initially.
+     */
     explicit ByteBuffer(std::size_t size = 0);
+
+    /**
+     * Move constructor for ByteBuffer.
+     * @param other R-value reference to another ByteBuffer.
+     */
+    ByteBuffer(ByteBuffer&& other) noexcept;
+
+    /**
+     * Copy constructor for ByteBuffer.
+     * If another ByteBuffer is a borrowed ByteBuffer, the copy becomes self-owning.
+     * @param other L-value const reference to another ByteBuffer.
+     */
+    ByteBuffer(ByteBuffer const& other);
+
     ~ByteBuffer();
 
-    // Size of the buffer
+    /**
+     * Size of used storage in the buffer (aka size of file).
+     * @return Size of the internal buffer.
+     */
     [[nodiscard]]
     std::size_t Size() const { return _size; };
 
+    /**
+     * Size of allocated storage, equal or more than Size().
+     * @return Size of allocated storage.
+     */
     [[nodiscard]]
     std::size_t Capacity() const { return _buf_size; };
     
-    // Current position in the buffer
+    /**
+     * @return Current position in the buffer used for reading / writing.
+     */
     [[nodiscard]]
     std::size_t Tell() const { return _cur_pos; };
 
-    // Associated internal data buffer
+    /**
+     * Pointer to the internal buffer.
+     * @return Pointer to the internal buffer.
+     */
     [[nodiscard]]
     char* Data() { return _data.get(); };
 
-    // Associated internal constant data buffer
+    /**
+     * @return Pointer to the internal buffer (const).
+     */
     [[nodiscard]]
     const char* Data() const { return _data.get(); };
 
-    // Report if pos is at EOF
+    /**
+     * Checks if buffer pos is at the end of file.
+     * @return True, if EOF was reached, else False.
+     */
     [[nodiscard]]
     bool IsEof() const;
 
-    // Returns true if data is owned by this buffer
+    /**
+     * Checks if internal buffer is owned by this buffer. Owned buffers are self-destructible,
+     * Borrowed buffers are simply released. User needs to take control of memory freeing.
+     * @return True, if data is owned by ByteBuffer, else False.
+     */
     [[nodiscard]]
     bool IsDataOnwed() const { return _is_data_owned; };
 
-    // Seeks the position within current buffer
+    /**
+     * Moves current reading / writing position.
+     * @tparam seek_dir Direction to move.
+     * @tparam seek_type Type of movement, relative or absolute.
+     * @param offset Number of bytes to move.
+     */
     template
     <
       SeekDir seek_dir = SeekDir::Forward,
@@ -80,15 +147,28 @@ namespace IO::Common
     >
     void Seek(std::size_t offset) const;
 
-    // Peeks into the internal buffer at absolute position and returns read-only view.
+    /**
+     * Peeks into the internal buffer at absolute position and returns read-only view.
+     * @tparam T Structure to view.
+     * @param offset Offset in bytes relative to current position.
+     * @return Structure reference.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     [[nodiscard]] const T& Peek(std::size_t offset) const;
 
-    // Reads a constant view representation of object at current position in the buffer.
+    /**
+     * Reads a constant view representation of object at current position in the buffer.
+     * @tparam T Structure to view.
+     * @return Structure const reference.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     [[nodiscard]] const T& ReadView() const;
 
-    // Reads object representation from buffer at current position and returns its copy.
+    /**
+     * Reads object representation from buffer at current position and returns its copy.
+     * @tparam T Structure to read.
+     * @return Read structure.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     [[nodiscard]] T Read() const;
 
@@ -112,7 +192,7 @@ namespace IO::Common
 
     // Read a null terminated string starting at current buffer pos
     [[nodiscard]]
-    std::string ReadString() const;
+    std::string_view ReadString() const;
 
     // Writes n bytes into associated buffer starting at absolute pos (offset)
     void Write(const char* src, std::size_t n, std::size_t offset);
@@ -151,6 +231,7 @@ namespace IO::Common
 
     // Flushes associated buffer into std::ostream
     void Flush(std::ostream& stream) const;
+
 
    
   private:
