@@ -83,14 +83,13 @@ CASCArchive::~CASCArchive()
 }
 
 IO::Storage::FileKey::FileReadStatus CASCArchive::ReadFile(IO::Storage::FileKey const& file_key
-                                                           , IO::Common::ByteBuffer& buf)
+                                                           , IO::Common::ByteBuffer& buf) const
 {
   RequireF(CCodeZones::STORAGE, file_key.FileDataID(), "Invalid FileDataID.");
   RequireF(CCodeZones::STORAGE, buf.IsDataOnwed(), "Buffer is a borrowed buffer.");
 
   HANDLE file;
-  if (CascOpenFile(_handle, reinterpret_cast<void const*>(static_cast<std::uintptr_t>(file_key.FileDataID()))
-                   , 0, CASC_OPEN_BY_FILEID, &file))
+  if (CascOpenFile(_handle, CASC_FILE_DATA_ID(file_key.FileDataID()), 0, CASC_OPEN_BY_FILEID, &file))
   {
     std::uint64_t file_size;
     if (CascGetFileSize64(file, &file_size))
@@ -108,7 +107,7 @@ IO::Storage::FileKey::FileReadStatus CASCArchive::ReadFile(IO::Storage::FileKey 
   }
   else
   {
-    DWORD error = GetLastError();
+    DWORD error = GetCascError();
 
     switch (error)
     {
@@ -125,7 +124,7 @@ IO::Storage::FileKey::FileReadStatus CASCArchive::ReadFile(IO::Storage::FileKey 
   }
 }
 
-bool CASCArchive::Exists(IO::Storage::FileKey const& file_key)
+bool CASCArchive::Exists(IO::Storage::FileKey const& file_key) const
 {
   RequireF(CCodeZones::STORAGE, file_key.FileDataID(), "Invalid FileDataID.");
 

@@ -7,7 +7,7 @@ FileKey::FileKey(ClientStorage& storage, std::uint32_t file_data_id, FileExistPo
 : _storage(&storage)
 {
   RequireF(CCodeZones::STORAGE, file_exist_policy != FileExistPolicy::CREATE, "Adding by FDID is not supported.");
-  if (file_exist_policy == FileExistPolicy::STRICT)
+  if (file_exist_policy == FileExistPolicy::CHECKEXISTS)
   {
     if (!_storage->Exists({storage, file_data_id, FileExistPolicy::WEAK}))
     {
@@ -21,7 +21,7 @@ FileKey::FileKey(ClientStorage& storage, std::string const& filepath, FileExistP
 {
   switch(file_exist_policy)
   {
-    case FileExistPolicy::STRICT:
+    case FileExistPolicy::CHECKEXISTS:
     {
       _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath);
       if (!_file_data_id || !_storage->Exists({storage, _file_data_id, FileExistPolicy::WEAK}))
@@ -37,7 +37,14 @@ FileKey::FileKey(ClientStorage& storage, std::string const& filepath, FileExistP
     }
     case FileExistPolicy::WEAK:
     {
-      _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath);
+      if (storage.ClientVersion() <= Common::ClientVersion::WOD)
+      {
+        _file_data_id = storage.Listfile().GetOrAddFileDataID(filepath);
+      }
+      else
+      {
+        _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath);
+      }
       break;
     }
   }

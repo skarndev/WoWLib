@@ -77,15 +77,15 @@ namespace IO::Storage::ClientLoaders
 
     /**
      * Loads MPQ archives based on common pattern of loading classic / tbc / wotlk clients.
-     * @tparam T std::string_view array iterator.
+     * @tparam T std::array<std::string_view, x> iterator.
      * @throws IO::Storage::ClientLoaders::Exceptions::ArchiveLoadingFailureError Thrown if one of the MPQs failed loading.
      * @throws IO::Storage::ClientLoaders::Exceptions::LocaleDirNotFoundError Thrown if locale cannot be determined (tbc/wotlk only).
      * @throws IO::Storage::ClientLoaders::Exceptions::DataDirNotFoundError Thrown if "Data" directory does not exist (malformed client install).
      */
     template<typename T>
-    void LoadClassicTBCWotLK(T const& begin, T const& end)
+    void LoadClassicTBCWotLK(T begin, T end)
     requires (std::contiguous_iterator<T> && std::same_as<std::iter_value_t<T>, std::string_view>);
   };
 }
-
+#include <IO/Storage/ClientLoaders/MPQLoader.inl>
 #endif // IO_STORAGE_CLIENTLOADERS_MPQLOADER_HPP

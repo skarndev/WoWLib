@@ -18,7 +18,7 @@ namespace IO::Storage
 
     enum class FileExistPolicy
     {
-      STRICT, ///< Throw exception when file is not found in listfile.
+      CHECKEXISTS, ///< Throw exception when file is not found in listfile.
       WEAK, ///< Do not throw exception if file is not found in listfile.
       CREATE ///< Create file if not found.
     };

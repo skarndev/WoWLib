@@ -2,7 +2,7 @@
 #include <IO/Storage/ClientLoaders/MPQLoader.hpp>
 
 template<typename T>
-void IO::Storage::ClientLoaders::MPQLoader::LoadClassicTBCWotLK(T const& begin, T const& end)
+void IO::Storage::ClientLoaders::MPQLoader::LoadClassicTBCWotLK(T begin, T end)
 requires (std::contiguous_iterator<T> && std::same_as<std::iter_value_t<T>, std::string_view>)
 {
   RequireF(CCodeZones::STORAGE, _storage->ClientVersion() <= Common::ClientVersion::WOTLK
@@ -15,7 +15,7 @@ requires (std::contiguous_iterator<T> && std::same_as<std::iter_value_t<T>, std:
     locale = DetermineLocale(data_path);
   }
 
-  for (auto it = begin; it != end; ++end)
+  for (auto it = begin; it != end; ++it)
   {
     std::string_view const& filename = *it;
     std::string mpq_path = (data_path / filename).string();

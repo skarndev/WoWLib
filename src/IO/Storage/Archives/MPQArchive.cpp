@@ -22,10 +22,10 @@ MPQArchive::MPQArchive(std::string const& path)
     {
       throw Exceptions::MPQOpenFailedError(path);
     }
-    else
-    {
-      Log("Loading directory archive: %s", path.c_str());
-    }
+  }
+  else
+  {
+    Log("Loading directory archive: %s", path.c_str());
   }
 }
 
@@ -37,7 +37,7 @@ MPQArchive::~MPQArchive()
   }
 }
 
-FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common::ByteBuffer& buf)
+FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common::ByteBuffer& buf) const
 {
   RequireF(CCodeZones::STORAGE, buf.IsDataOnwed(), "Buffer is a borrowed buffer.");
 
@@ -55,7 +55,7 @@ FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common
 
       buf.Reserve(size);
 
-      std::size_t bytes_read;
+      std::size_t bytes_read = 0;
       if (!SFileReadFile(handle, buf.Data(), static_cast<DWORD>(size), reinterpret_cast<LPDWORD>(&bytes_read), nullptr))
       {
         DWORD error = GetLastError();
@@ -123,7 +123,7 @@ FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common
   }
 }
 
-bool MPQArchive::Exists(FileKey const& file_key)
+bool MPQArchive::Exists(FileKey const& file_key) const
 {
   // MPQ archive
   if (_handle) [[likely]]

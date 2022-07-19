@@ -2,6 +2,7 @@
 #include <IO/Common.hpp>
 #include <IO/Storage/Listfile.hpp>
 #include <IO/Storage/FileKey.hpp>
+#include <IO/Storage/ClientLoaders/BaseLoader.hpp>
 
 #include <stdexcept>
 #include <memory>
@@ -15,11 +16,6 @@ namespace IO::Storage
     {
       explicit FileNotFoundError(std::string const& msg) : std::runtime_error(msg) {};
     };
-  }
-
-  namespace ClientLoaders
-  {
-    class BaseLoader;
   }
 
   enum class ClientStorageOpenMode

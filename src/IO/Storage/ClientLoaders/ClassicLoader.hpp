@@ -2,6 +2,7 @@
 #include <IO/Storage/ClientLoaders/MPQLoader.hpp>
 
 #include <string>
+#include <string_view>
 #include <array>
 
 namespace IO::Storage

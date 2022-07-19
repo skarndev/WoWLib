@@ -25,7 +25,7 @@ namespace IO::Storage::Archives
      * @return true if success, else false.
      */
     [[nodiscard]]
-    virtual FileKey::FileReadStatus ReadFile(FileKey const& file_key, Common::ByteBuffer& buf) = 0;
+    virtual FileKey::FileReadStatus ReadFile(FileKey const& file_key, Common::ByteBuffer& buf) const = 0;
 
 
     /**
@@ -34,7 +34,7 @@ namespace IO::Storage::Archives
      * @return True if exists, else false.
      */
     [[nodiscard]]
-    virtual bool Exists(FileKey const& file_key) = 0;
+    virtual bool Exists(FileKey const& file_key) const = 0;
 
     virtual ~IArchive() = default;
 

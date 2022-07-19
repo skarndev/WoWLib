@@ -15,6 +15,10 @@ std::string RemoveInconsistentNaming(std::string const& str)
   {
     ret_str = std::regex_replace(str, std::regex(".mdl"), ".m2");
   }
+  else
+  {
+    return str;
+  }
 
   return std::move(ret_str);
 }

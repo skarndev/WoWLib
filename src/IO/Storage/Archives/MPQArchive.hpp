@@ -40,7 +40,7 @@ namespace IO::Storage::Archives
      * @return Status of operation.
      */
     [[nodiscard]]
-    FileKey::FileReadStatus ReadFile(FileKey const& file_key, Common::ByteBuffer& buf) override;
+    FileKey::FileReadStatus ReadFile(FileKey const& file_key, Common::ByteBuffer& buf) const override;
 
     /**
      * Check if file exists in MPQ archive.
@@ -48,7 +48,7 @@ namespace IO::Storage::Archives
      * @return true if exists, else false.
      */
     [[nodiscard]]
-    bool Exists(FileKey const& file_key) override;
+    bool Exists(FileKey const& file_key) const override;
 
     /**
      * Path of MPQ Archive.

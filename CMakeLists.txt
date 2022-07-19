@@ -178,10 +178,13 @@ if(BUILD_TESTS)
   target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
 
   add_executable(contract_test "tests/ContractsTest.cpp")
-  target_link_libraries(contract_test EpsilonAddon storm)
+  target_link_libraries(contract_test EpsilonAddon)
   target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
-  target_include_directories (contract_test PRIVATE "${storm_SOURCE_DIR}/src")
-  target_compile_definitions(contract_test PRIVATE STORMLIB_NO_AUTO_LINK)
+
+  add_executable(storage_test "tests/StorageTest.cpp")
+  target_link_libraries(storage_test EpsilonAddon)
+  target_include_directories(storage_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(storage_test PRIVATE "${EXTERNAL_SOURCE_DIR}/ste-unordered_bimap")
 endif()
 
 # documentation

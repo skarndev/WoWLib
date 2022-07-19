@@ -14,13 +14,19 @@ ClientStorage::ClientStorage(std::string const& path
                              , std::string const& project_path
                              , Common::ClientVersion client_version
                              , Common::ClientLocale locale)
-: _project_path(Utils::PathUtils::NormalizeFilepathUnix(project_path))
-, _path(Utils::PathUtils::NormalizeFilepathUnix(path))
+: _project_path(project_path)
+, _path(path)
 , _client_version(client_version)
 , _locale(locale)
 {
   RequireF(CCodeZones::STORAGE, client_version < Common::ClientVersion::WOD
            , "This contructor can be used for MPQ-based clients only.");
+
+  // make sure project path exists
+  if (!fs::exists(project_path))
+  {
+    fs::create_directories(project_path);
+  }
 
   switch (client_version)
   {
