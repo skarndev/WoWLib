@@ -36,7 +36,7 @@ Listfile::Listfile(std::string const& path, std::uint32_t max_file_data_id)
       std::from_chars(uid_str.data(), uid_str.data() + uid_str.size(), uid);
 
       _max_file_data_id = std::max(_max_file_data_id, uid);
-      _fdid_path_map.insert(uid, Utils::PathUtils::NormalizeFilepathGame(filename));
+      _fdid_path_map.insert(bm_type::value_type(uid, Utils::PathUtils::NormalizeFilepathGame(filename)));
     }
   }
 }
@@ -57,7 +57,7 @@ Listfile::Listfile(IO::Common::ByteBuffer const& listfile_buf)
     }
     if (c == '\n')
     {
-      _fdid_path_map.insert(++_max_file_data_id, Utils::PathUtils::NormalizeFilepathGame(current));
+      _fdid_path_map.insert(bm_type::value_type(++_max_file_data_id, Utils::PathUtils::NormalizeFilepathGame(current)));
       current.resize(0);
     }
     else
@@ -68,35 +68,35 @@ Listfile::Listfile(IO::Common::ByteBuffer const& listfile_buf)
 
   if (!current.empty())
   {
-    _fdid_path_map.insert(++_max_file_data_id, Utils::PathUtils::NormalizeFilepathGame(current));
+    _fdid_path_map.insert(bm_type::value_type(++_max_file_data_id, Utils::PathUtils::NormalizeFilepathGame(current)));
   }
 
 }
 
 std::uint32_t Listfile::GetOrAddFileDataID(std::string const& filepath)
 {
-  auto it = _fdid_path_map.find_value(filepath);
+  auto it = _fdid_path_map.right.find(filepath);
 
-  if (it != _fdid_path_map.end())
+  if (it != _fdid_path_map.right.end())
   {
-    return it->first.first;
+    return it->get_left();
   }
 
-  _fdid_path_map.insert(++_max_file_data_id, filepath);
+  _fdid_path_map.insert(bm_type::value_type(++_max_file_data_id, filepath));
   return _max_file_data_id;
 }
 
 std::string const& Listfile::GetOrGenerateFilepath(std::uint32_t file_data_id)
 {
-  auto it = _fdid_path_map.find_key(file_data_id);
+  auto it = _fdid_path_map.left.find(file_data_id);
 
-  if (it != _fdid_path_map.end())
+  if (it != _fdid_path_map.left.end())
   {
-    return it->first.second;
+    return it->get_right();
   }
 
-  auto new_it = _fdid_path_map.insert(file_data_id, "UNKNOWN\\" + std::to_string(file_data_id));
-  return new_it.first->first.second;
+  auto new_it = _fdid_path_map.insert(bm_type::value_type(file_data_id, "UNKNOWN\\" + std::to_string(file_data_id)));
+  return new_it.first->get_right();
 }
 
 void Listfile::Save()
@@ -109,23 +109,23 @@ void Listfile::Save()
     throw Exceptions::ListFileNotFoundError();
   }
 
-  for (auto& [pair, _] : _fdid_path_map)
+  for (auto& [file_data_id, filepath] : _fdid_path_map)
   {
-    stream.write(reinterpret_cast<const char*>(&pair.first), sizeof(std::uint32_t));
+    stream.write(reinterpret_cast<const char*>(&file_data_id), sizeof(std::uint32_t));
     stream << ';';
-    stream.write(reinterpret_cast<const char*>(&pair.second), pair.second.size());
+    stream.write(reinterpret_cast<const char*>(filepath.data()), filepath.size());
     stream << '\n';
   }
 }
 
 std::uint32_t Listfile::GetFileDatIDForFilepath(std::string const& filepath) const
 {
-  auto it = _fdid_path_map.find_value(filepath);
+  auto it = _fdid_path_map.right.find(filepath);
 
-  return it != _fdid_path_map.end() ? it->first.first : 0;
+  return it != _fdid_path_map.right.end() ? it->get_left() : 0;
 }
 
 bool Listfile::Exists(std::uint32_t file_data_id) const
 {
-  return _fdid_path_map.contains_key(file_data_id);
+  return _fdid_path_map.left.find(file_data_id) != _fdid_path_map.left.end();
 }

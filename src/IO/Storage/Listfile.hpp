@@ -1,7 +1,6 @@
 #pragma once
 
-#include <unordered_bimap.hpp>
-
+#include <boost/bimap.hpp>
 #include <string>
 #include <stdexcept>
 
@@ -100,7 +99,8 @@ namespace IO::Storage
 
 
   private:
-    ste::unordered_bimap<std::uint32_t, std::string> _fdid_path_map;
+    using bm_type = boost::bimap<std::uint32_t, std::string>;
+    bm_type _fdid_path_map;
     std::string _path;
     std::uint32_t _max_file_data_id;
     FileDataIDPolicy _file_data_id_policy;

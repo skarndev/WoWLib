@@ -1,5 +1,9 @@
 #include <IO/Storage/FileKey.hpp>
 #include <IO/Storage/ClientStorage.hpp>
+#include <Utils/PathUtils.hpp>
+
+#include <string>
+#include <algorithm>
 
 using namespace IO::Storage;
 
@@ -16,38 +20,68 @@ FileKey::FileKey(ClientStorage& storage, std::uint32_t file_data_id, FileExistPo
   }
 }
 
-FileKey::FileKey(ClientStorage& storage, std::string const& filepath, FileExistPolicy file_exist_policy)
+FileKey::FileKey(ClientStorage& storage
+                 , std::string const& filepath
+                 , FilePathCorrectionPolicy filepath_correction_policy
+                 , FileExistPolicy file_exist_policy)
 : _storage(&storage)
 {
-  switch(file_exist_policy)
+  auto process = [&, this](std::string const& filepath_)
   {
-    case FileExistPolicy::CHECKEXISTS:
+    switch(file_exist_policy)
     {
-      _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath);
-      if (!_file_data_id || !_storage->Exists({storage, _file_data_id, FileExistPolicy::WEAK}))
+      case FileExistPolicy::CHECKEXISTS:
       {
-        throw Exceptions::FileNotFoundError("File not found (filepath): " + filepath);
+        _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath_);
+        if (!_file_data_id || !_storage->Exists({storage, _file_data_id, FileExistPolicy::WEAK}))
+        {
+          throw Exceptions::FileNotFoundError("File not found (filepath): " + filepath_);
+        }
+        break;
       }
-      break;
+      case FileExistPolicy::CREATE:
+      {
+        _file_data_id = storage.Listfile().GetOrAddFileDataID(filepath_);
+        break;
+      }
+      case FileExistPolicy::WEAK:
+      {
+        if (storage.ClientVersion() <= Common::ClientVersion::WOD)
+        {
+          _file_data_id = storage.Listfile().GetOrAddFileDataID(filepath_);
+        }
+        else
+        {
+          _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath_);
+        }
+        break;
+      }
     }
-    case FileExistPolicy::CREATE:
-    {
-      _file_data_id = storage.Listfile().GetOrAddFileDataID(filepath);
+  };
+
+  switch (filepath_correction_policy)
+  {
+    case FilePathCorrectionPolicy::CORRECT:
+      process(Utils::PathUtils::NormalizeFilepathGame(filepath));
       break;
-    }
-    case FileExistPolicy::WEAK:
+
+    case FilePathCorrectionPolicy::TRUST:
     {
-      if (storage.ClientVersion() <= Common::ClientVersion::WOD)
-      {
-        _file_data_id = storage.Listfile().GetOrAddFileDataID(filepath);
-      }
-      else
-      {
-        _file_data_id = storage.Listfile().GetFileDatIDForFilepath(filepath);
-      }
+      EnsureF(CCodeZones::STORAGE
+              , [filepath]() -> bool
+                { return std::all_of(filepath.begin(), filepath.end()
+                                     , [](char c) -> bool
+                                       {
+                                         return ((std::isdigit(c) || std::iscntrl(c)
+                                                  || std::ispunct(c) || std::isspace(c))
+                                           || std::isupper(c)) && c != '/';
+                                       });
+                }, "Trusted path is not in game format.");
+      process(filepath);
       break;
     }
   }
+
 }
 
 std::string const& FileKey::FilePath() const

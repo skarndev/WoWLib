@@ -1,65 +1,67 @@
+#pragma once
 #include <type_traits>
 
 namespace Utils::Meta::Traits
 {
-  namespace Impl
+  /**
+   * Extracts class from a member function pointer. Use ::type to access class.
+   * @tparam T Member function pointer
+   */
+  template<typename T>
+  requires (std::is_member_function_pointer_v<T>)
+  struct ClassOfMemberFunction {};
+
+  template<typename Return, typename Class>
+  struct ClassOfMemberFunction<Return (Class::*)>
   {
-    template<typename>
-    struct TypeOfMemberPtr;
-
-    template
-    <
-      typename Class,
-      typename T
-    >
-      struct TypeOfMemberPtr<T Class::*>
-    {
-      typedef T Type;
-    };
-
-    template<typename>
-    struct ClassOfMemberPtr;
-
-    template
-    <
-      typename Class,
-      typename T
-    >
-      struct ClassOfMemberPtr<T Class::*>
-    {
-      typedef Class Type;
-    };
-
-    template<typename>
-    struct ArgOfTemplate;
-
-    template
-    <
-      template<typename>
-      typename Template,
-      typename T
-    >
-      struct ArgOfTemplate<Template<T>>
-    {
-      typedef T Type;
-    };
-
-    struct IFNDR;
-
+    using type = Class;
   };
 
-  template<auto p>
-  using TypeOfMemberPtr = typename Impl::TypeOfMemberPtr<decltype(p)>::Type;
+  /**
+   * Extracts class from a member function pointer..
+   * @tparam T Member object pointer
+   */
+  template<typename T>
+  requires (std::is_member_function_pointer_v<T>)
+  using ClassOfMemberFunction_T = typename ClassOfMemberFunction<T>::type;
+
+  /**
+   * Extracts class from a member object pointer. Use ::type to access class.
+   * @tparam T Member object pointer
+   */
+  template<typename T>
+  requires (std::is_member_object_pointer_v<T>)
+  struct ClassOfMemberObject;
+
+  template<typename Class, typename Value>
+  struct ClassOfMemberObject<Value Class::*>
+  {
+    typedef Class type;
+  };
+
+  /**
+   * Extracts class from a member object pointer.
+   * @tparam T Member object pointer
+   */
+  template<typename T>
+  requires (std::is_member_object_pointer_v<T>)
+  using ClassOfMemberObject_T = typename ClassOfMemberObject<T>::type;
+
+  /**
+   * Extracts type of member object pointer. Use ::type to access type.
+   * @tparam T Member object pointer
+   */
+  template<typename T>
+  struct TypeOfMemberObject;
+
+  template<typename Class, typename Value>
+  struct TypeOfMemberObject<Value Class::*>
+  {
+    typedef Value type;
+  };
 
   template<typename T>
-  using ArgOfTemplate = typename Impl::ArgOfTemplate<T>::Type;
-
-  template<auto p>
-  using ClassOfMemberPtr = typename Impl::ClassOfMemberPtr<decltype(p)>::Type;
-
-  template<typename T>
-  constexpr bool FALSE_T = std::is_same_v<Impl::IFNDR, T> ;
-
-
+  requires (std::is_member_object_pointer_v<T>)
+  using TypeOfMemberObject_T = typename TypeOfMemberObject<T>::type;
 }
 

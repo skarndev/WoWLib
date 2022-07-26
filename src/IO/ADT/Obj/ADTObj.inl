@@ -28,46 +28,17 @@ namespace IO::ADT
         continue;
       }
 
-      // bfa+
-      if constexpr (client_version >= Common::ClientVersion::BFA)
-      {
-        if (chunk_header.fourcc == ChunkIdentifiers::ADTObjCommonChunks::MLMB)
-        {
-          this->_lod_map_object_batches.Read(buf, chunk_header.size);
-          continue;
-        }
-      }
+      if (this->InvokeExistingTraitFeature(&ADTLodMapObjectBatches::Read, buf, chunk_header))
+        continue;
 
-      // sl+
-      if constexpr (client_version >= Common::ClientVersion::SL)
-      {
-        switch (chunk_header.fourcc)
-        {
-          case ChunkIdentifiers::ADTObjCommonChunks::MWDS:
-          {
-            this->_wmo_doodadset_overrides.Read(buf, chunk_header.size);
-            continue;
-          }
-          case ChunkIdentifiers::ADTObjCommonChunks::MWDR:
-          {
-            this->_wmo_doodadset_overrides_ranges.Read(buf, chunk_header.size);
-            continue;
-          }
-        }
-      }
+      if (this->InvokeExistingTraitFeature(&ADTDoodadsetOverrides::Read, buf, chunk_header))
+        continue;
 
-      // handle the obj0-specific chunks here
-      if constexpr (lod_level == ADTObjLodLevel::NORMAL)
-      {
-        if (ReadObj0SpecificChunk(buf, chunk_header, chunk_counter))
-          continue;
-      }
-      else
-      // handle the obj1-specific chunks here
-      {
-        if (ReadObj1SpecificChunk(buf, chunk_header))
-          continue;
-      }
+      if (this->InvokeExistingTraitFeature(&AdtObj0SpecificData<client_version>::Read, buf, chunk_header, chunk_counter))
+        continue;
+
+      if (this->InvokeExistingTraitFeature(&AdtObj1SpecificData<client_version>::Read, buf, chunk_header))
+        continue;
 
       buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
       LogError("Encountered unknown ADT Obj1 chunk %s.", Common::FourCCToStr(chunk_header.fourcc).c_str());
@@ -94,185 +65,10 @@ namespace IO::ADT
     Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
     version.Write(buf);
 
-    // handle obj0 specific chunks
-    if constexpr (lod_level == ADTObjLodLevel::NORMAL)
-    {
-      WriteObj0SpecificChunks(buf);
-    }
-      // handle obj1 specific chunks
-    else
-    {
-      WriteObj1SpecificChunks(buf);
-    }
-
-    // handle other common chunks
-    if constexpr(client_version >= Common::ClientVersion::SL)
-    {
-      this->_wmo_doodadset_overrides_ranges.Write(buf);
-      this->_wmo_doodadset_overrides.Write(buf);
-      this->_lod_map_object_batches.Write(buf);
-    }
-  }
-
-
-  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline bool ADTObj<client_version, lod_level>::ReadObj0SpecificChunk(Common::ByteBuffer const& buf
-                                                           , Common::ChunkHeader const& chunk_header
-                                                           , std::uint32_t& chunk_counter)
-  requires (lod_level == ADTObjLodLevel::NORMAL)
-  {
-    // common
-    switch (chunk_header.fourcc)
-    {
-      case ChunkIdentifiers::ADTObj0Chunks::MCNK:
-        LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCNK (obj0) (%d / 255), size: %d."
-                  , chunk_counter, chunk_header.size);
-        this->_chunks[chunk_counter++].Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj0Chunks::MDDF:
-        this->_model_placements.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj0Chunks::MODF:
-        this->_map_object_placements.Read(buf, chunk_header.size);
-        return true;
-    }
-
-    if constexpr (client_version < Common::ClientVersion::BFA)
-    {
-      switch(chunk_header.fourcc)
-      {
-        case ChunkIdentifiers::ADTObj0Chunks::MMDX:
-          this->_model_filenames.Read(buf, chunk_header.size);
-          return true;
-        case ChunkIdentifiers::ADTObj0Chunks::MMID:
-          this->_model_filename_offsets.Read(buf, chunk_header.size);
-          return true;
-        case ChunkIdentifiers::ADTObj0Chunks::MWMO:
-          this->_map_object_filenames.Read(buf, chunk_header.size);
-          return true;
-        case ChunkIdentifiers::ADTObj0Chunks::MWID:
-          this->_map_object_filename_offsets.Read(buf, chunk_header.size);
-          return true;
-      }
-    }
-
-    return false;
-  }
-
-  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline void ADTObj<client_version, lod_level>::WriteObj0SpecificChunks(Common::ByteBuffer& buf) const
-  requires (lod_level == ADTObjLodLevel::NORMAL)
-  {
-    if constexpr (client_version < Common::ClientVersion::BFA)
-    {
-      // contracts
-      {
-        InvariantF(CCodeZones::FILE_IO, this->_model_filename_offsets.IsInitialized()
-                                        && this->_model_filenames.IsInitialized()
-                                        && this->_map_object_filename_offsets.IsInitialized()
-                                        && this->_map_object_filenames.IsInitialized()
-                   , "Essential chunks MMDX, MMID, MWMO, MWID are not initialized.");
-
-        InvariantF(CCodeZones::FILE_IO, this->_model_filename_offsets.Size() == this->_model_filenames.Size()
-                   && this->_map_object_filename_offsets.Size()== this->_map_object_filenames.Size()
-                   , "Filename storage should match with offsets map in size.");
-
-
-        InvariantF(CCodeZones::FILE_IO
-                   , this->_model_placements.IsInitialized() && this->_map_object_placements.IsInitialized()
-                   , "Model and map object placements must be initialized.");
-
-      }
-
-      this->_model_filenames.Write(buf);
-      this->_model_filename_offsets.Write(buf);
-      this->_map_object_filenames.Write(buf);
-      this->_map_object_filename_offsets.Write(buf);
-    }
-
-    this->_model_placements.Write(buf);
-    this->_map_object_placements.Write(buf);
-
-    for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
-    {
-      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
-      this->_chunks[i].Write(buf);
-    }
-  }
-
-  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  inline bool ADTObj<client_version, lod_level>::ReadObj1SpecificChunk(Common::ByteBuffer const& buf
-                                                                       , Common::ChunkHeader const& chunk_header)
-  requires (lod_level == ADTObjLodLevel::LOD)
-  {
-    switch (chunk_header.fourcc)
-    {
-      case ChunkIdentifiers::ADTObj1Chunks::MLMD:
-        this->_lod_map_object_placements.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLMX:
-        this->_lod_map_object_extents.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDD:
-        this->_lod_model_placements.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDX:
-        this->_lod_model_extents.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDL:
-        this->_lod_model_unknown.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLFD:
-        this->_lod_mapping.Read(buf, chunk_header.size);
-        return true;
-    }
-
-    if constexpr (client_version >= Common::ClientVersion::SL)
-    {
-      if (chunk_header.fourcc == ChunkIdentifiers::ADTObj1Chunks::MLDB)
-      {
-        this->_lod_model_batches.Read(buf, chunk_header.size);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  void ADTObj<client_version, lod_level>::WriteObj1SpecificChunks(Common::ByteBuffer& buf) const
-  requires (lod_level == ADTObjLodLevel::LOD)
-  {
-    InvariantF(CCodeZones::FILE_IO, this->_lod_map_object_placements.IsInitialized()
-                                    && this->_lod_map_object_extents.IsInitialized()
-                                    && this->_lod_model_placements.IsInitialized()
-                                    && this->_lod_model_extents.IsInitialized()
-                                    && this->_lod_mapping.IsInitialized()
-              , "Essential chunk(s) not initialized.");
-
-    this->_lod_map_object_placements.Write(buf);
-    this->_lod_map_object_extents.Write(buf);
-    this->_lod_model_placements.Write(buf);
-    this->_lod_model_extents.Write(buf);
-    this->_lod_mapping.Write(buf);
-
-    if (this->_lod_model_unknown.IsInitialized())
-    {
-      this->_lod_model_unknown.Write(buf);
-    }
-
-    if constexpr (client_version >= Common::ClientVersion::SL)
-    {
-      this->_lod_model_batches.Write(buf);
-    }
-  }
-
-  template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  template<Common::ClientVersion client_v>
-  inline void ADTObj<client_version, lod_level>::GenerateLod(ADTObj<client_v, ADTObjLodLevel::NORMAL> const& tile_obj)
-  requires (lod_level == ADTObjLodLevel::LOD)
-  {
-    // TODO: generate LOD data here
+    this->InvokeExistingTraitFeature(&AdtObj0SpecificData<client_version>::Write, buf);
+    this->InvokeExistingTraitFeature(&AdtObj1SpecificData<client_version>::Write, buf);
+    this->InvokeExistingTraitFeature(&ADTLodMapObjectBatches::Write, buf);
+    this->InvokeExistingTraitFeature(&ADTDoodadsetOverrides::Write, buf);
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
@@ -337,11 +133,106 @@ namespace IO::ADT
   }
 
   template<Common::ClientVersion client_version>
+  bool AdtObj0SpecificData<client_version>::Read(Common::ByteBuffer const& buf
+                                                 , Common::ChunkHeader const& chunk_header
+                                                 , std::uint32_t& chunk_counter)
+  {
+    // common
+    switch (chunk_header.fourcc)
+    {
+      case ChunkIdentifiers::ADTObj0Chunks::MCNK:
+      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCNK (obj0) (%d / 255), size: %d."
+                , chunk_counter, chunk_header.size);
+        _chunks[chunk_counter++].Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj0Chunks::MDDF:
+        _model_placements.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj0Chunks::MODF:
+        _map_object_placements.Read(buf, chunk_header.size);
+        return true;
+    }
+
+    if (this->InvokeExistingTraitFeature(&ADTObj0ModelStorageFilepath::Read, buf, chunk_header))
+      return true;
+
+    return false;
+  }
+
+  template<Common::ClientVersion client_version>
+  void AdtObj0SpecificData<client_version>::Write(Common::ByteBuffer& buf) const
+  {
+    this->InvokeExistingTraitFeature(&ADTObj0ModelStorageFilepath::Write, buf);
+    _model_placements.Write(buf);
+    _map_object_placements.Write(buf);
+
+    for (std::size_t i = 0; i < Common::WorldConstants::CHUNKS_PER_TILE; ++i)
+    {
+      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: MCNK (obj0) (%d / 255).", i);
+      _chunks[i].Write(buf);
+    }
+
+  }
+
+  template<Common::ClientVersion client_version>
   inline AdtObj1SpecificData<client_version>::AdtObj1SpecificData()
   {
     _lod_map_object_placements.Initialize();
     _lod_map_object_extents.Initialize();
     _lod_model_placements.Initialize();
     _lod_mapping.Initialize();
+  }
+
+  template<Common::ClientVersion client_version>
+  bool AdtObj1SpecificData<client_version>::Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+  {
+    switch (chunk_header.fourcc)
+    {
+      case ChunkIdentifiers::ADTObj1Chunks::MLMD:
+        _lod_map_object_placements.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj1Chunks::MLMX:
+        _lod_map_object_extents.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj1Chunks::MLDD:
+        _lod_model_placements.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj1Chunks::MLDX:
+        _lod_model_extents.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj1Chunks::MLDL:
+        _lod_model_unknown.Read(buf, chunk_header.size);
+        return true;
+      case ChunkIdentifiers::ADTObj1Chunks::MLFD:
+        _lod_mapping.Read(buf, chunk_header.size);
+        return true;
+    }
+
+    if (this->InvokeExistingTraitFeature(&LodModelBatches::Read, buf, chunk_header))
+      return true;
+
+    return false;
+  }
+
+  template<Common::ClientVersion client_version>
+  void AdtObj1SpecificData<client_version>::Write(Common::ByteBuffer& buf) const
+  {
+    InvariantF(CCodeZones::FILE_IO, _lod_map_object_placements.IsInitialized()
+                                    && _lod_map_object_extents.IsInitialized()
+                                    && _lod_model_placements.IsInitialized()
+                                    && _lod_model_extents.IsInitialized()
+                                    && _lod_mapping.IsInitialized()
+               , "Essential chunk(s) not initialized.");
+
+    _lod_map_object_placements.Write(buf);
+    _lod_map_object_extents.Write(buf);
+    _lod_model_placements.Write(buf);
+    _lod_model_extents.Write(buf);
+    _lod_mapping.Write(buf);
+
+    if (_lod_model_unknown.IsInitialized())
+    {
+      _lod_model_unknown.Write(buf);
+    }
   }
 }

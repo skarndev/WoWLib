@@ -35,7 +35,7 @@ IO::Common::ByteBuffer MPQLoader::GetListfile()
 
   for(auto it = _archives.rbegin();  it != _archives.rend(); ++it)
   {
-    if (static_cast<Archives::MPQArchive*>(it->get())->ReadFile({*_storage, "(listfile)"}, buf)
+    if (static_cast<Archives::MPQArchive*>(it->get())->ReadFile({*_storage, "(LISTFILE)"}, buf)
         != FileKey::FileReadStatus::SUCCESS)
     {
       LogDebugF(CCodeZones::STORAGE, "(listfile) not found in archive: %s"

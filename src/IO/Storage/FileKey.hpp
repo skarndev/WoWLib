@@ -15,7 +15,6 @@ namespace IO::Storage
    */
   struct FileKey
   {
-
     enum class FileExistPolicy
     {
       CHECKEXISTS, ///< Throw exception when file is not found in listfile.
@@ -64,10 +63,12 @@ namespace IO::Storage
      * Construct FileKey based on filepath.
      * @param storage WoW client storage.
      * @param filepath Filepath (either in project dir, or storage).
+     * @param filepath_correction_policy Determines whether to fix filepath to game format, or trust the user to handle it.
      * @throws IO::Storage::Exceptions::FileNotFoundError Thrown if filepath does not exist in listfile (only for STRICT).
      */
     FileKey(ClientStorage& storage
             , std::string const& filepath
+            , FilePathCorrectionPolicy filepath_correction_policy = FilePathCorrectionPolicy::TRUST
             , FileExistPolicy file_exist_policy = FileExistPolicy::WEAK);
 
     /**

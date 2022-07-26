@@ -4,6 +4,7 @@
 #include <IO/CommonConcepts.hpp>
 #include <IO/ByteBuffer.hpp>
 #include <Utils/Meta/Traits.hpp>
+#include <Utils/Meta/Templates.hpp>
 #include <Validation/Contracts.hpp>
 #include <Validation/Log.hpp>
 #include <Config/CodeZones.hpp>
@@ -19,19 +20,6 @@
 
 namespace IO::Common
 {
-  namespace
-  {
-    template<std::size_t n>
-    struct StringLiteral
-    {
-      constexpr StringLiteral(const char(&str)[n])
-      {
-        std::copy_n(str, n - 1, value);
-      }
-
-      char value[n - 1];
-    };
-  }
 
   enum class FourCCEndian
   {
@@ -40,7 +28,7 @@ namespace IO::Common
   };
 
   // Converts string representation of FourCC to integer in compile time.
-  template <StringLiteral fourcc, FourCCEndian reverse = FourCCEndian::LITTLE>
+  template <Utils::Meta::Templates::StringLiteral fourcc, FourCCEndian reverse = FourCCEndian::LITTLE>
   static constexpr std::uint32_t FourCC = static_cast<bool>(reverse) ? (fourcc.value[3] << 24 | fourcc.value[2] << 16
        | fourcc.value[1] << 8 | fourcc.value[0])
        : (fourcc.value[0] << 24 | fourcc.value[1] << 16 | fourcc.value[2] << 8 | fourcc.value[3]);
@@ -82,20 +70,22 @@ namespace IO::Common
   enum class ClientVersion
   {
     CLASSIC = 0,
-    TBC = 1,
-    WOTLK = 2,
-    CATA = 3,
-    MOP = 4,
-    WOD = 5,
-    LEGION = 6,
-    BFA = 7,
-    SL = 8,
-    DF = 9,
+    TBC = 10,
+    WOTLK = 20,
+    CATA = 30,
+    MOP = 40,
+    WOD = 50,
+    LEGION = 60,
+    BFA = 70,
+    SL = 80,
+    DF = 90,
 
     // Classic era remasters
-    CLASSIC_NEW = 100,
-    TBC_NEW = 101,
-    WOTLK_NEW = 102
+    CLASSIC_NEW = 71,
+    TBC_NEW = 81,
+    WOTLK_NEW = 91, // TODO: check if is actually based on Dragonflight
+
+    ANY = 100000 ///> Indicates a feature currently present and not removed after the latest expansion.
   };
 
   enum class ClientLocale
@@ -116,11 +106,13 @@ namespace IO::Common
   inline constexpr std::array<std::string_view, 10> ClientLocaleStr
   { "enGB", "enUS", "deDE", "koKR", "frFR", "zhCN", "zhTW", "esES", "esMX", "ruRU" };
 
-  // Each file chunk starts with this control structure.
+  /**
+   *   Each file chunk starts with this control structure.
+   */
   struct ChunkHeader
   {
-    std::uint32_t fourcc;
-    std::uint32_t size;
+    std::uint32_t fourcc; ///> FourCC-magic idenitying the chunk.
+    std::uint32_t size; ///> Size of chunk data in bytes.
   };
 
   /*
@@ -181,7 +173,7 @@ namespace IO::Common
 
     // Underlying data structure
     T data;
-    static const std::uint32_t magic = fourcc;
+    static constexpr std::uint32_t magic = fourcc;
 
   private:
     bool _is_initialized = false;
@@ -297,7 +289,7 @@ namespace IO::Common
     [[nodiscard]]
     T const& operator[](std::size_t index) const;
 
-    static const std::uint32_t magic = fourcc;
+    static constexpr std::uint32_t magic = fourcc;
 
   private:
     // Array of data structures (either std::vector or std::array depending on size constraints).
@@ -414,7 +406,7 @@ namespace IO::Common
     [[nodiscard]]
     typename ArrayImplT_::value_type& operator[](std::size_t index);
 
-    static const std::uint32_t magic = fourcc;
+    static constexpr std::uint32_t magic = fourcc;
 
   private:
     bool _is_initialized = false;

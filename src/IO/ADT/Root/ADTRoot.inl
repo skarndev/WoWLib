@@ -56,28 +56,17 @@ namespace IO::ADT
                   , chunk_counter, chunk_header.size);
           _chunks[chunk_counter++].Read(buf, chunk_header.size);
           continue;
+        case ChunkIdentifiers::ADTRootChunks::MH2O:
+          _liquids.Read(buf, chunk_header.size);
+          continue;
       }
 
       // mop+ blend mesh related features
-      if constexpr (client_version >= Common::ClientVersion::MOP)
+      if constexpr (Common::Traits::HasTraitEnabled<std::remove_pointer_t<decltype(this)>, BlendMeshes>)
       {
-        switch (chunk_header.fourcc)
+        if (BlendMeshes::Read(buf, chunk_header))
         {
-          case ChunkIdentifiers::ADTRootChunks::MBMH:
-            this->_blend_mesh_headers.Read(buf, chunk_header.size);
-            continue;
-          case ChunkIdentifiers::ADTRootChunks::MBBB:
-            this->_blend_mesh_bounding_boxes.Read(buf, chunk_header.size);
-            continue;
-          case ChunkIdentifiers::ADTRootChunks::MBNV:
-            this->_blend_mesh_vertices.Read(buf, chunk_header.size);
-            continue;
-          case ChunkIdentifiers::ADTRootChunks::MBMI:
-            this->_blend_mesh_indices.Read(buf, chunk_header.size);
-            continue;
-          case ChunkIdentifiers::ADTRootChunks::MH2O:
-            _liquids.Read(buf, chunk_header.size);
-            continue;
+          continue;
         }
       }
 
@@ -129,12 +118,9 @@ namespace IO::ADT
     }
 
     // mop+, blend mesh related functionality
-    if constexpr (client_version >= Common::ClientVersion::MOP)
+    if constexpr (Common::Traits::HasTraitEnabled<std::remove_pointer_t<decltype(this)>, BlendMeshes>)
     {
-      this->_blend_mesh_headers.Write(buf);
-      this->_blend_mesh_bounding_boxes.Write(buf);
-      this->_blend_mesh_vertices.Write(buf);
-      this->_blend_mesh_indices.Write(buf);
+      BlendMeshes::Write(buf);
     }
 
     std::size_t end_pos = buf.Tell();
@@ -144,5 +130,4 @@ namespace IO::ADT
     header.Write(buf);
     buf.Seek(end_pos);
   }
-
 }

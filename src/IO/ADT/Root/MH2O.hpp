@@ -75,8 +75,6 @@ namespace IO::ADT
     std::optional<LiquidAttributes> _attributes;
   };
 
-  
-
   class MH2O
   {
   public:
@@ -90,7 +88,6 @@ namespace IO::ADT
 
     [[nodiscard]]
     std::array<LiquidChunk, 16 * 16>& chunks() { return _chunks; }
-
 
   private:
     std::array<LiquidChunk, 16 * 16> _chunks;

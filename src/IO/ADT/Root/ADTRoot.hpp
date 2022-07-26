@@ -1,6 +1,7 @@
 #ifndef IO_ADT_ROOT_ADTROOT_HPP
 #define IO_ADT_ROOT_ADTROOT_HPP
 #include <IO/Common.hpp>
+#include <IO/CommonTraits.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/Root/ADTRootMCNK.hpp>
 #include <IO/ADT/Root/MH2O.hpp>
@@ -10,21 +11,29 @@
 
 namespace IO::ADT
 {
-  class ADTRootWithBlendMeshes
+  /**
+   * Implements a VersionTrait enabling terrain blend batches support for ADTRoot.
+   * Blend batches are responsible for seamlessly blending WMOs with terrain.
+   */
+  class BlendMeshes
   {
   protected:
     Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
     Common::DataArrayChunk<DataStructures::MBBB, ChunkIdentifiers::ADTRootChunks::MBBB> _blend_mesh_bounding_boxes;
     Common::DataArrayChunk<DataStructures::MBNV, ChunkIdentifiers::ADTRootChunks::MBNV> _blend_mesh_vertices;
     Common::DataArrayChunk<std::uint16_t, ChunkIdentifiers::ADTRootChunks::MBMI> _blend_mesh_indices;
+
+    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
+    void Write(Common::ByteBuffer& buf) const;
   };
-  class ADTRootNoBlendMeshes {};
 
   template<Common::ClientVersion client_version>
-  class ADTRoot : public std::conditional_t<client_version >= Common::ClientVersion::MOP
-                                            , ADTRootWithBlendMeshes
-                                            , ADTRootNoBlendMeshes
-                                           >
+  class ADTRoot : public Common::Traits::VersionTrait
+                          <
+                            BlendMeshes
+                            , client_version
+                            , Common::ClientVersion::MOP
+                          >
   {
   public:
     explicit ADTRoot(std::uint32_t file_data_id);
@@ -45,9 +54,8 @@ namespace IO::ADT
 
   };
 
-
 }
 
-#include <IO/ADT/Root/ADTRoot.hpp>
+#include <IO/ADT/Root/ADTRoot.inl>
 
 #endif // IO_ADT_ROOT_ADTROOT_HPP

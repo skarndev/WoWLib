@@ -10,11 +10,11 @@ ADTFile::ADTFile(std::uint32_t file_data_id)
   Common::ByteBuffer buf{};
   ADTObj<Common::ClientVersion::SL, ADTObjLodLevel::NORMAL> normal_sl{1};
   ADTObj<Common::ClientVersion::SL, ADTObjLodLevel::LOD> lod_sl{1};
-
   normal_sl.Read(buf);
   normal_sl.Write(buf);
   lod_sl.Read(buf);
   lod_sl.Write(buf);
+
 
   ADTObj<Common::ClientVersion::BFA, ADTObjLodLevel::NORMAL> normal_bfa{1};
   ADTObj<Common::ClientVersion::BFA, ADTObjLodLevel::LOD> lod_bfa{1};

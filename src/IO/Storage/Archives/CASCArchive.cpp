@@ -94,7 +94,8 @@ IO::Storage::FileKey::FileReadStatus CASCArchive::ReadFile(IO::Storage::FileKey 
     std::uint64_t file_size;
     if (CascGetFileSize64(file, &file_size))
     {
-      buf.Reserve(file_size);
+      EnsureF(CCodeZones::STORAGE, file_size <= std::numeric_limits<std::size_t>::max(), "Unexpected overflow.");
+      buf.Reserve(static_cast<std::size_t>(file_size));
       CascReadFile(file, buf.Data(), static_cast<DWORD>(file_size), nullptr);
       CascCloseFile(file);
       return IO::Storage::FileKey::FileReadStatus::SUCCESS;

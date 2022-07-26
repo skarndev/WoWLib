@@ -154,18 +154,27 @@ if(NOT casc_POPULATED)
   FetchContent_Populate(casc)
 endif()
 
+#boost
+find_package(Boost 1.80.0 REQUIRED)
+
+
 set(CASC_BUILD_SHARED_LIB OFF)
 set(CASC_BUILD_STATIC_LIB ON)
 add_subdirectory (${casc_SOURCE_DIR} ${casc_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_compile_definitions(EpsilonAddon PRIVATE CASCLIB_NO_AUTO_LINK_LIBRARY)
 
-target_link_libraries(EpsilonAddon d3d11.lib minhook storm casc_static)
-target_include_directories (EpsilonAddon PRIVATE "${storm_SOURCE_DIR}/src")
-target_include_directories (EpsilonAddon PRIVATE "${casc_SOURCE_DIR}/src")
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/MinHook/include" "${EXTERNAL_SOURCE_DIR}/backward-cpp" "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src")
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/ordered-map/include")
-target_include_directories(EpsilonAddon PRIVATE "${EXTERNAL_SOURCE_DIR}/ste-unordered_bimap")
+target_link_libraries(EpsilonAddon d3d11.lib minhook storm casc_static ${Boost_LIBRARIES})
 
+set(EpsilonAddon_INCLUDE_DIRS
+        "src"
+        "${casc_SOURCE_DIR}/src"
+        "${storm_SOURCE_DIR}/src"
+        "${EXTERNAL_SOURCE_DIR}/MinHook/include"
+        "${EXTERNAL_SOURCE_DIR}/backward-cpp"
+        "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src"
+        "${EXTERNAL_SOURCE_DIR}/ordered-map/include"
+        "${Boost_INCLUDE_DIRS}")
+target_include_directories(EpsilonAddon PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 
 # tests
 if(BUILD_TESTS)
@@ -175,16 +184,15 @@ if(BUILD_TESTS)
 
   add_executable(logging_test "tests/LoggingTest.cpp")
   target_link_libraries(logging_test EpsilonAddon)
-  target_include_directories(logging_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(logging_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 
-  add_executable(contract_test "tests/ContractsTest.cpp")
+  add_executable(contract_test "tests/ContractsTest.cpp" src/Utils/Meta/ProtocolHelpers.hpp)
   target_link_libraries(contract_test EpsilonAddon)
-  target_include_directories(contract_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
+  target_include_directories(contract_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 
   add_executable(storage_test "tests/StorageTest.cpp")
   target_link_libraries(storage_test EpsilonAddon)
-  target_include_directories(storage_test PRIVATE "${EXTERNAL_SOURCE_DIR}/backward-cpp" "src")
-  target_include_directories(storage_test PRIVATE "${EXTERNAL_SOURCE_DIR}/ste-unordered_bimap")
+  target_include_directories(storage_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 endif()
 
 # documentation

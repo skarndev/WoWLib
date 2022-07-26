@@ -5,12 +5,28 @@
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <IO/WorldConstants.hpp>
 #include <IO/Common.hpp>
+#include <IO/CommonTraits.hpp>
 #include <Utils/Misc/ForceInline.hpp>
 
 namespace IO::ADT
 {
-  class MCNKRootWithBlendBatches
+  /**
+   * Implements a VersionTrait enabling terrain blend batches support for MCNKRoot.
+   * Blend batches are responsible for seamlessly blending WMOs with terrain.
+   */
+  class MCNKRootBlendBatches
   {
+  public:
+    [[nodiscard]] FORCEINLINE auto& BlendBatches()
+    {
+      return _blend_batches;
+    };
+
+    [[nodiscard]] FORCEINLINE auto const& BlendBatches() const
+    {
+      return _blend_batches;
+    };
+
   protected:
     Common::DataArrayChunk
       <
@@ -20,15 +36,18 @@ namespace IO::ADT
         , 0
         , 256
       > _blend_batches;
+
+    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
+    void Write(Common::ByteBuffer& buf) const;
   };
 
-  class MCNKRootNoBlendBatches {};
-
   template<Common::ClientVersion client_version>
-  class MCNKRoot : public std::conditional_t<client_version >= Common::ClientVersion::MOP
-                                              , MCNKRootWithBlendBatches
-                                              , MCNKRootNoBlendBatches
-                                             >
+  class MCNKRoot : public Common::Traits::VersionTrait
+                                          <
+                                            MCNKRootBlendBatches
+                                            , client_version
+                                            , Common::ClientVersion::MOP
+                                          >
   {
   public:
     MCNKRoot();
@@ -37,7 +56,7 @@ namespace IO::ADT
     void Write(Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
-    FORCEINLINE bool IsInitialized() const { return true; };
+    FORCEINLINE constexpr bool IsInitialized() const { return true; };
 
   private:
     DataStructures::SMChunk _header;
@@ -94,21 +113,9 @@ namespace IO::ADT
 
     [[nodiscard]] FORCEINLINE auto& Normals() { return _normals; };
     [[nodiscard]] FORCEINLINE auto const& Normals() const { return _normals; };
-
-    [[nodiscard]] FORCEINLINE auto& BlendBatches() requires (client_version >= Common::ClientVersion::MOP)
-    {
-      return this->_blend_batches;
-    };
-
-    [[nodiscard]] FORCEINLINE auto const& BlendBatches() const requires (client_version >= Common::ClientVersion::MOP)
-    {
-      return this->_blend_batches;
-    };
-
-
   };
 }
 
-#include <IO/ADT/Root/ADTRootMCNK.hpp>
+#include <IO/ADT/Root/ADTRootMCNK.inl>
 
 #endif // IO_ADT_ROOT_ADTROOTMCNK_HPP

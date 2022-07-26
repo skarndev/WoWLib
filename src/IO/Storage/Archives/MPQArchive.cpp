@@ -53,10 +53,11 @@ FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common
         return FileKey::FileReadStatus::FILE_OPEN_FAILED_CLIENT;
       }
 
+      std::size_t buf_size = buf.Size();
       buf.Reserve(size);
 
       std::size_t bytes_read = 0;
-      if (!SFileReadFile(handle, buf.Data(), static_cast<DWORD>(size), reinterpret_cast<LPDWORD>(&bytes_read), nullptr))
+      if (!SFileReadFile(handle, buf.Data() + buf_size, static_cast<DWORD>(size), reinterpret_cast<LPDWORD>(&bytes_read), nullptr))
       {
         DWORD error = GetLastError();
 
@@ -102,7 +103,7 @@ FileKey::FileReadStatus MPQArchive::ReadFile(FileKey const& file_key, IO::Common
 
       EnsureF(CCodeZones::STORAGE, size <= std::numeric_limits<std::uint32_t>::max(), "Invalid filesize.");
 
-      buf.Reserve(size);
+      buf.Reserve(static_cast<std::uint32_t>(size));
 
       std::ifstream istrm(local_filepath, std::ios::binary);
 

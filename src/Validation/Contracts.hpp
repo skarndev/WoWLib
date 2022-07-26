@@ -54,7 +54,7 @@ namespace Validation::Contracts
   }
 
   template<typename... Args>
-  FORCEINLINE bool ResolveContract(const std::function<bool()>& callback
+  FORCEINLINE bool ResolveContract(std::function<bool()> const& callback
     , const char* expr
     , const char* file
     , int line

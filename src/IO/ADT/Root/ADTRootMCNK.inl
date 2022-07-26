@@ -47,11 +47,10 @@ namespace IO::ADT
           continue;
       }
 
-      if constexpr (client_version >= Common::ClientVersion::MOP)
+      if constexpr (Common::Traits::HasTraitEnabled<std::remove_pointer_t<decltype(this)>, MCNKRootBlendBatches>)
       {
-        if (chunk_header.fourcc == ChunkIdentifiers::ADTRootMCNKSubchunks::MCBB)
+        if (MCNKRootBlendBatches::Read(buf, chunk_header))
         {
-          this->_blend_batches.Read(buf, chunk_header.size);
           continue;
         }
       }
@@ -83,9 +82,9 @@ namespace IO::ADT
     _tbc_water.Write(buf);
     _sound_emitters.Write(buf);
 
-    if constexpr (client_version >= Common::ClientVersion::MOP)
+    if constexpr (Common::Traits::HasTraitEnabled<std::remove_pointer_t<decltype(this)>, MCNKRootBlendBatches>)
     {
-      this->_blend_batches.Write(buf);
+      MCNKRootBlendBatches::Write(buf);
     }
     _groundeffect_disable.Write(buf);
 
@@ -101,3 +100,4 @@ namespace IO::ADT
     buf.Seek(end_pos);
   }
 }
+

@@ -28,6 +28,7 @@ ClientStorage::ClientStorage(std::string const& path
     fs::create_directories(project_path);
   }
 
+  Log("Initializing MPQ storage...");
   switch (client_version)
   {
     case Common::ClientVersion::WOTLK:
@@ -46,6 +47,7 @@ ClientStorage::ClientStorage(std::string const& path
     }
   }
 
+  Log("Loading MPQ listfiles...");
   _listfile = Storage::Listfile(_loader->GetListfile());
 }
 
@@ -58,7 +60,6 @@ ClientStorage::ClientStorage(std::string const& path
 , _path(Utils::PathUtils::NormalizeFilepathUnix(path))
 , _client_version(client_version)
 , _locale(locale)
-
 {
   RequireF(CCodeZones::STORAGE, client_version >= Common::ClientVersion::WOD
            , "This contructor can be used for CASC-based clients only.");
@@ -95,7 +96,7 @@ FileKey::FileReadStatus ClientStorage::ReadFile(FileKey const& file_key, Common:
 
     EnsureF(CCodeZones::STORAGE, size <= std::numeric_limits<std::uint32_t>::max(), "Invalid filesize.");
 
-    buf.Reserve(size);
+    buf.Reserve(static_cast<std::uint32_t>(size));
 
     std::ifstream istrm(filepath, std::ios::binary);
 
