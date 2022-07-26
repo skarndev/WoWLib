@@ -1,6 +1,8 @@
 #pragma once
 #include <IO/Storage/Archives/IArchive.hpp>
 
+#include <optional>
+
 namespace IO::Storage::Archives
 {
   namespace Exceptions

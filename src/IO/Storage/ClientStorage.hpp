@@ -1,6 +1,6 @@
 #pragma once
 #include <IO/Common.hpp>
-#include <IO/Storage/Listfile.hpp>
+#include <IO/Storage/ListfileManager.hpp>
 #include <IO/Storage/FileKey.hpp>
 #include <IO/Storage/ClientLoaders/BaseLoader.hpp>
 
@@ -82,7 +82,7 @@ namespace IO::Storage
      * @return Reference to listfile.
      */
     [[nodiscard]]
-    Listfile& Listfile() { return _listfile; };
+    ListfileManager& Listfile() { return _listfile; };
 
     /**
      * Gets client locale.
@@ -139,7 +139,7 @@ namespace IO::Storage
     bool Exists(FileKey const& file_key) const;
 
   private:
-    class Listfile _listfile;
+    ListfileManager _listfile;
     std::filesystem::path _project_path;
     std::filesystem::path _path;
     std::unique_ptr<ClientLoaders::BaseLoader> _loader;

@@ -5,6 +5,8 @@
 #include <Validation/Contracts.hpp>
 #include <Utils/Meta/Future.hpp>
 
+#include <boost/range/combine.hpp>
+
 #include <algorithm>
 
 using namespace IO::ADT;
@@ -154,14 +156,14 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
            , !_alphamap_layers.empty() && _alphamap_layers.size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
            , "Only alpha layers is supported.");
 
-  ChunkHeader header {Common::FourCC<"MCAL">};
+  ChunkHeader header {Common::FourCC<"MCAL">, 0};
   std::size_t chunk_pos = buf.Tell();
   buf.Write(header);
 
   // highres 4096 alpha
   if (format == AlphaFormat::HIGHRES)
   {
-    for (auto const&& [alphamap, layer_params] : future::zip(_alphamap_layers, alpha_layer_params))
+    for (auto const&& [alphamap, layer_params] : boost::combine(_alphamap_layers, alpha_layer_params))
     {
       auto compression = layer_params.flags.alpha_map_compressed
           ? AlphaCompression::COMPRESSED : AlphaCompression::UNCOMPRESSED;
@@ -272,7 +274,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
     {
       std::int32_t max_alpha = 255;
 
-      for (auto&& [alphamap, temp_alphamap] : future::zip(_alphamap_layers, temp_layers))
+      for (auto&& [alphamap, temp_alphamap] : boost::combine(_alphamap_layers, temp_layers))
       {
         if (max_alpha <= 0) [[unlikely]]
         {

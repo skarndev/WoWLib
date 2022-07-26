@@ -6,7 +6,11 @@
 namespace fs = std::filesystem;
 using namespace IO::Storage::Archives;
 
-bool WINAPI LogInitProgress(void* user_param, LPCSTR work, LPCSTR object, DWORD cur_value, DWORD tot_value)
+bool WINAPI LogInitProgress([[maybe_unused]] void* user_param
+                            , LPCSTR work
+                            , [[maybe_unused]]  LPCSTR object
+                            , DWORD cur_value
+                            , DWORD tot_value)
 {
   Log("(%d/%d) %s", cur_value, tot_value, work);
   return false;
@@ -91,7 +95,7 @@ IO::Storage::FileKey::FileReadStatus CASCArchive::ReadFile(IO::Storage::FileKey 
   HANDLE file;
   if (CascOpenFile(_handle, CASC_FILE_DATA_ID(file_key.FileDataID()), 0, CASC_OPEN_BY_FILEID, &file))
   {
-    std::uint64_t file_size;
+    ULONGLONG file_size;
     if (CascGetFileSize64(file, &file_size))
     {
       EnsureF(CCodeZones::STORAGE, file_size <= std::numeric_limits<std::size_t>::max(), "Unexpected overflow.");

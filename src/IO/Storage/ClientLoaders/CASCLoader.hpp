@@ -1,6 +1,8 @@
 #pragma once
 #include <IO/Storage/ClientLoaders/BaseLoader.hpp>
 
+#include <optional>
+
 namespace IO::Storage::ClientLoaders
 {
   /**

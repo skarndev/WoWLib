@@ -1,16 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 project ("WoWIngameEditor")
 
-# check if compiler is suitable
-if(NOT MSVC)
- message(FATAL_ERROR "Only MSVC compiler is currently supported.")
-endif()
-
-# check if OS is suitable
-if(NOT WIN32)
-  message(FATAL_ERROR "This project only supports the Windows platform.")
-endif()
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
@@ -29,6 +19,10 @@ add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /MP)
 #Allow Big obj for msvc compilation
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /bigobj)
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /W3)
+add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fPIC)
+add_compiler_flag_if_supported(CMAKE_C_FLAGS -fPIC)
+add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wall)
+add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wextra)
 
 # options
 option(ADDITIONAL_OPTIMIZATION_FLAGS "Enable optimizations?" OFF)
@@ -121,7 +115,6 @@ assign_source_group(
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 
 # dependencies
-add_subdirectory("${EXTERNAL_SOURCE_DIR}/MinHook")
 
 # stormlib
 FetchContent_Declare(storm
@@ -155,7 +148,7 @@ if(NOT casc_POPULATED)
 endif()
 
 #boost
-find_package(Boost 1.80.0 REQUIRED)
+find_package(Boost 1.74.0 REQUIRED)
 
 
 set(CASC_BUILD_SHARED_LIB OFF)
@@ -163,7 +156,7 @@ set(CASC_BUILD_STATIC_LIB ON)
 add_subdirectory (${casc_SOURCE_DIR} ${casc_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_compile_definitions(EpsilonAddon PRIVATE CASCLIB_NO_AUTO_LINK_LIBRARY)
 
-target_link_libraries(EpsilonAddon d3d11.lib minhook storm casc_static ${Boost_LIBRARIES})
+target_link_libraries(EpsilonAddon storm casc_static ${Boost_LIBRARIES})
 
 set(EpsilonAddon_INCLUDE_DIRS
         "src"

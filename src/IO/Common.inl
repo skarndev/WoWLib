@@ -59,6 +59,7 @@ namespace IO::Common
     header.fourcc = fourcc;
     header.size = sizeof(T);
 
+    buf.Write(header);
     buf.Write(data);
   }
 

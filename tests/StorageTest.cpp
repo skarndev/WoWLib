@@ -4,7 +4,6 @@
 #include <IO/Storage/FileKey.hpp>
 #include <IO/ADT/Root/ADTRoot.hpp>
 
-#include <boost/pfr.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <boost/hana/map.hpp>
 #include <array>
@@ -61,7 +60,5 @@ int main()
   assert(!t.Read(buf, h1));
   //handle_cases<&Trait::_foo, &Trait::_bar>(&t, 1);
 
-  TraitAlt t1 {};
-  boost::pfr::for_each_field(t1, [=](auto& val){});
   return 0;
 }

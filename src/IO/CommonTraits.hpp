@@ -217,7 +217,7 @@ namespace IO::Common::Traits
                 std::remove_pointer_t<IOTraits>
                 , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
               >)
-    auto InvokeExistingTraitFeature(MethodPtrT feature, Args&&...)
+    auto InvokeExistingTraitFeature([[maybe_unused]] MethodPtrT feature, Args&&...)
     {
       if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<MethodPtrT>::type>)
       {
@@ -242,7 +242,7 @@ namespace IO::Common::Traits
                 std::remove_pointer_t<IOTraits>
                 , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
               >)
-    auto InvokeExistingTraitFeature(MethodPtrT feature, Args&&...) const
+    auto InvokeExistingTraitFeature([[maybe_unused]] MethodPtrT feature, Args&&...) const
     {
       if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<MethodPtrT>::type>)
       {

@@ -20,7 +20,7 @@ std::string RemoveInconsistentNaming(std::string const& str)
     return str;
   }
 
-  return std::move(ret_str);
+  return ret_str;
 }
 
 std::string Utils::PathUtils::NormalizeFilepathGame(std::string_view filepath)

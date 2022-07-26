@@ -4,10 +4,12 @@
 #include <Utils/Misc/CurrentFunction.hpp>
 #include <Utils/Misc/ForceInline.hpp>
 
+#include <boost/format.hpp>
+
 #include <iostream>
 #include <filesystem>
-#include <cstdio>
 #include <ctime>
+#include <cstdio>
 #include <iostream>
 #include <string>
 
@@ -34,21 +36,25 @@ namespace Validation::Log
     if (gLogIndentLevel)
       new_line_indent--;
 
-    std::printf("%s - %s%*cSource: \"%s\", line %d, in %s:\n%*c", time_str.c_str(), name, gLogIndentLevel * 4, ' ',
-      std::filesystem::relative(file, SOURCE_DIR).generic_string().c_str(),
-      line, func, new_line_indent, ' ');
+    std::printf("%s - %s%*cSource: \"%s\", line %d, in %s:\n%*c", time_str.c_str()
+      , name, gLogIndentLevel * 4, ' '
+      , std::filesystem::relative(file, SOURCE_DIR).generic_string().c_str()
+      , line, func, new_line_indent, ' ');
+
   }
 
   FORCEINLINE void PrintFormattedLine(const char* name)
   {
-    std::printf("%d - %s%*c", static_cast<int>(clock() * 1000 / CLOCKS_PER_SEC), name, gLogIndentLevel * 4, ' ');
+    std::printf("%d - %s%*c", static_cast<int>(clock() * 1000 / CLOCKS_PER_SEC)
+      , name, gLogIndentLevel * 4, ' ');
   }
 
   template<typename ... Args>
   FORCEINLINE void impl_Log(const char* format, const Args&... args)
   {
     PrintFormattedLine(LOG_MSG_TOKEN);
-    std::printf(format, args...);
+    auto fmt = (boost::format(format) % ... % args);
+    std::cout << fmt.str();
     std::cout << std::endl;
   }
 
@@ -56,7 +62,8 @@ namespace Validation::Log
   FORCEINLINE void impl_LogDebugV(const char* file, int line, const char* func, const char* format, const Args&... args)
   {
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN, file, func, line);
-    std::printf(format, args...);
+    auto fmt = (boost::format(format) % ... % args);
+    std::cout << fmt.str();
     std::cout << std::endl;
   }
 
@@ -64,7 +71,8 @@ namespace Validation::Log
   FORCEINLINE void impl_LogDebug(const char* format, const Args&... args)
   {
     PrintFormattedLine(DEBUG_LOG_MSG_TOKEN);
-    std::printf(format, args...);
+    auto fmt = (boost::format(format) % ... % args);
+    std::cout << fmt.str();
     std::cout << std::endl;
   }
 
@@ -72,7 +80,8 @@ namespace Validation::Log
   FORCEINLINE void impl_LogError(const char* format, const Args&... args)
   {
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN);
-    std::printf(format, args...);
+    auto fmt = (boost::format(format) % ... % args);
+    std::cout << fmt.str();
     std::cout << std::endl;
   }
 
@@ -80,7 +89,8 @@ namespace Validation::Log
   FORCEINLINE void impl_LogErrorV(const char* file, int line, const char* func, const char* format, const Args&... args)
   {
     PrintFormattedLine(ERROR_LOG_MSG_TOKEN, file, func, line);
-    std::printf(format, args...);
+    auto fmt = (boost::format(format) % ... % args);
+    std::cout << fmt.str();
     std::cout << std::endl;
   }
 

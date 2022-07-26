@@ -1,4 +1,4 @@
-#include <IO/Storage/Listfile.hpp>
+#include <IO/Storage/ListfileManager.hpp>
 #include <IO/ByteBuffer.hpp>
 #include <IO/Storage/FileKey.hpp>
 #include <Utils/PathUtils.hpp>
@@ -8,7 +8,7 @@
 
 using namespace IO::Storage;
 
-Listfile::Listfile(std::string const& path, std::uint32_t max_file_data_id)
+ListfileManager::ListfileManager(std::string const& path, std::uint32_t max_file_data_id)
 : _max_file_data_id(max_file_data_id)
 , _file_data_id_policy(FileDataIDPolicy::REAL)
 {
@@ -41,7 +41,7 @@ Listfile::Listfile(std::string const& path, std::uint32_t max_file_data_id)
   }
 }
 
-Listfile::Listfile(IO::Common::ByteBuffer const& listfile_buf)
+ListfileManager::ListfileManager(IO::Common::ByteBuffer const& listfile_buf)
 : _max_file_data_id(0)
 , _file_data_id_policy(FileDataIDPolicy::INTERNAL)
 {
@@ -73,7 +73,7 @@ Listfile::Listfile(IO::Common::ByteBuffer const& listfile_buf)
 
 }
 
-std::uint32_t Listfile::GetOrAddFileDataID(std::string const& filepath)
+std::uint32_t ListfileManager::GetOrAddFileDataID(std::string const& filepath)
 {
   auto it = _fdid_path_map.right.find(filepath);
 
@@ -86,7 +86,7 @@ std::uint32_t Listfile::GetOrAddFileDataID(std::string const& filepath)
   return _max_file_data_id;
 }
 
-std::string const& Listfile::GetOrGenerateFilepath(std::uint32_t file_data_id)
+std::string const& ListfileManager::GetOrGenerateFilepath(std::uint32_t file_data_id)
 {
   auto it = _fdid_path_map.left.find(file_data_id);
 
@@ -99,7 +99,7 @@ std::string const& Listfile::GetOrGenerateFilepath(std::uint32_t file_data_id)
   return new_it.first->get_right();
 }
 
-void Listfile::Save()
+void ListfileManager::Save()
 {
   EnsureF(CCodeZones::STORAGE, _file_data_id_policy == FileDataIDPolicy::REAL, "Can't be used with fake listfiles.");
   std::fstream stream{_path, std::fstream::binary | std::fstream::trunc | std::fstream::out};
@@ -118,14 +118,14 @@ void Listfile::Save()
   }
 }
 
-std::uint32_t Listfile::GetFileDatIDForFilepath(std::string const& filepath) const
+std::uint32_t ListfileManager::GetFileDatIDForFilepath(std::string const& filepath) const
 {
   auto it = _fdid_path_map.right.find(filepath);
 
   return it != _fdid_path_map.right.end() ? it->get_left() : 0;
 }
 
-bool Listfile::Exists(std::uint32_t file_data_id) const
+bool ListfileManager::Exists(std::uint32_t file_data_id) const
 {
   return _fdid_path_map.left.find(file_data_id) != _fdid_path_map.left.end();
 }

@@ -21,7 +21,7 @@ namespace IO::Storage
   }
 
   /**
-   * Controls how FileDataIDs are handled within the Listfile class.
+   * Controls how FileDataIDs are handled within the ListfileManager class.
    */
   enum class FileDataIDPolicy
   {
@@ -40,24 +40,24 @@ namespace IO::Storage
   /**
    * Used for managing FileDataIDs and paths of the client.
    */
-  class Listfile
+  class ListfileManager
   {
   public:
-    Listfile() = default;
+    ListfileManager() = default;
 
     /**
-     * Constructs Listfile provided a path to listfile (CASC-based clients).
+     * Constructs ListfileManager provided a path to listfile (CASC-based clients).
      * @param path Path to listfile.csv (FileDataID;path)
      * @param max_file_data_id Maximum FileDataID to start adding new ones from.
      * @throws IO::Storage::Exceptions::ListFileNotFoundError Thrown if listfile.csv is not found.
      */
-    explicit Listfile(std::string const& path, std::uint32_t max_file_data_id = 0);
+    explicit ListfileManager(std::string const& path, std::uint32_t max_file_data_id = 0);
 
     /**
-     * Constructs Listfile provided a ByteBuffer containing listfile (MPQ-based clients).
+     * Constructs ListfileManager provided a ByteBuffer containing listfile (MPQ-based clients).
      * @param listfile_buf ByteBuffer containing array of strings (paths).
      */
-    explicit Listfile(Common::ByteBuffer const& listfile_buf);
+    explicit ListfileManager(Common::ByteBuffer const& listfile_buf);
 
     /**
      * Returns FileDataID for filepath. (assignes a new one, if does not exist)
@@ -84,7 +84,7 @@ namespace IO::Storage
     std::string const& GetOrGenerateFilepath(std::uint32_t file_data_id);
 
     /**
-     * Checks if FileDataID already exists in Listfile.
+     * Checks if FileDataID already exists in ListfileManager.
      * @param file_data_id FileDataID.
      * @return true if exists, else false.
      */

@@ -3,6 +3,8 @@
 #include <Validation/Contracts.hpp>
 #include <Config/CodeZones.hpp>
 
+#include <cstring>
+
 
 template
 <

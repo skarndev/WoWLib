@@ -3,38 +3,38 @@
 using namespace IO::Common;
 
 ByteBuffer::ByteBuffer(const char* data, std::size_t size)
-  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
-  , _buf_size(size)
+  : _is_data_owned(true)
   , _cur_pos(0)
+  , _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  , _buf_size(size)
   , _data((RequireFE(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer.")
-      , new char[size]))
-  , _is_data_owned(true)
+    , new char[size]))
 {
   std::memcpy(_data.get(), data, size);
 }
 
 ByteBuffer::ByteBuffer(char* data, std::size_t size)
-  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
-  , _buf_size(size)
+  : _is_data_owned(false)
   , _cur_pos(0)
-  , _is_data_owned(false)
+  , _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  , _buf_size(size)
   , _data((RequireFE(CCodeZones::FILE_IO, data != nullptr, "Data can't be null for initializing the buffer."), data))
 {
 }
 
 ByteBuffer::ByteBuffer(std::fstream& stream, std::size_t size)
-  : _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
-  , _buf_size(size)
+  :  _is_data_owned(true)
   , _cur_pos(0)
-  , _is_data_owned(true)
+  , _size((RequireFE(CCodeZones::FILE_IO, size, "Size can't be 0 for initializing the buffer."), size))
+  , _buf_size(size)
   , _data(new char[size])
 {
   stream.read(_data.get(), size);
 }
 
 ByteBuffer::ByteBuffer(std::fstream& stream)
-  : _cur_pos(0)
-  , _is_data_owned(true)
+  : _is_data_owned(true)
+  , _cur_pos(0)
 {
   stream.seekg(0, std::ios::end);
   _size = static_cast<std::size_t>(stream.tellg());
@@ -47,28 +47,29 @@ ByteBuffer::ByteBuffer(std::fstream& stream)
 }
 
 ByteBuffer::ByteBuffer(std::size_t size)
-  : _size(size)
-  , _buf_size(size)
+  : _is_data_owned(true)
   , _cur_pos(0)
-  , _is_data_owned(true)
+  , _size(size)
+  , _buf_size(size)
   , _data(new char[size])
 {
 }
 
 ByteBuffer::ByteBuffer(ByteBuffer&& other) noexcept
-: _size(other._size)
-, _buf_size(other._size)
+: _is_data_owned(other._is_data_owned)
 , _cur_pos(other._cur_pos)
-, _is_data_owned(other._is_data_owned)
+, _size(other._size)
+, _buf_size(other._size)
 {
   _data.reset(other._data.release());
 }
 
 ByteBuffer::ByteBuffer(ByteBuffer const& other)
-: _size(other._size)
-, _buf_size(other._size)
+: _is_data_owned(true)
 , _cur_pos(other._cur_pos)
-, _is_data_owned(true)
+, _size(other._size)
+, _buf_size(other._size)
+
 {
   _data.reset(new char[other._buf_size]);
   std::memcpy(_data.get(), other._data.get(), _buf_size);

@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <type_traits>
+#include <algorithm>
 
 namespace Utils::Meta::Templates
 {

@@ -2,6 +2,8 @@
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <Utils/Meta/Future.hpp>
 
+#include <boost/range/combine.hpp>
+
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
@@ -21,7 +23,7 @@ void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
   buf.Read(header_chunks.begin(), header_chunks.end());
 
   
-  for (auto&& [header_chunk, chunk] : future::zip(header_chunks, _chunks))
+  for (auto&& [header_chunk, chunk] : boost::combine(header_chunks, _chunks))
   {
 
     if (!header_chunk.layer_count) [[unlikely]]
@@ -50,7 +52,7 @@ void MH2O::Read(Common::ByteBuffer const& buf, std::size_t size)
     
     chunk.Layers().resize(header_chunk.layer_count);
     
-    for (auto&& [layer, instance] : future::zip(chunk.Layers(), layer_instances))
+    for (auto&& [layer, instance] : boost::combine(chunk.Layers(), layer_instances))
     {
       layer.min_height_level = instance.min_height_level;
       layer.max_height_level = instance.max_height_level;
@@ -156,7 +158,7 @@ void MH2O::Write(Common::ByteBuffer& buf) const
   std::array<DataStructures::SMLiquidChunk, 16 * 16> header_chunks{};
   buf.Reserve(16 * 16 * sizeof(DataStructures::SMLiquidChunk));
 
-  for (auto&& [header_chunk, chunk] : future::zip(header_chunks, _chunks))
+  for (auto&& [header_chunk, chunk] : boost::range::combine(header_chunks, _chunks))
   {
     header_chunk.layer_count = static_cast<std::uint32_t>(chunk.Layers().size());
 
@@ -172,7 +174,7 @@ void MH2O::Write(Common::ByteBuffer& buf) const
       buf.Reserve(header_chunk.layer_count * sizeof(DataStructures::SMLiquidInstance));
 
       // fill layers
-      for (auto&& [layer, instance] : future::zip(chunk.Layers(), liquid_instances))
+      for (auto&& [layer, instance] : boost::combine(chunk.Layers(), liquid_instances))
       {
         instance.liquid_object_or_lvf = layer.GetLiquidObjectOrLVF();
         instance.liquid_type = layer.liquid_type;
@@ -325,7 +327,7 @@ void MH2O::Write(Common::ByteBuffer& buf) const
 
   // go back and write relevant header data
   std::size_t end_pos = buf.Tell();
-  buf.Seek(data_pos);
+  buf.Seek(pos);
   buf.Write(header_chunks.begin(), header_chunks.end());
   buf.Seek(end_pos);
 }

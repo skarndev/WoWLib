@@ -16,8 +16,9 @@ ClientStorage::ClientStorage(std::string const& path
                              , Common::ClientLocale locale)
 : _project_path(project_path)
 , _path(path)
-, _client_version(client_version)
 , _locale(locale)
+, _client_version(client_version)
+
 {
   RequireF(CCodeZones::STORAGE, client_version < Common::ClientVersion::WOD
            , "This contructor can be used for MPQ-based clients only.");
@@ -48,7 +49,7 @@ ClientStorage::ClientStorage(std::string const& path
   }
 
   Log("Loading MPQ listfiles...");
-  _listfile = Storage::Listfile(_loader->GetListfile());
+  _listfile = Storage::ListfileManager(_loader->GetListfile());
 }
 
 ClientStorage::ClientStorage(std::string const& path
@@ -58,30 +59,34 @@ ClientStorage::ClientStorage(std::string const& path
                              , IO::Common::ClientLocale locale)
 : _project_path(Utils::PathUtils::NormalizeFilepathUnix(project_path))
 , _path(Utils::PathUtils::NormalizeFilepathUnix(path))
-, _client_version(client_version)
 , _locale(locale)
+, _client_version(client_version)
 {
   RequireF(CCodeZones::STORAGE, client_version >= Common::ClientVersion::WOD
            , "This contructor can be used for CASC-based clients only.");
 
   _loader = std::make_unique<ClientLoaders::CASCLoader>(*this, product);
-  _listfile = Storage::Listfile((fs::path(project_path) / "listfile.csv").string());
+  _listfile = Storage::ListfileManager((fs::path(project_path) / "listfile.csv").string());
 }
 
-ClientStorage::ClientStorage(std::string const& cdn_url, std::string const& project_path
-                             , IO::Common::ClientVersion client_version, std::string const& product
-                             , std::string const& region, IO::Common::ClientLocale locale)
+ClientStorage::ClientStorage(std::string const& cdn_url
+                             , std::string const& project_path
+                             , IO::Common::ClientVersion client_version
+                             , std::string const& product
+                             , std::string const& region
+                             , IO::Common::ClientLocale locale)
 : _project_path(Utils::PathUtils::NormalizeFilepathUnix(project_path))
 , _path(cdn_url)
-, _client_version(client_version)
 , _locale(locale)
+, _client_version(client_version)
+
 {
   RequireF(CCodeZones::STORAGE, client_version >= Common::ClientVersion::WOD
            , "This contructor can be used for CASC-based clients only.");
 
   _loader = std::make_unique<ClientLoaders::CASCLoader>(*this, std::optional{_path.string()}
                                                         , product, region);
-  _listfile = Storage::Listfile((fs::path(project_path) / "listfile.csv").string());
+  _listfile = Storage::ListfileManager((fs::path(project_path) / "listfile.csv").string());
 }
 
 
