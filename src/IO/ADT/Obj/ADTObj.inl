@@ -187,28 +187,18 @@ namespace IO::ADT
   template<Common::ClientVersion client_version>
   bool AdtObj1SpecificData<client_version>::Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
   {
-    switch (chunk_header.fourcc)
+    if (ReadChunk<&AdtObj1SpecificData::_lod_map_object_placements
+                  , &AdtObj1SpecificData::_lod_map_object_extents
+                  , &AdtObj1SpecificData::_lod_model_placements
+                  , &AdtObj1SpecificData::_lod_model_extents
+                  , &AdtObj1SpecificData::_lod_model_unknown
+                  , &AdtObj1SpecificData::_lod_mapping
+                  >(chunk_header.fourcc, buf, chunk_header.size))
     {
-      case ChunkIdentifiers::ADTObj1Chunks::MLMD:
-        _lod_map_object_placements.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLMX:
-        _lod_map_object_extents.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDD:
-        _lod_model_placements.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDX:
-        _lod_model_extents.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLDL:
-        _lod_model_unknown.Read(buf, chunk_header.size);
-        return true;
-      case ChunkIdentifiers::ADTObj1Chunks::MLFD:
-        _lod_mapping.Read(buf, chunk_header.size);
-        return true;
+      return true;
     }
 
+    // sl+
     if (this->template InvokeExistingTraitFeature<&LodModelBatches::Read>(buf, chunk_header))
       return true;
 

@@ -177,6 +177,7 @@ namespace IO::ADT
                                               , Common::ClientVersion::SL
                                             >
                                         >
+                              , public Common::Traits::AutoIOTrait<AdtObj1SpecificData<client_version>>
   {
   public:
     AdtObj1SpecificData();

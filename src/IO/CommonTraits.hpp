@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <concepts>
 
 namespace IO::Common::Traits
 {
@@ -214,7 +215,10 @@ namespace IO::Common::Traits
     && std::is_same_v<T, bool(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer const&
                                                                                  , Common::ChunkHeader const&
                                                                                  , std::uint32_t& chunk_counter)>;
-
+  /**
+    * Checks if passed type is a pointer to member function that satisfies the provided signature.
+    * @tparam T Any type.
+    */
   template<typename T>
   concept WriteFeaturePointer = TraitFeaturePointer<T>
     && std::is_same_v<T, void(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer&) const>;
@@ -382,8 +386,25 @@ namespace IO::Common::Traits
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
     void WriteChunks(Common::ByteBuffer& buf) const
     {
-      auto write_lambda = [&buf](auto& chunk) { chunk.Write(buf);};
+      auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
       (write_lambda(static_cast<const CRTP*>(this)->*chunks), ...);
+    }
+
+    template<auto ...chunks, typename Func>
+    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
+      && (std::invocable<std::add_lvalue_reference_t<
+        Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
+    void ForAllChunks(Func&& func)
+    {
+      (func(static_cast<const CRTP*>(this)->*chunks), ...);
+    }
+    template<auto ...chunks, typename Func>
+    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
+      && (std::invocable<std::add_const<std::add_lvalue_reference_t<
+        Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>>> && ...))
+    void ForAllChunks(Func&& func) const
+    {
+      (func(static_cast<const CRTP*>(this)->*chunks), ...);
     }
   };
 }
