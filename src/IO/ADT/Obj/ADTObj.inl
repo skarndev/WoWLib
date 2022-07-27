@@ -28,17 +28,15 @@ namespace IO::ADT
         continue;
       }
 
-      if (this->InvokeExistingTraitFeature(&ADTLodMapObjectBatches::Read, buf, chunk_header))
+      if (this->template InvokeExistingCommonReadFeatures
+        < &ADTLodMapObjectBatches::Read
+        , &ADTDoodadsetOverrides::Read
+        , &AdtObj0SpecificData<client_version>::Read
+        , &AdtObj1SpecificData<client_version>::Read
+        >(buf, chunk_header, chunk_counter))
+      {
         continue;
-
-      if (this->InvokeExistingTraitFeature(&ADTDoodadsetOverrides::Read, buf, chunk_header))
-        continue;
-
-      if (this->InvokeExistingTraitFeature(&AdtObj0SpecificData<client_version>::Read, buf, chunk_header, chunk_counter))
-        continue;
-
-      if (this->InvokeExistingTraitFeature(&AdtObj1SpecificData<client_version>::Read, buf, chunk_header))
-        continue;
+      }
 
       buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
       LogError("Encountered unknown ADT Obj1 chunk %s.", Common::FourCCToStr(chunk_header.fourcc).c_str());
@@ -65,10 +63,13 @@ namespace IO::ADT
     Common::DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> version{18};
     version.Write(buf);
 
-    this->InvokeExistingTraitFeature(&AdtObj0SpecificData<client_version>::Write, buf);
-    this->InvokeExistingTraitFeature(&AdtObj1SpecificData<client_version>::Write, buf);
-    this->InvokeExistingTraitFeature(&ADTLodMapObjectBatches::Write, buf);
-    this->InvokeExistingTraitFeature(&ADTDoodadsetOverrides::Write, buf);
+    this->template InvokeExistingCommonWriteFeatures
+      <
+        &AdtObj0SpecificData<client_version>::Write
+        , &AdtObj1SpecificData<client_version>::Write
+        , &ADTLodMapObjectBatches::Write
+        , &ADTDoodadsetOverrides::Write
+      >(buf);
   }
 
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
@@ -153,7 +154,7 @@ namespace IO::ADT
         return true;
     }
 
-    if (this->InvokeExistingTraitFeature(&ADTObj0ModelStorageFilepath::Read, buf, chunk_header))
+    if (this->template InvokeExistingTraitFeature<&ADTObj0ModelStorageFilepath::Read>(buf, chunk_header))
       return true;
 
     return false;
@@ -162,7 +163,7 @@ namespace IO::ADT
   template<Common::ClientVersion client_version>
   void AdtObj0SpecificData<client_version>::Write(Common::ByteBuffer& buf) const
   {
-    this->InvokeExistingTraitFeature(&ADTObj0ModelStorageFilepath::Write, buf);
+    this->template InvokeExistingTraitFeature<&ADTObj0ModelStorageFilepath::Write>(buf);
     _model_placements.Write(buf);
     _map_object_placements.Write(buf);
 
@@ -208,7 +209,7 @@ namespace IO::ADT
         return true;
     }
 
-    if (this->InvokeExistingTraitFeature(&LodModelBatches::Read, buf, chunk_header))
+    if (this->template InvokeExistingTraitFeature<&LodModelBatches::Read>(buf, chunk_header))
       return true;
 
     return false;

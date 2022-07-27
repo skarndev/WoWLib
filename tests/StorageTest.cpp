@@ -25,6 +25,11 @@ public:
   {
     return ReadChunk<&Trait::_foo, &Trait::_bar>(chunk_header.fourcc, buf, chunk_header.size);
   }
+
+  void Write(Common::ByteBuffer& buf) const
+  {
+    WriteChunks<&Trait::_foo, &Trait::_bar>(buf);
+  }
 };
 
 struct TraitAlt
@@ -40,8 +45,8 @@ int main()
   Validation::Log::InitLoggers();
 
   // wotlk
-  ClientStorage storage{"C:\\Users\\Skarn\\Documents\\WoWModding\\WoWClients\\3.3.5a"
-                , "C:\\Users\\Skarn\\Documents\\WoWModding\\Test"
+  ClientStorage storage{"/home/skarn/Documents/WoWModding/Clients/3.3.5a/"
+                , "/home/skarn/Documents/WoWModding/Test"
                 , Common::ClientVersion::WOTLK};
 
   Common::ByteBuffer buf{};
@@ -56,8 +61,12 @@ int main()
   Trait t {};
   Common::ChunkHeader h{static_cast<std::uint32_t>(IO::ADT::ChunkIdentifiers::ADTObj1Chunks::MLDB), 10};
   t.Read(buf, h);
-  Common::ChunkHeader h1{static_cast<std::uint32_t>(IO::ADT::ChunkIdentifiers::ADTObj1Chunks::MLDL), 10};
-  assert(!t.Read(buf, h1));
+  Common::ChunkHeader h1{static_cast<std::uint32_t>(IO::ADT::ChunkIdentifiers::ADTObj0Chunks::MDDF), sizeof(IO::ADT::DataStructures::MDDF)};
+  t.Read(buf, h1);
+
+  Common::ByteBuffer wbuf{};
+  t.Write(wbuf);
+
   //handle_cases<&Trait::_foo, &Trait::_bar>(&t, 1);
 
   return 0;

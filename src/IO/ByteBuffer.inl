@@ -191,12 +191,11 @@ inline void IO::Common::ByteBuffer::Read(T begin, T end) const requires std::con
 {
   static_assert(Utils::Meta::Concepts::ImplicitLifetimeType<typename std::iterator_traits<T>::value_type>);
 
-  std::size_t size = std::distance(begin, end) * sizeof(typename std::iterator_traits<T>::value_type);
+  std::size_t n_elements = std::distance(begin, end);
+  std::size_t size = n_elements * sizeof(typename std::iterator_traits<T>::value_type);
   RequireF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - size >= _cur_pos, "Read adress overflow");
   RequireF(CCodeZones::FILE_IO, _cur_pos + size <= _size, "Attempted reading past EOF.");
-  RequireF(CCodeZones::FILE_IO, !(size % sizeof(typename std::iterator_traits<T>::value_type))
-           , "Provided size is not evenly divisble by element type.");
-  RequireF(CCodeZones::FILE_IO, (begin + size) == end, "Out of bounds on target array.");
+  RequireF(CCodeZones::FILE_IO, (begin + n_elements) == end, "Out of bounds on target array.");
 
   std::memcpy(&(*begin), _data.get() + _cur_pos, size);
 

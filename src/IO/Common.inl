@@ -136,7 +136,7 @@ namespace IO::Common
   inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Read(ByteBuffer const& buf
                                                                                    , std::size_t size)
   {
-    LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, size: %d"
+    LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, size: %d."
               , FourCCStr<fourcc, fourcc_reversed>
               , size);
 

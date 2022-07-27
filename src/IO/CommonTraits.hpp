@@ -187,10 +187,37 @@ namespace IO::Common::Traits
   template<typename T>
   concept IOTraitOrEmpty = std::is_empty_v<T> || IOTraitNamedReq<T>;
 
+  /**
+   * Checks if passed type is a pointer to member function that can represent a trait feature.
+   * @tparam T Any type.
+   */
   template<typename T>
   concept TraitFeaturePointer = std::is_member_function_pointer_v<T>
     && (std::is_trivially_constructible_v<typename boost::callable_traits::return_type<T>::type>
     || std::is_same_v<typename boost::callable_traits::return_type<T>::type, void>);
+
+  /**
+   * Checks if passed type is a pointer to member function that satisfies the provided signature.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  concept ReadFeaturePointer = TraitFeaturePointer<T>
+     && std::is_same_v<T, bool(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer const&
+                                                                                   , Common::ChunkHeader const&)>;
+
+  /**
+    * Checks if passed type is a pointer to member function that satisfies the provided signature.
+    * @tparam T Any type.
+    */
+  template<typename T>
+  concept ExtendedReadFeaturePointer = TraitFeaturePointer<T>
+    && std::is_same_v<T, bool(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer const&
+                                                                                 , Common::ChunkHeader const&
+                                                                                 , std::uint32_t& chunk_counter)>;
+
+  template<typename T>
+  concept WriteFeaturePointer = TraitFeaturePointer<T>
+    && std::is_same_v<T, void(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer&) const>;
 
   /**
    * Adapter class accepting all traits of class, and providing convenience polling methods.
@@ -200,56 +227,115 @@ namespace IO::Common::Traits
   template<IOTraitOrEmpty ... Traits>
   struct IOTraits : public Traits ...
   {
-    template<TraitFeaturePointer MethodPtrT, typename... Args>
+    template<auto feature, typename... Args>
     requires (HasTraitEnabled
               <
                 std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
+                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
               >)
-    auto InvokeExistingTraitFeature(MethodPtrT feature, Args&&... args)
+    auto InvokeExistingTraitFeature(Args&&... args)
     {
       return (this->*feature)(std::forward<Args>(args)...);
     }
 
-    template<typename MethodPtrT, typename... Args>
+    template<auto feature, typename... Args>
     requires (!HasTraitEnabled
               <
                 std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
+                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
               >)
-    auto InvokeExistingTraitFeature([[maybe_unused]] MethodPtrT feature, Args&&...)
+    auto InvokeExistingTraitFeature([[maybe_unused]] Args&&...)
     {
-      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<MethodPtrT>::type>)
+      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<decltype(feature)>::type>)
       {
-        return typename boost::callable_traits::return_type<MethodPtrT>::type{};
+        return typename boost::callable_traits::return_type<decltype(feature)>::type{};
       }
     }
 
-    template<typename MethodPtrT, typename... Args>
+    template<auto feature, typename... Args>
     requires (HasTraitEnabled
               <
                 std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
+                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
               >)
-    auto InvokeExistingTraitFeature(MethodPtrT feature, Args&&... args) const
+    auto InvokeExistingTraitFeature(Args&&... args) const
     {
       return (this->*feature)(std::forward<Args>(args)...);
     }
 
-    template<typename MethodPtrT, typename... Args>
+    template<auto feature, typename... Args>
     requires (!HasTraitEnabled
               <
                 std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<MethodPtrT>::type
+                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
               >)
-    auto InvokeExistingTraitFeature([[maybe_unused]] MethodPtrT feature, Args&&...) const
+    auto InvokeExistingTraitFeature([[maybe_unused]] Args&&...) const
     {
-      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<MethodPtrT>::type>)
+      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<decltype(feature)>::type>)
       {
-        return typename boost::callable_traits::return_type<MethodPtrT>::type{};
+        return typename boost::callable_traits::return_type<decltype(feature)>::type{};
       }
     }
-  };
+
+    template<auto... features>
+    requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
+    && ( (ReadFeaturePointer<decltype(features)> || ExtendedReadFeaturePointer<decltype(features)>) && ... ) )
+    bool InvokeExistingCommonReadFeatures(Common::ByteBuffer const& buf
+                                          , Common::ChunkHeader const& chunk_header
+                                          , std::uint32_t& chunk_counter)
+    {
+      return HandleReadCases(FeatureList<features...>(), buf, chunk_header, chunk_counter);
+    };
+
+    template<auto... features>
+    requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
+               && ( WriteFeaturePointer<decltype(features)> && ... ) )
+    void InvokeExistingCommonWriteFeatures(Common::ByteBuffer& buf) const
+    {
+      (InvokeExistingTraitFeature<features>(buf), ...);
+    }
+
+
+  private:
+    template<auto...>
+    struct FeatureList
+    {
+    };
+
+    bool HandleReadCases(FeatureList<>
+                     , [[maybe_unused]] Common::ByteBuffer const& buf
+                     , [[maybe_unused]] Common::ChunkHeader const& chunk_header
+                     , [[maybe_unused]] std::uint32_t& chunk_counter)
+    { return false; }
+
+    template<auto current_feature, auto... features>
+    bool HandleReadCases(FeatureList<current_feature, features...>
+                      , Common::ByteBuffer const& buf
+                      , Common::ChunkHeader const& chunk_header
+                      , std::uint32_t& chunk_counter)
+    {
+      // handle (buf, chunk_header, chunk_counter) overload variant
+      if constexpr (ExtendedReadFeaturePointer<decltype(current_feature)>)
+      {
+        if (InvokeExistingTraitFeature<current_feature>(buf, chunk_header, chunk_counter))
+          return true;
+
+      }
+      // handle (buf, chunk_header) overload
+      else if constexpr (ReadFeaturePointer<decltype(current_feature)>)
+      {
+        if (InvokeExistingTraitFeature<current_feature>(buf, chunk_header))
+          return true;
+      }
+      else
+      {
+        static_assert(sizeof(current_feature) != 0 && "Not implemented. Concepts are wrong."
+                                                      " Should not have even gotten here.");
+      }
+
+      return HandleReadCases(FeatureList<features...>(), buf, chunk_header, chunk_counter);
+    }
+};
 
 
   template<typename CRTP>
@@ -257,17 +343,20 @@ namespace IO::Common::Traits
   {
   private:
     template<auto...>
-    struct ChunkList {};
+    struct ChunkList
+    {
+    };
 
     template<typename Func>
-    bool HandleCases(std::uint32_t, ChunkList<>, Func&& func) { return false; }
+    bool HandleCases(std::uint32_t, ChunkList<>, [[maybe_unused]] Func&& func)
+    { return false; }
 
     template<typename Func, auto current_chunk, auto... chunks>
     bool HandleCases(std::uint32_t i, ChunkList<current_chunk, chunks...>, Func&& func)
     {
       if (Utils::Meta::Traits::TypeOfMemberObject_T<decltype(current_chunk)>::magic != i)
       {
-        return HandleCases(i, ChunkList<chunks...>());
+        return HandleCases(i, ChunkList<chunks...>(), func);
       }
 
       func(static_cast<CRTP*>(this)->*current_chunk);
@@ -289,8 +378,13 @@ namespace IO::Common::Traits
       return HandleCases<chunks...>(fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
     }
 
-  public:
-
+    template<auto ...chunks>
+    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
+    void WriteChunks(Common::ByteBuffer& buf) const
+    {
+      auto write_lambda = [&buf](auto& chunk) { chunk.Write(buf);};
+      (write_lambda(static_cast<const CRTP*>(this)->*chunks), ...);
+    }
   };
 }
 

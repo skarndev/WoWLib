@@ -33,7 +33,7 @@ std::string Utils::PathUtils::NormalizeFilepathGame(std::string_view filepath)
     return c == '/' ? '\\' : c;
   });
 
-  return std::move(RemoveInconsistentNaming(normalized_string));
+  return RemoveInconsistentNaming(normalized_string);
 }
 
 std::string Utils::PathUtils::NormalizeFilepathUnix(std::string_view filepath)
@@ -45,7 +45,7 @@ std::string Utils::PathUtils::NormalizeFilepathUnix(std::string_view filepath)
     return c == '\\' ? '/' : c;
   });
 
-  return std::move(RemoveInconsistentNaming(normalized_string));
+  return RemoveInconsistentNaming(normalized_string);
 }
 
 std::string Utils::PathUtils::NormalizeFilepathUnixLower(std::string_view filepath)
@@ -58,5 +58,5 @@ std::string Utils::PathUtils::NormalizeFilepathUnixLower(std::string_view filepa
     return c == '\\' ? '/' : c;
   });
 
-  return std::move(RemoveInconsistentNaming(normalized_string));
+  return RemoveInconsistentNaming(normalized_string);
 }

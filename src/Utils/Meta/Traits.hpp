@@ -60,6 +60,10 @@ namespace Utils::Meta::Traits
     typedef Value type;
   };
 
+  /**
+   * Extracts type of member object pointer.
+   * @tparam T Member object pointer
+   */
   template<typename T>
   requires (std::is_member_object_pointer_v<T>)
   using TypeOfMemberObject_T = typename TypeOfMemberObject<T>::type;
