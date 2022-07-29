@@ -2,46 +2,6 @@
 
 using namespace IO::ADT;
 
-bool ADTLodMapObjectBatches::Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
-{
-  if (chunk_header.fourcc == ChunkIdentifiers::ADTObjCommonChunks::MLMB)
-  {
-    _lod_map_object_batches.Read(buf, chunk_header.size);
-    return true;
-  }
-
-  return false;
-}
-
-void ADTLodMapObjectBatches::Write(Common::ByteBuffer& buf) const
-{
-  _lod_map_object_batches.Write(buf);
-}
-
-bool ADTDoodadsetOverrides::Read(IO::Common::ByteBuffer const& buf, IO::Common::ChunkHeader const& chunk_header)
-{
-  switch (chunk_header.fourcc)
-  {
-    case ChunkIdentifiers::ADTObjCommonChunks::MWDS:
-    {
-      this->_wmo_doodadset_overrides.Read(buf, chunk_header.size);
-      return true;
-    }
-    case ChunkIdentifiers::ADTObjCommonChunks::MWDR:
-    {
-      this->_wmo_doodadset_overrides_ranges.Read(buf, chunk_header.size);
-      return true;
-    }
-  }
-
-  return false;
-}
-
-void ADTDoodadsetOverrides::Write(IO::Common::ByteBuffer& buf) const
-{
-  _wmo_doodadset_overrides_ranges.Write(buf);
-  _wmo_doodadset_overrides.Write(buf);
-}
 
 bool LodModelBatches::Read(IO::Common::ByteBuffer const& buf, IO::Common::ChunkHeader const& chunk_header)
 {

@@ -130,7 +130,7 @@ FileKey::FileWriteStatus ClientStorage::WriteFile(FileKey const& file_key, Commo
 
   if (error)
   {
-    LogError("Creating directory \"%s\" failed. OS error code: %d. msg: %s.", dir_path.c_str(), error.value(), error
+    LogError("Creating directory \"%s\" failed. OS error code: %d. msg: %s.", dir_path.string().c_str(), error.value(), error
         .message().c_str());
     return FileKey::FileWriteStatus::FILE_WRITE_FAILED;
   }
@@ -139,7 +139,7 @@ FileKey::FileWriteStatus ClientStorage::WriteFile(FileKey const& file_key, Commo
 
   if (!strm.is_open())
   {
-    LogError("Writing file \"%s\" failed. Unknown OS error.", filepath.c_str());
+    LogError("Writing file \"%s\" failed. Unknown OS error.", filepath.string().c_str());
     return FileKey::FileWriteStatus::FILE_WRITE_FAILED;
   }
 

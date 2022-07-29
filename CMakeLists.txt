@@ -21,9 +21,9 @@ add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /bigobj)
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /W3)
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fPIC)
 add_compiler_flag_if_supported(CMAKE_C_FLAGS -fPIC)
-add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wall)
-add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wextra)
-add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fconcepts-diagnostics-depth=2)
+#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wall)
+#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wextra)
+#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fconcepts-diagnostics-depth=2)
 
 # options
 option(ADDITIONAL_OPTIMIZATION_FLAGS "Enable optimizations?" OFF)

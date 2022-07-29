@@ -187,13 +187,7 @@ namespace IO::ADT
   template<Common::ClientVersion client_version>
   bool AdtObj1SpecificData<client_version>::Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
   {
-    if (ReadChunk<&AdtObj1SpecificData::_lod_map_object_placements
-                  , &AdtObj1SpecificData::_lod_map_object_extents
-                  , &AdtObj1SpecificData::_lod_model_placements
-                  , &AdtObj1SpecificData::_lod_model_extents
-                  , &AdtObj1SpecificData::_lod_model_unknown
-                  , &AdtObj1SpecificData::_lod_mapping
-                  >(chunk_header.fourcc, buf, chunk_header.size))
+    if (Common::Traits::AutoIOTraitInterface<AdtObj1SpecificData<client_version>>::Read(buf, chunk_header))
     {
       return true;
     }

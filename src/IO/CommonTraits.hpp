@@ -339,73 +339,156 @@ namespace IO::Common::Traits
 
       return HandleReadCases(FeatureList<features...>(), buf, chunk_header, chunk_counter);
     }
-};
-
+  };
 
   template<typename CRTP>
+  class AutoIOTraitInterface
+  {
+  private:
+    CRTP* GetThis() { return static_cast<CRTP*>(this); };
+    CRTP const* GetThis() const { return static_cast<CRTP const*>(this); };
+
+  public:
+    template<auto ...chunks>
+    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
+    [[nodiscard]]
+    bool ReadChunks(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    {
+      return decltype(CRTP::auto_trait)::template ReadChunk<chunks...>(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
+    };
+
+    [[nodiscard]]
+    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    {
+      return decltype(CRTP::auto_trait)::template ReadChunk(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
+    };
+
+    template<auto ...chunks>
+    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
+              && ...)
+    void WriteChunks(Common::ByteBuffer& buf) const
+    {
+      decltype(CRTP::auto_trait)::template WriteChunks<chunks...>(GetThis(), buf);
+    };
+
+    void Write(Common::ByteBuffer& buf) const
+    {
+      decltype(CRTP::auto_trait)::template WriteChunks(GetThis(), buf);
+    };
+
+    template<auto ...chunks, typename Func>
+    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
+                && ...) && (std::invocable<std::add_lvalue_reference_t<
+      Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
+    auto ForAllChunks(Func&& func)
+    {
+      return decltype(CRTP::auto_trait)::template ForAllChunks<chunks...>(GetThis());
+    };
+
+    template<typename Func>
+    auto ForAllChunks(Func&& func)
+    {
+      return decltype(CRTP::auto_trait)::template ForAllChunks(GetThis());
+    };
+
+    template<auto ...chunks, typename Func>
+    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
+              && (std::invocable<std::add_const<std::add_lvalue_reference_t<
+      Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>>> && ...))
+    void ForAllChunks(Func&& func) const
+    {
+      decltype(CRTP::auto_trait)::template ForAllChunks(GetThis(), func);
+    };
+
+    template<typename Func>
+    void ForAllChunks(Func&& func) const
+    {
+      decltype(CRTP::auto_trait)::template ForAllChunks(GetThis(), func);
+    };
+
+  };
+
+  template<auto... all_chunks>
+  requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(all_chunks)>>
+    && ...)
   class AutoIOTrait
   {
+    template<typename>
+    friend class AutoIOTraitInterface;
+    
   private:
     template<auto...>
     struct ChunkList
     {
     };
 
-    template<typename Func>
-    bool HandleCases(std::uint32_t, ChunkList<>, [[maybe_unused]] Func&& func)
-    { return false; }
+    template<typename Self, typename Func>
+    static bool HandleCases(Self, std::uint32_t, ChunkList<>, Func&&)
+    { return false; };
 
-    template<typename Func, auto current_chunk, auto... chunks>
-    bool HandleCases(std::uint32_t i, ChunkList<current_chunk, chunks...>, Func&& func)
+    template<typename Self, typename Func, auto current_chunk, auto... chunks>
+    static bool HandleCases(Self self, std::uint32_t i, ChunkList<current_chunk, chunks...>, Func&& func)
     {
       if (Utils::Meta::Traits::TypeOfMemberObject_T<decltype(current_chunk)>::magic != i)
       {
         return HandleCases(i, ChunkList<chunks...>(), func);
       }
 
-      func(static_cast<CRTP*>(this)->*current_chunk);
+      func(self->*current_chunk);
 
       return true;
-    }
+    };
 
-    template<auto... chunks, typename Func>
-    bool HandleCases(std::uint32_t i, Func&& func)
+    template<auto... chunks, typename Self, typename Func>
+    static bool HandleCases(Self self, std::uint32_t i, Func&& func)
     {
-      return HandleCases(i, ChunkList<chunks...>(), func);
-    }
+      return HandleCases(self, i, ChunkList<chunks...>(), func);
+    };
 
   protected:
-    template<auto ...chunks>
+    template<auto ...chunks, typename Self>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-    bool ReadChunk(std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
+    static bool ReadChunk(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
     {
-      return HandleCases<chunks...>(fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
-    }
+      return HandleCases<chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+    };
 
-    template<auto ...chunks>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-    void WriteChunks(Common::ByteBuffer& buf) const
+    template<typename Self>
+    static bool ReadChunk(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
+    {
+      return HandleCases<all_chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+    };
+
+    template<auto ...chunks, typename Self>
+    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
+      && ...)
+    static void WriteChunks(Self self, Common::ByteBuffer& buf)
     {
       auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
-      (write_lambda(static_cast<const CRTP*>(this)->*chunks), ...);
-    }
+      (write_lambda(self->*chunks), ...);
+    };
 
-    template<auto ...chunks, typename Func>
-    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-      && (std::invocable<std::add_lvalue_reference_t<
+    template<typename Self>
+    static void WriteChunks(Self self, Common::ByteBuffer& buf)
+    {
+      auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
+      (write_lambda(self->*all_chunks), ...);
+    };
+
+    template<auto ...chunks, typename Self, typename Func>
+    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
+      && ...) && (std::invocable<std::add_lvalue_reference_t<
         Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
-    void ForAllChunks(Func&& func)
+    static void ForAllChunks(Self self, Func&& func)
     {
-      (func(static_cast<const CRTP*>(this)->*chunks), ...);
-    }
-    template<auto ...chunks, typename Func>
-    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-      && (std::invocable<std::add_const<std::add_lvalue_reference_t<
-        Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>>> && ...))
-    void ForAllChunks(Func&& func) const
+      (func(self->*chunks), ...);
+    };
+
+    template<typename Self, typename Func>
+    static void ForAllChunks(Self self, Func&& func)
     {
-      (func(static_cast<const CRTP*>(this)->*chunks), ...);
-    }
+      (func(self->*all_chunks), ...);
+    };
   };
 }
 
