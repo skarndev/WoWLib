@@ -207,7 +207,7 @@ namespace IO::ADT
         &AdtObj1SpecificData::_lod_model_extents,
         &AdtObj1SpecificData::_lod_model_unknown,
         &AdtObj1SpecificData::_lod_mapping
-      > auto_trait;
+      > auto_trait = {};
   } IMPLEMENTS_IO_TRAIT(AdtObj1SpecificData<Common::ClientVersion::SL>);
 
   // Enables support for LOD map object batches (BfA+).
@@ -217,7 +217,7 @@ namespace IO::ADT
     Common::DataArrayChunk<char, ChunkIdentifiers::ADTObjCommonChunks::MLMB> _lod_map_object_batches;
 
   public:
-    static constexpr Common::Traits::AutoIOTrait<&ADTLodMapObjectBatches::_lod_map_object_batches> auto_trait;
+    static constexpr Common::Traits::AutoIOTrait<&ADTLodMapObjectBatches::_lod_map_object_batches> auto_trait = {};
   } IMPLEMENTS_IO_TRAIT(ADTLodMapObjectBatches);
 
   class ADTDoodadsetOverrides : public Common::Traits::AutoIOTraitInterface<ADTDoodadsetOverrides>
@@ -237,7 +237,7 @@ namespace IO::ADT
                       <
                        &ADTDoodadsetOverrides::_wmo_doodadset_overrides
                       , &ADTDoodadsetOverrides::_wmo_doodadset_overrides_ranges
-                      > auto_trait;
+                      > auto_trait = {};
 
   } IMPLEMENTS_IO_TRAIT(ADTDoodadsetOverrides);
 

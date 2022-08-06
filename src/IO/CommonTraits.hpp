@@ -432,7 +432,7 @@ namespace IO::Common::Traits
     {
       if (Utils::Meta::Traits::TypeOfMemberObject_T<decltype(current_chunk)>::magic != i)
       {
-        return HandleCases(i, ChunkList<chunks...>(), func);
+        return HandleCases(self, i, ChunkList<chunks...>(), func);
       }
 
       func(self->*current_chunk);
@@ -449,7 +449,7 @@ namespace IO::Common::Traits
   protected:
     template<auto ...chunks, typename Self>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-    static bool ReadChunk(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
+    static bool ReadChunkOf(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
     {
       return HandleCases<chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
     };
@@ -463,7 +463,7 @@ namespace IO::Common::Traits
     template<auto ...chunks, typename Self>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
       && ...)
-    static void WriteChunks(Self self, Common::ByteBuffer& buf)
+    static void WriteChunksOf(Self self, Common::ByteBuffer& buf)
     {
       auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
       (write_lambda(self->*chunks), ...);
