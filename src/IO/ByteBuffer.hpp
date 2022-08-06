@@ -46,7 +46,7 @@ namespace IO::Common
     explicit ByteBuffer(const char* data, std::size_t size);
 
     /**
-     * Constrct borrowed ByteBuffer given pre-allocated storage.
+     * Construct borrowed ByteBuffer given pre-allocated storage.
      * @param data Raw data buffer.
      * @param size Size of raw data buffer.
      */
@@ -172,11 +172,20 @@ namespace IO::Common
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     [[nodiscard]] T Read() const;
 
-    // Reads object representation from buffer to a lhs object starting from current position.
+    /**
+     * Reads object representation from buffer to a lhs object starting from current position.
+     * @tparam T Structure to read.
+     * @param lhs L-value reference to an implicite lifetime object to read data into.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Read(T& lhs) const;
 
-    // Reads a range of object representations from buffer starting from current position, identified by byte size.
+    /**
+     * Reads a range of object representations from buffer starting from current position, identified by byte size.
+     * @tparam T Structure to read.
+     * @param begin Begin contigious iterator of an array to read into.
+     * @param end  End contigious iterator of an array to read into.
+     */
     template<typename T>
     void Read(T begin, T end) const requires std::contiguous_iterator<T>;
 
@@ -232,8 +241,6 @@ namespace IO::Common
     // Flushes associated buffer into std::ostream
     void Flush(std::ostream& stream) const;
 
-
-   
   private:
     bool _is_data_owned;
     mutable std::size_t _cur_pos;
@@ -242,7 +249,6 @@ namespace IO::Common
     std::unique_ptr<char> _data;
 
   };
-
 
 }
 

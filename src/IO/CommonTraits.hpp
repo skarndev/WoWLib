@@ -349,6 +349,7 @@ namespace IO::Common::Traits
     CRTP const* GetThis() const { return static_cast<CRTP const*>(this); };
 
   public:
+
     template<auto ...chunks>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
     [[nodiscard]]

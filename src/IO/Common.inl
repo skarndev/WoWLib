@@ -9,33 +9,33 @@ namespace IO::Common
 {
   // DataChunk
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
-  inline DataChunk<T, fourcc, fourcc_reversed>::DataChunk(InterfaceType data_block)
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
+  inline DataChunk<T, fourcc, fourcc_endian>::DataChunk(InterfaceType data_block)
   {
     data = data_block;
     _is_initialized = true;
   }
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
-  inline void DataChunk<T, fourcc, fourcc_reversed>::Initialize()
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Initialize()
   {
     InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
     std::memset(&data, 0, sizeof(T));
     _is_initialized = true;
   }
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
-  inline void DataChunk<T, fourcc, fourcc_reversed>::Initialize(InterfaceType data_block)
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Initialize(InterfaceType data_block)
   {
     data = data_block;
     _is_initialized = true;
   }
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
-  inline void DataChunk<T, fourcc, fourcc_reversed>::Read(ByteBuffer const& buf, std::size_t size)
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Read(ByteBuffer const& buf, std::size_t size)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , sizeof(T));
 
     RequireF(CCodeZones::FILE_IO, !(size % sizeof(T))
@@ -45,14 +45,14 @@ namespace IO::Common
     _is_initialized = true;
   }
 
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_reversed>
-  inline void DataChunk<T, fourcc, fourcc_reversed>::Write(ByteBuffer& buf) const
+  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Write(ByteBuffer& buf) const
   {
     if (!_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , sizeof(T));
 
     ChunkHeader header{};
@@ -68,11 +68,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Initialize()
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize()
   {
     InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
     _is_initialized = true;
@@ -82,11 +82,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Initialize(T const& data_block
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize(T const& data_block
                                                                                          , std::size_t n)
   {
     InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
@@ -114,11 +114,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Initialize(ArrayImplT const& data_array)
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize(ArrayImplT const& data_array)
   {
     InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
     _data = data_array;
@@ -129,15 +129,15 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Read(ByteBuffer const& buf
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf
                                                                                    , std::size_t size)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , size);
 
     RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
@@ -171,17 +171,17 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Write(ByteBuffer& buf) const
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
   {
     if (!_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing array chunk: %s, length: %d, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , _data.size()
               , _data.size() * sizeof(T));
 
@@ -208,12 +208,12 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline T& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Add()
+  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Add()
   requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
   {
     _is_initialized = true;
@@ -226,12 +226,12 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Remove(std::size_t index)
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Remove(std::size_t index)
   requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector element.");
@@ -243,12 +243,12 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Remove(typename ArrayImplT_::iterator it)
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Remove(typename ArrayImplT_::iterator it)
   requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
   {
     RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds remove of underlying chunk vector element.");
@@ -260,11 +260,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline T& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::At(std::size_t index)
+  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::At(std::size_t index)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
     InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
@@ -275,11 +275,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline T const& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::At(std::size_t index) const
+  inline T const& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::At(std::size_t index) const
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
     InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
@@ -290,11 +290,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline T& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::operator[](std::size_t index)
+  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::operator[](std::size_t index)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
     return _data[index];
@@ -304,11 +304,11 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline T const& DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::operator[](std::size_t index) const
+  inline T const& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::operator[](std::size_t index) const
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
     return _data[index];
@@ -318,12 +318,12 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_reversed, size_min, size_max>::Clear()
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Clear()
   requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
   {
     _data.clear();
@@ -334,11 +334,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Initialize()
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize()
   {
     RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
     _is_initialized = true;
@@ -348,11 +348,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
   requires (type == StringBlockChunkType::NORMAL)
   {
     RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
@@ -364,11 +364,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
   requires (type == StringBlockChunkType::OFFSET)
   {
     RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
@@ -388,15 +388,15 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
   requires (type == StringBlockChunkType::NORMAL)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading string chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , size);
 
     std::size_t end_pos = buf.Tell() + size;
@@ -421,15 +421,15 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
   requires (type == StringBlockChunkType::OFFSET)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading string chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , size);
 
     std::size_t start_pos = buf.Tell();
@@ -458,17 +458,17 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Write(ByteBuffer& buf) const
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
   {
     if (!_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing string chunk: %s, length: %d."
-              , FourCCStr<fourcc, fourcc_reversed>
+              , FourCCStr<fourcc, fourcc_endian>
               , _data.size());
 
     InvariantMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || _data.size() >= size_min
@@ -506,11 +506,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  std::size_t StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::ByteSize() const
+  std::size_t StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::ByteSize() const
   {
     std::size_t size = 0;
 
@@ -536,11 +536,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Add(const std::string& string)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Add(const std::string& string)
   {
     if constexpr (type == StringBlockChunkType::NORMAL)
     {
@@ -578,11 +578,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Remove(std::size_t index)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Remove(std::size_t index)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove.");
     _data.erase(_data.begin() + index);
@@ -592,12 +592,12 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Remove(typename ArrayImplT_::iterator it)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Remove(typename ArrayImplT_::iterator it)
   {
     RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds remove.");
 
@@ -628,12 +628,12 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Remove(typename ArrayImplT_::const_iterator it)
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Remove(typename ArrayImplT_::const_iterator it)
   {
     RequireF(CCodeZones::FILE_IO, it < _data.cend(), "Out of bounds remove.");
 
@@ -664,11 +664,11 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::Clear()
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Clear()
   {
     _data.clear();
   }
@@ -677,12 +677,12 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  typename ArrayImplT_::value_type const& StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::At(
+  typename ArrayImplT_::value_type const& StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::At(
       std::size_t index) const
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
@@ -693,12 +693,12 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  typename ArrayImplT_::value_type& StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::At(
+  typename ArrayImplT_::value_type& StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::At(
       std::size_t index)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
@@ -709,12 +709,12 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_reversed
+    , FourCCEndian fourcc_endian
     , std::size_t size_min
     , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline typename ArrayImplT_::value_type const& StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::operator[](
+  inline typename ArrayImplT_::value_type const& StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::operator[](
       std::size_t index) const
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
@@ -725,12 +725,12 @@ namespace IO::Common
   <
       StringBlockChunkType type
       , std::uint32_t fourcc
-      , FourCCEndian fourcc_reversed
+      , FourCCEndian fourcc_endian
       , std::size_t size_min
       , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
-  inline typename ArrayImplT_::value_type& StringBlockChunk<type, fourcc, fourcc_reversed, size_min, size_max>::operator[](
+  inline typename ArrayImplT_::value_type& StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::operator[](
       std::size_t index)
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
