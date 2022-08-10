@@ -284,7 +284,7 @@ namespace IO::Common::Traits
     template<auto... features>
     requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
     && ( (ReadFeaturePointer<decltype(features)> || ExtendedReadFeaturePointer<decltype(features)>) && ... ) )
-    bool InvokeExistingCommonReadFeatures(Common::ByteBuffer const& buf
+    bool InvokeExistingCommonReadFeaturesOf(Common::ByteBuffer const& buf
                                           , Common::ChunkHeader const& chunk_header
                                           , std::uint32_t& chunk_counter)
     {
@@ -294,9 +294,21 @@ namespace IO::Common::Traits
     template<auto... features>
     requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
                && ( WriteFeaturePointer<decltype(features)> && ... ) )
-    void InvokeExistingCommonWriteFeatures(Common::ByteBuffer& buf) const
+    void InvokeExistingCommonWriteFeaturesOf(Common::ByteBuffer& buf) const
     {
       (InvokeExistingTraitFeature<features>(buf), ...);
+    }
+
+    bool InvokeExistingCommonReadFeatures(Common::ByteBuffer const& buf
+                                            , Common::ChunkHeader const& chunk_header
+                                            , std::uint32_t& chunk_counter)
+    {
+      return HandleReadCases(FeatureList<&Traits::Read...>(), buf, chunk_header, chunk_counter);
+    };
+
+    void InvokeExistingCommonWriteFeatures(Common::ByteBuffer& buf) const
+    {
+      (InvokeExistingTraitFeature<&Traits::Write>(buf), ...);
     }
 
 
@@ -355,7 +367,7 @@ namespace IO::Common::Traits
     [[nodiscard]]
     bool ReadChunks(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
     {
-      return decltype(CRTP::auto_trait)::template ReadChunk<chunks...>(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
+      return decltype(CRTP::auto_trait)::template ReadChunksOf<chunks...>(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
     };
 
     [[nodiscard]]
@@ -369,7 +381,7 @@ namespace IO::Common::Traits
               && ...)
     void WriteChunks(Common::ByteBuffer& buf) const
     {
-      decltype(CRTP::auto_trait)::template WriteChunks<chunks...>(GetThis(), buf);
+      decltype(CRTP::auto_trait)::template WriteChunksOf<chunks...>(GetThis(), buf);
     };
 
     void Write(Common::ByteBuffer& buf) const
@@ -406,12 +418,12 @@ namespace IO::Common::Traits
     {
       decltype(CRTP::auto_trait)::template ForAllChunks(GetThis(), func);
     };
-
   };
 
   template<auto... all_chunks>
-  requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(all_chunks)>>
-    && ...)
+  requires ((std::is_member_object_pointer_v<decltype(all_chunks)> && ...)
+            && (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(all_chunks)>>
+            && ...))
   class AutoIOTrait
   {
     template<typename>
@@ -447,7 +459,7 @@ namespace IO::Common::Traits
     };
 
   protected:
-    template<auto ...chunks, typename Self>
+    template<auto... chunks, typename Self>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
     static bool ReadChunkOf(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
     {
@@ -457,10 +469,15 @@ namespace IO::Common::Traits
     template<typename Self>
     static bool ReadChunk(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
     {
-      return HandleCases<all_chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+      bool result = HandleCases<all_chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+
+      if (result)
+        return result;
+
+      constexpr bool has_traits = requires { { self->InvokeExistingCommonReadFeatures };};
     };
 
-    template<auto ...chunks, typename Self>
+    template<auto... chunks, typename Self>
     requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
       && ...)
     static void WriteChunksOf(Self self, Common::ByteBuffer& buf)
@@ -474,13 +491,20 @@ namespace IO::Common::Traits
     {
       auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
       (write_lambda(self->*all_chunks), ...);
+
+      constexpr bool has_traits = requires { { self->InvokeExistingCommonWriteFeatures(buf) }; };
+
+      if constexpr (has_traits)
+      {
+        self->InvokeExistingCommonWriteFeatures(buf);
+      }
     };
 
-    template<auto ...chunks, typename Self, typename Func>
+    template<auto... chunks, typename Self, typename Func>
     requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
       && ...) && (std::invocable<std::add_lvalue_reference_t<
         Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
-    static void ForAllChunks(Self self, Func&& func)
+    static void ForAllChunksOf(Self self, Func&& func)
     {
       (func(self->*chunks), ...);
     };

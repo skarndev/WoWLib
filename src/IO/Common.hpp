@@ -125,20 +125,50 @@ namespace IO::Common
   };
 
   /**
-     DataChunk represents a common pattern within WoW files when a chunk contains
-     exactly one element of underlying structure T, when header.size == sizeof(T).
-     Example: ADT::MHDR and other header-like chunks.
-     Convinience conversion operators are provided to cast it to the underlying T.
-
-     @tparam T Data struxture that this chunk holds.
-     @tparam fourcc FourCC identifier of the chunk.
-     @tparam fourcc_endian FourCC identifier endianness.
+   * ChunkCommon represents a commonly shared minimal interface used by other chunk-like primitives.
+   * @tparam fourcc
+   * @tparam fourcc_endian
    */
-  template<Utils::Meta::Concepts::PODType T // Data structure that this chunk holds
-      , std::uint32_t fourcc // FourCC identifier
-      , FourCCEndian fourcc_endian = FourCCEndian::LITTLE> // FourCC endianness
-  struct DataChunk
+  template<std::uint32_t fourcc, FourCCEndian fourcc_endian = FourCCEndian::LITTLE>
+  struct ChunkCommon
   {
+    /**
+     * Initialize the chunk-like primitive.
+     */
+    void Initialize();
+
+    /**
+     * Check if a chunk-like primitive is initialized (contains valid data).
+     * @return true if initialized, else false.
+     */
+    [[nodiscard]]
+    bool IsInitialized() const { return _is_initialized; };
+
+    static constexpr std::uint32_t magic = fourcc; ///> FourCC ideintifier of a chunk-like primitive.
+    static constexpr FourCCEndian magic_endian = fourcc_endian; ///> Endianness of the FourCC identifier.
+
+  protected:
+    bool _is_initialized = false;
+  };
+
+  /**
+   * DataChunk represents a common pattern within WoW files when a chunk contains
+   * exactly one element of underlying structure T, when header.size == sizeof(T).
+   * Example: ADT::MHDR and other header-like chunks.
+   * Convinience conversion operators are provided to cast it to the underlying T.
+   * @tparam T Data struxture that this chunk holds.
+   * @tparam fourcc FourCC identifier of the chunk.
+   * @tparam fourcc_endian FourCC identifier endianness.
+   */
+  template
+  <
+    Utils::Meta::Concepts::PODType T
+    , std::uint32_t fourcc
+    , FourCCEndian fourcc_endian = FourCCEndian::LITTLE
+  >
+  struct DataChunk : public ChunkCommon<fourcc, fourcc_endian>
+  {
+    using ChunkCommon<fourcc, fourcc_endian>::Initialize;
     using ValueType = T;
     typedef std::conditional_t<sizeof(T) <= sizeof(std::size_t), T, T const&> InterfaceType;
 
@@ -149,11 +179,6 @@ namespace IO::Common
      * @param data_block Underlying structure.
      */
     explicit DataChunk(InterfaceType data_block);
-
-    /**
-     * Initialize the data chunk (underlying structure is default constructed).
-     */
-    void Initialize();
 
     /**
      * Initialize the data chunk with an existing structure (copy is made).
@@ -175,18 +200,11 @@ namespace IO::Common
     void Write(ByteBuffer& buf) const;
 
     /**
-     * Size of the data chunk in bytes that it would take when written to file.
+     * Size of the data chunk in bytes that it would take when written to file (without header).
      * @return Size of the data chunk.
      */
     [[nodiscard]]
     std::size_t ByteSize() const { return sizeof(T); };
-
-    /**
-     * Chunk intiailization status.
-     * @return True if chunk was initialized (existing within a file and containing valid data).
-     */
-    [[nodiscard]]
-    bool IsInitialized() const { return _is_initialized; };
 
     // These operators are intended for supporting convenient conversions to underlying type
     [[nodiscard]]
@@ -205,10 +223,6 @@ namespace IO::Common
     operator T() const { return data; };
 
     T data; ///> Underlying data structure.
-    static constexpr std::uint32_t magic = fourcc;
-
-  private:
-    bool _is_initialized = false;
   };
 
   // Interface validity check
@@ -242,18 +256,11 @@ namespace IO::Common
     , std::size_t size_min = std::numeric_limits<std::size_t>::max()
     , std::size_t size_max = std::numeric_limits<std::size_t>::max()
   >
-  struct DataArrayChunk
+  struct DataArrayChunk : public Utils::Meta::Templates::ConstrainedArray<T, size_min, size_max>
+                        , public ChunkCommon<fourcc, fourcc_endian>
   {
-    using ValueType = T;
-    using ArrayImplT = std::conditional_t<size_max == size_min && size_max < std::numeric_limits<std::size_t>::max()
-      , std::array<T, size_max>, std::vector<T>>;
-    using iterator = typename ArrayImplT::iterator;
-    using const_iterator = typename ArrayImplT::const_iterator;
-
-    /**
-     * Initialize an empty array chunk
-     */
-    void Initialize();
+    using ChunkCommon<fourcc, fourcc_endian>::Initialize;
+    using ArrayImplT = typename Utils::Meta::Templates::ConstrainedArray<T, size_min, size_max>::ArrayImplT;
 
    /**
     * Initialize the array chunk with n copies of underlying type T.
@@ -281,108 +288,55 @@ namespace IO::Common
      */
     void Write(ByteBuffer& buf) const;
 
-    /**
-     * Returns true if chunk is initialized (has valid data and is present in file).
-     * @return true if chunk is initialized, else false.
-     */
-    [[nodiscard]]
-    bool IsInitialized() const { return _is_initialized; };
-
-    /**
-     * Returns the number of elements stored in the container.
-     * @return Number of elements in the container.
-     */
-    [[nodiscard]]
-    std::size_t Size() const { return _data.size(); };
-
    /**
-    * Returns the number of bytes that this array chunk would take in a file.
+    * Returns the number of bytes that this array chunk would take in a file. (without header).
     * @return Number of bytes.
     */
     [[nodiscard]]
-    std::size_t ByteSize() const { return _data.size() * sizeof(T); };
-
-    /**
-     * Default constructs a new element in the underlying vector and returns reference to it (dynamic size only).
-     * @return Reference to the constructed object.
-     */
-    template<typename..., typename ArrayImplT_ = ArrayImplT>
-    T& Add() requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
-
-    /**
-     * Removes an element by its index in the underlying vector. Bounds checks are debug-only, no exceptions.
-     * (dynamic arrays only).
-     * @param index
-     */
-    template<typename..., typename ArrayImplT_ = ArrayImplT>
-    void Remove(std::size_t index) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
-
-    /**
-     * Removes an element by its iterator in the underlying vector. Bounds checks are debug-only, no exceptions.
-     * (dynamic arrays only).
-     * @param it Iterator pointing to the element to remove.
-     */
-    template<typename..., typename ArrayImplT_ = ArrayImplT>
-    void Remove(typename ArrayImplT_::iterator it) requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
-
-    /**
-     *  Clears the underlying vector (dynamic size only).
-     */
-    template<typename..., typename ArrayImplT_ = ArrayImplT>
-    void Clear() requires (std::is_same_v<ArrayImplT_, std::vector<T>>);
-
-    /**
-     * Returns reference to the element of the underlying vector by its index.
-     * @param index Index of the elemnt in the underlying vector in a valid range.
-     * @return Reference to vector element.
-     */
-    [[nodiscard]]
-    T& At(std::size_t index);
-
-    /**
-     * Returns a const reference to the element of the underlying vector by its index.
-     * @param index Index of the elemnt in the underlying vector in a valid range.
-     * @return Constant reference to vector element.
-     */
-    [[nodiscard]]
-    T const& At(std::size_t index) const;
-
-    [[nodiscard]]
-    typename ArrayImplT::const_iterator begin() const { return _data.cbegin(); };
-
-    [[nodiscard]]
-    typename ArrayImplT::const_iterator end() const { return _data.cend(); };
-
-    [[nodiscard]]
-    typename ArrayImplT::iterator begin() { return _data.begin(); };
-
-    [[nodiscard]]
-    typename ArrayImplT::iterator end() { return _data.end(); };
-
-    [[nodiscard]]
-    typename ArrayImplT::const_iterator cbegin() const { return _data.cbegin(); };
-
-    [[nodiscard]]
-    typename ArrayImplT::const_iterator cend() const { return _data.cend(); };
-
-    [[nodiscard]]
-    T& operator[](std::size_t index);
-
-    [[nodiscard]]
-    T const& operator[](std::size_t index) const;
+    std::size_t ByteSize() const { return this->_data.size() * sizeof(T); };
 
     static constexpr std::uint32_t magic = fourcc;
 
-  private:
-    // Array of data structures (either std::vector or std::array depending on size constraints).
-    ArrayImplT _data;
-
-    bool _is_initialized = false;
   };
 
   // Interface validity checks
   static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1>>);
   static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1, FourCCEndian::LITTLE, 2, 2>>);
+
+  /**
+   * Represents a sparsely readable array of file chunks. The most common use case is ADT's MCNK.
+   * @tparam Chunk Element of the array.
+   * @tparam size_min Minimum amount of elements stored in the array. std::size_t::max means a variable bound.
+   * @tparam size_max Maximum amount of elements stored in the array. std::size_t::max means a variable bound.
+   */
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min = std::numeric_limits<std::size_t>::max()
+    , std::size_t size_max = std::numeric_limits<std::size_t>::max()
+  >
+  struct SparseChunkArray : public Utils::Meta::Templates::ConstrainedArray<Chunk, size_min, size_max>
+                          , public ChunkCommon<Chunk::magic, Chunk::magic_endian>
+  {
+    using ChunkCommon<Chunk::magic, Chunk::magic_endian>::Initialize;
+    using ValueType = Chunk;
+    using ArrayImplT = typename Utils::Meta::Templates::ConstrainedArray<Chunk, size_min, size_max>::ArrayImplT;
+
+    void Initialize(ArrayImplT const& data_array);
+    void Initialize(ValueType const& value, std::size_t n);
+
+    void Read(ByteBuffer const& buf, std::uint32_t size);
+    void Write(ByteBuffer& buf) const;
+
+    [[nodiscard]]
+    std::size_t ByteSize() const;
+
+  private:
+    std::size_t _sparse_counter = 0;
+
+  };
+
+  static_assert(Concepts::DataArrayChunkProtocol<SparseChunkArray<DataArrayChunk<std::uint32_t, 1>>>);
 
   /* StringBlockChunk represents a common pattern within WoW files where a chunk is an
      array of 0-terminated strings. It provides similar interface and options to DataArrayChunk.
@@ -436,9 +390,9 @@ namespace IO::Common
     bool IsInitialized() const { return _is_initialized; };
 
     /**
-      * Returns the number of elements stored in the container.
-      * @return Number of elements stored in the container.
-      */
+     * Returns the number of elements stored in the container.
+     * @return Number of elements stored in the container.
+     */
     [[nodiscard]]
     std::size_t Size() const { return _data.size(); };
 

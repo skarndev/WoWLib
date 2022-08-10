@@ -30,7 +30,7 @@ namespace IO::Common::Concepts
   template<typename T, std::uint32_t fourcc_req = 0>
   concept ChunkProtocolCommon = requires (T t)
   {
-    { static_cast<void(T::*)()>(&T::Initialize) };
+    { static_cast<void(T::*)()>(&T::Initialize)};
     { t.Read(Common::ByteBuffer(), std::size_t())} -> std::same_as<void>;
     // { static_cast<void(T::*)(Common::ByteBuffer const&, std::size_t)>(&T::Read) };
     { static_cast<void(T::*)(Common::ByteBuffer&) const>(&T::Write) };

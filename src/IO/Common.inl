@@ -7,28 +7,32 @@
 
 namespace IO::Common
 {
-  // DataChunk
-
-  template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
-  inline DataChunk<T, fourcc, fourcc_endian>::DataChunk(InterfaceType data_block)
+  // ChunkCommon
+  template
+  <
+    std::uint32_t fourcc,
+    FourCCEndian fourcc_endian
+  >
+  inline void ChunkCommon<fourcc, fourcc_endian>::Initialize()
   {
-    data = data_block;
+    InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
     _is_initialized = true;
   }
 
+  // DataChunk
+
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
-  inline void DataChunk<T, fourcc, fourcc_endian>::Initialize()
+  inline DataChunk<T, fourcc, fourcc_endian>::DataChunk(InterfaceType data_block) : ChunkCommon<fourcc, fourcc_endian>()
   {
-    InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-    std::memset(&data, 0, sizeof(T));
-    _is_initialized = true;
+    data = data_block;
+    this->_is_initialized = true;
   }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
   inline void DataChunk<T, fourcc, fourcc_endian>::Initialize(InterfaceType data_block)
   {
     data = data_block;
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
@@ -42,13 +46,13 @@ namespace IO::Common
              , "Provided size is not the same as the size of underlying structure.");
 
     buf.Read(data);
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
   inline void DataChunk<T, fourcc, fourcc_endian>::Write(ByteBuffer& buf) const
   {
-    if (!_is_initialized) [[unlikely]]
+    if (!this->_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s, size: %d."
@@ -72,41 +76,30 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize()
-  {
-    InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-    _is_initialized = true;
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
   inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize(T const& data_block
                                                                                          , std::size_t n)
   {
-    InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+    InvariantF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
     RequireMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || n >= size_min
         , size_max == std::numeric_limits<std::size_t>::max() || n <= size_max),
         "Attempted to initialize size-constrained chunk with mismatching size (%d), min: %d, max: %d."
         , n, size_min, size_max);
 
+    this->_is_initialized = true;
+
+    // dynamic array
     if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
     {
-      _data.resize(n);
-      std::fill(_data.begin(), _data.end(), data_block);
-      _is_initialized = true;
+      this->_data.resize(n);
+      std::fill(this->_data.begin(), this->_data.end(), data_block);
     }
+    // static array
     else
     {
-      RequireF(LCodeZones::FILE_IO, n == _data.size()
+      RequireF(LCodeZones::FILE_IO, n == this->_data.size()
                , "Attempted to initialize static chunk with non-matching size (%d).", n);
-      std::fill(_data.begin(), _data.end(), data_block);
-      _is_initialized = true;
+      std::fill(this->_data.begin(), this->_data.end(), data_block);
+      this->_is_initialized = true;
     }
   }
 
@@ -120,9 +113,9 @@ namespace IO::Common
   >
   inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Initialize(ArrayImplT const& data_array)
   {
-    InvariantF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-    _data = data_array;
-    _is_initialized = true;
+    InvariantF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
+    this->_data = data_array;
+    this->_is_initialized = true;
   }
 
   template
@@ -148,11 +141,11 @@ namespace IO::Common
     if constexpr (std::is_same_v<ArrayImplT, std::vector<T>>)
     {
       n_elements = size / sizeof(T);
-      _data.resize(n_elements);
+      this->_data.resize(n_elements);
     }
     else
     {
-      n_elements = _data.size();
+      n_elements = this->_data.size();
     }
 
     EnsureMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max()
@@ -162,9 +155,9 @@ namespace IO::Common
         "Expected to read satisfying size constraint (min: %d, max: %d), got size %d instead."
             , size_min, size_max, n_elements);
 
-    buf.Read(_data.begin(), _data.end());
+    buf.Read(this->_data.begin(), this->_data.end());
 
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template
@@ -177,156 +170,31 @@ namespace IO::Common
   >
   inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
   {
-    if (!_is_initialized) [[unlikely]]
+    if (!this->_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing array chunk: %s, length: %d, size: %d."
               , FourCCStr<fourcc, fourcc_endian>
-              , _data.size()
-              , _data.size() * sizeof(T));
+              , this->_data.size()
+              , this->_data.size() * sizeof(T));
 
-    RequireF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || _data.size() >= size_min
-        , size_max == std::numeric_limits<std::size_t>::max() || _data.size() <= size_max),
+    InvariantF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || this->_data.size() >= size_min
+        , size_max == std::numeric_limits<std::size_t>::max() || this->_data.size() <= size_max),
         "Expected to write chunk with size constraint (min: %d, max : %d), got size %d instead."
-        , size_min, size_max, _data.size());
+        , size_min, size_max, this->_data.size());
 
     ChunkHeader header {};
     header.fourcc = fourcc;
-    EnsureF(CCodeZones::FILE_IO, (_data.size() * sizeof(T)) <= std::numeric_limits<std::uint32_t>::max()
+    EnsureF(CCodeZones::FILE_IO, (this->_data.size() * sizeof(T)) <= std::numeric_limits<std::uint32_t>::max()
             , "Chunk size overflow.");
-    header.size = static_cast<std::uint32_t>(_data.size() * sizeof(T));
+    header.size = static_cast<std::uint32_t>(this->_data.size() * sizeof(T));
 
     buf.Write(header);
 
-    for (auto& element : _data)
+    for (auto& element : this->_data)
     {
       buf.Write(element);
     }
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  template<typename..., typename ArrayImplT_>
-  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Add()
-  requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
-  {
-    _is_initialized = true;
-    T& ret = _data.emplace_back();
-    std::memset(&ret, 0, sizeof(T));
-    return ret;
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Remove(std::size_t index)
-  requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds remove of underlying chunk vector element.");
-    InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
-    _data.erase(_data.begin() + index);
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Remove(typename ArrayImplT_::iterator it)
-  requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
-  {
-    RequireF(CCodeZones::FILE_IO, it < _data.end(), "Out of bounds remove of underlying chunk vector element.");
-    InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted removing on uninitialized chunk.");
-    _data.erase(it);
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::At(std::size_t index)
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-    InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
-    return _data[index];
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  inline T const& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::At(std::size_t index) const
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-    InvariantF(CCodeZones::FILE_IO, _is_initialized, "Attempted element access on uninitialized chunk.");
-    return _data[index];
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  inline T& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::operator[](std::size_t index)
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-    return _data[index];
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  inline T const& DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::operator[](std::size_t index) const
-  {
-    RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds access to underlying chunk vector.");
-    return _data[index];
-  }
-
-  template
-  <
-    Utils::Meta::Concepts::PODType T
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
-  template<typename..., typename ArrayImplT_>
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Clear()
-  requires (std::is_same_v<ArrayImplT_, std::vector<T>>)
-  {
-    _data.clear();
   }
 
   // StringBlockChunk
@@ -723,11 +591,11 @@ namespace IO::Common
 
   template
   <
-      StringBlockChunkType type
-      , std::uint32_t fourcc
-      , FourCCEndian fourcc_endian
-      , std::size_t size_min
-      , std::size_t size_max
+    StringBlockChunkType type
+    , std::uint32_t fourcc
+    , FourCCEndian fourcc_endian
+    , std::size_t size_min
+    , std::size_t size_max
   >
   template<typename..., typename ArrayImplT_>
   inline typename ArrayImplT_::value_type& StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::operator[](
@@ -735,6 +603,136 @@ namespace IO::Common
   {
     RequireF(CCodeZones::FILE_IO, index < _data.size(), "Out of bounds removed.");
     return _data[index];
+  }
+
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Initialize(ArrayImplT const& data_array)
+  {
+    InvariantF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
+    this->_is_initialized = true;
+    this->_data = data_array;
+  }
+
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Initialize(ValueType const& value, std::size_t n)
+  {
+    InvariantF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
+    RequireMF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || n >= size_min
+      , size_max == std::numeric_limits<std::size_t>::max() || n <= size_max),
+      "Attempted to initialize size-constrained chunk with mismatching size (%d), min: %d, max: %d."
+              , n, size_min, size_max);
+
+    this->_is_initialized = true;
+
+    // dynamic array
+    if constexpr (std::is_same_v<ArrayImplT, std::vector<Chunk>>)
+    {
+      this->_data.resize(n);
+      std::fill(this->_data.begin(), this->_data.end(), value);
+    }
+    // static array
+    else
+    {
+      RequireF(LCodeZones::FILE_IO, n == this->_data.size()
+               , "Attempted to initialize static chunk with non-matching size (%d).", n);
+      std::fill(this->_data.begin(), this->_data.end(), value);
+    }
+  }
+
+
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Read(ByteBuffer const& buf, std::uint32_t size)
+  {
+    if (!this->_is_initialized)
+    {
+      RequireF(CCodeZones::FILE_IO, !_sparse_counter, "Attempt to initialized an invalid array.");
+      this->_is_initialized = true;
+    }
+
+    // dynamic array
+    if constexpr (std::is_same_v<ArrayImplT, std::vector<ValueType>>)
+    {
+      RequireF(CCodeZones::FILE_IO, _sparse_counter < size_max, "Out of bounds read attempt.");
+      LogDebugF(LCodeZones::FILE_IO, "Reading sparse dynamic array of \"%s\" chunks (%d)"
+                , FourCCStr<Chunk::magic, Chunk::magic_endian>
+                , _sparse_counter);
+
+      auto& chunk = this->_data.emplace_back();
+      chunk.Read(buf, size);
+    }
+    // static array
+    else
+    {
+      RequireF(CCodeZones::FILE_IO, _sparse_counter < this->_data.size(), "Out of bounds read attempt.");
+      LogDebugF(LCodeZones::FILE_IO, "Reading sparse array of \"%s\" chunks (%d / %d)"
+                , FourCCStr<Chunk::magic, Chunk::magic_endian>
+                , _sparse_counter
+                , this->_data.size());
+
+      this->_data[_sparse_counter++].Read(buf, size);
+    }
+  }
+
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Write(ByteBuffer& buf) const
+  {
+    if (!this->_is_initialized) [[unlikely]]
+      return;
+
+    InvariantF(LCodeZones::FILE_IO, (size_min == std::numeric_limits<std::size_t>::max() || this->_data.size() >= size_min
+        , size_max == std::numeric_limits<std::size_t>::max() || this->_data.size() <= size_max),
+        "Expected to write sparse chunk array with size constraint (min: %d, max : %d), got size %d instead."
+        , size_min, size_max, this->_data.size());
+
+    for (auto&& [i, chunk] : future::enumerate(this->_data))
+    {
+      LogDebugF(LCodeZones::FILE_IO, "Writing sparse dynamic array of \"%s\" chunks (%d / %d)"
+                , FourCCStr<Chunk::magic, Chunk::magic_endian>
+                , i
+                , this->_data.size());
+      chunk.Write(buf);
+    }
+  }
+
+  template
+  <
+    Concepts::ChunkProtocolCommon Chunk
+    , std::size_t size_min
+    , std::size_t size_max
+  >
+  inline std::size_t SparseChunkArray<Chunk, size_min, size_max>::ByteSize() const
+  {
+    RequireF(CCodeZones::FILE_IO, this->_is_initialized
+             , "Attempt on getting byte size of an uninitialized sparse chunk array");
+
+    std::size_t sum = 0;
+    for (auto& chunk : this->_data)
+    {
+      EnsureF(CCodeZones::FILE_IO, std::numeric_limits<std::size_t>::max() - sum >= chunk.ByteSize(), "Overflow");
+      sum += chunk.ByteSize();
+    }
+
+    return sum;
   }
 
 

@@ -121,7 +121,7 @@ namespace IO::Common
 
     /**
      * Checks if buffer pos is at the end of file.
-     * @return True, if EOF was reached, else False.
+     * @return true, if EOF was reached, else false.
      */
     [[nodiscard]]
     bool IsEof() const;
@@ -129,7 +129,7 @@ namespace IO::Common
     /**
      * Checks if internal buffer is owned by this buffer. Owned buffers are self-destructible,
      * Borrowed buffers are simply released. User needs to take control of memory freeing.
-     * @return True, if data is owned by ByteBuffer, else False.
+     * @return true, if data is owned by ByteBuffer, else false.
      */
     [[nodiscard]]
     bool IsDataOnwed() const { return _is_data_owned; };
@@ -189,56 +189,117 @@ namespace IO::Common
     template<typename T>
     void Read(T begin, T end) const requires std::contiguous_iterator<T>;
 
-    // Reads object representation from buffer to an lhs object without modifying buffer position.
+    /**
+     * Reads object representation from buffer to an lhs object without modifying buffer position.
+     * @tparam T Structure to read.
+     * @param lhs Reference to an already constructed object to read data into.
+     * @param offset Absolute offset of the object within the buffer.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Read(T& lhs, std::size_t offset) const;
 
-    // Reads n bytes into provided char array starting at absolute pos
+    /**
+     * Reads n bytes into provided char array starting at absolute pos
+     * @param dest Pre-allocated destination buffer.
+     * @param offset Absolute offset of the object within the buffer.
+     * @param n Number of bytes to read.
+     */
     void Read(char* dest, std::size_t offset, std::size_t n) const;
 
-    // Reads n bytes into provided char array starting at current buffer pos
+    /**
+     * Reads n bytes into provided char array starting at current buffer pos
+     * @param dest Pre-allocated destination buffer.
+     * @param n Number of bytes to read.
+     */
     void Read(char* dest, std::size_t n) const;
 
-    // Read a null terminated string starting at current buffer pos
+    /**
+     * Read a null-terminated string at current buffer position.
+     * @return String-view to the read string.
+     */
     [[nodiscard]]
     std::string_view ReadString() const;
 
-    // Writes n bytes into associated buffer starting at absolute pos (offset)
+    /**
+     * Writes bytes into associated buffer starting at absolute offset.
+     * This overload does not modify the current ByteBuffer read/write position.
+     * @param src Pre-allocated source buffer containing bytes to write.
+     * @param n Number of bytes to write.
+     * @param offset Absolute offset within the file to write data at.
+     */
     void Write(const char* src, std::size_t n, std::size_t offset);
 
-    // Writes n bytes into associated buffer starting at current buffer pos
+    /**
+     * Writes bytes into associated buffer starting at current buffer pos.
+     * This overload modifies the current ByteBuffer read/write position.
+     * @param src Pre-allocated source buffer containing bytes to write.
+     * @param n Number of bytes to write.
+     */
     void Write(const char* src, std::size_t n);
 
-    // Writes implicit lifetime type T into associated buffer starting at absolute pos
+    /**
+     * Writes implicit lifetime type T into associated buffer starting at absolute position
+     * @tparam T Structure to write.
+     * @param data Object to write.
+     * @param offset Absolute offsets in the buffer to write data at.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data, std::size_t offset);
 
-    // Writes implicit lifetime type T into associated buffer starting at current buffer pos
+    /**
+     * Writes implicit lifetime type T into associated buffer starting at current bufer position.
+     * @tparam T Structure to write.
+     * @param data Object to write.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void Write(T const& data);
 
-    // Writes a null terminated string into associated buffer starting at current buffer pos
+    /**
+     * Writes a null terminated string into associated buffer starting at current buffer position.
+     * @param data String to write.
+     */
     void WriteString(std::string const& data);
 
-    // Writes n implicit lifetime type T objects into associated buffer starting at current buffer pos
+    /**
+     * Writes n implicit lifetime type T objects into associated buffer starting at current buffer position.
+     * @tparam T Structure to write.
+     * @param data Object to write.
+     * @param n Number of copies to write.
+     */
     template<Utils::Meta::Concepts::ImplicitLifetimeType T>
     void WriteFill(T const& data, std::size_t n);
 
-    // Writes a range of object representations to buffer
+    /**
+     * Writes a range of objects into the buffer.
+     * @tparam T Structure to write.
+     * @param begin Begin contigious iterator to an array of objects of type T.
+     * @param end End contigious iterator to an array of objects of type T.
+     */
     template<typename T>
     void Write(T begin, T end) requires std::contiguous_iterator<T>;
 
-    // Reserves b bytes in the associated buffer
-    // Can only be used for the cases when the associated buffer is owned by a ByteBuffer instance.
-    // ReservePolicy::Strict (default) ensures only the amout of memory to store current buffer size + n requested extra bytes is allocated.
-    // ReservePolicy::Double performs bucket allocations, and ensures that at least current buffer size + n requested extra bytes is allocated.
+    /**
+     * Reserves bytes in the associated buffer.
+     * Can only be used for the cases when the associated buffer is owned by a ByteBuffer instance.
+     * @tparam reserve_policy Strict (default) esnures that only the amount of memory enough to store current buffer
+     * size + n requrested extra bytes is allocated.
+     * Double performs bucket allocations, and ensures that at least current buffer size + n requested extra bytes is
+     * allocated.
+     * @param n Number of bytes to reserve.
+     */
     template<ReservePolicy reserve_policy = ReservePolicy::Strict>
     void Reserve(std::size_t n);
 
-    // Flushes associated buffer into std::fstream
+    /**
+     * Flushes associated buffer into std::fstream
+     * @param stream Stream to flush into.
+     */
     void Flush(std::fstream& stream) const;
 
-    // Flushes associated buffer into std::ostream
+    /**
+     * Flushes associated buffer into std::ostream
+     * @param stream Stream to flush into.
+     */
     void Flush(std::ostream& stream) const;
 
   private:

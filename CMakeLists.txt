@@ -18,12 +18,8 @@ include(FetchContent)
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /MP)
 #Allow Big obj for msvc compilation
 add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /bigobj)
-add_compiler_flag_if_supported(CMAKE_CXX_FLAGS /W3)
-add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fPIC)
-add_compiler_flag_if_supported(CMAKE_C_FLAGS -fPIC)
-#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wall)
-#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -Wextra)
-#add_compiler_flag_if_supported(CMAKE_CXX_FLAGS -fconcepts-diagnostics-depth=2)
+add_compiler_flag_if_supported (CMAKE_CXX_FLAGS -fPIC)
+add_compiler_flag_if_supported (CMAKE_C_FLAGS -fPIC)
 
 # options
 option(ADDITIONAL_OPTIMIZATION_FLAGS "Enable optimizations?" OFF)
@@ -33,6 +29,7 @@ if(ADDITIONAL_OPTIMIZATION_FLAGS)
   add_compiler_flag_if_supported (CMAKE_CXX_FLAGS /Oi)  # enable intrasic functions
   add_compiler_flag_if_supported (CMAKE_CXX_FLAGS /Ot)  # favor fast code
   add_compiler_flag_if_supported (CMAKE_CXX_FLAGS /GL)  # whole program optimization
+
 endif()
 
 option(ENABLE_VALIDATION_LOG_TO_CONSOLE "Log to console?" ON)
@@ -114,6 +111,11 @@ assign_source_group(
 
 #target
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
+target_compile_options(EpsilonAddon PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+        -Wall -Wextra -fconcepts-diagnostics-depth=2>
+        $<$<CXX_COMPILER_ID:MSVC>:
+        /W4>)
 
 # dependencies
 
@@ -134,6 +136,7 @@ set(BUILD_SHARED_LIBS OFF)
 set(STORM_SKIP_INSTALL "Skip installing files" ON)
 add_subdirectory (${storm_SOURCE_DIR} ${storm_BINARY_DIR} EXCLUDE_FROM_ALL)
 target_compile_definitions(EpsilonAddon PRIVATE STORMLIB_NO_AUTO_LINK)
+
 set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 
 # casclib
@@ -146,16 +149,16 @@ FetchContent_GetProperties(casc)
 if(NOT casc_POPULATED)
   MESSAGE(STATUS "Installing CascLib...")
   FetchContent_Populate(casc)
+
+  set(CASC_BUILD_SHARED_LIB OFF)
+  set(CASC_BUILD_STATIC_LIB ON)
+  add_subdirectory (${casc_SOURCE_DIR} ${casc_BINARY_DIR} EXCLUDE_FROM_ALL)
+  target_compile_definitions(EpsilonAddon PRIVATE CASCLIB_NO_AUTO_LINK_LIBRARY)
+
 endif()
 
 #boost
 find_package(Boost 1.74.0 REQUIRED)
-
-
-set(CASC_BUILD_SHARED_LIB OFF)
-set(CASC_BUILD_STATIC_LIB ON)
-add_subdirectory (${casc_SOURCE_DIR} ${casc_BINARY_DIR} EXCLUDE_FROM_ALL)
-target_compile_definitions(EpsilonAddon PRIVATE CASCLIB_NO_AUTO_LINK_LIBRARY)
 
 target_link_libraries(EpsilonAddon storm casc_static ${Boost_LIBRARIES})
 
