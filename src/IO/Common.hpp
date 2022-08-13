@@ -23,8 +23,8 @@ namespace IO::Common
 
   enum class FourCCEndian
   {
-    LITTLE = 0, ///> commonly used order of chars in bytes (little endian, chars sre written right to left in the file).
-    BIG = 1 ///> used in m2 (big endian, chars are written left to right in the file).
+    Little = 0, ///> commonly used order of chars in bytes (little endian, chars sre written right to left in the file).
+    Big = 1 ///> used in m2 (big endian, chars are written left to right in the file).
   };
 
   /**
@@ -32,7 +32,7 @@ namespace IO::Common
    * @tparam fourcc FourCC identifier as string literal.
    * @tparam endian Determines endianness of the FourCC idetnifier.
    */
-  template <Utils::Meta::Templates::StringLiteral fourcc, FourCCEndian endian = FourCCEndian::LITTLE>
+  template <Utils::Meta::Templates::StringLiteral fourcc, FourCCEndian endian = FourCCEndian::Little>
   static constexpr std::uint32_t FourCC = static_cast<bool>(endian) ? (fourcc.value[3] << 24 | fourcc.value[2] << 16
        | fourcc.value[1] << 8 | fourcc.value[0])
        : (fourcc.value[0] << 24 | fourcc.value[1] << 16 | fourcc.value[2] << 8 | fourcc.value[3]);
@@ -42,7 +42,7 @@ namespace IO::Common
    * @tparam fourcc_int FourCC identifier as integer.
    * @tparam endian Determines endianness of the FourCC idenitifer.
    */
-  template <std::uint32_t fourcc_int, FourCCEndian endian = FourCCEndian::LITTLE>
+  template <std::uint32_t fourcc_int, FourCCEndian endian = FourCCEndian::Little>
   static constexpr char FourCCStr[5] = { static_cast<bool>(endian) ? fourcc_int & 0xFF : (fourcc_int >> 24) & 0xFF,
                                          static_cast<bool>(endian) ? (fourcc_int >> 8) & 0xFF
                                           : (fourcc_int >> 16) & 0xFF,
@@ -129,7 +129,7 @@ namespace IO::Common
    * @tparam fourcc
    * @tparam fourcc_endian
    */
-  template<std::uint32_t fourcc, FourCCEndian fourcc_endian = FourCCEndian::LITTLE>
+  template<std::uint32_t fourcc, FourCCEndian fourcc_endian = FourCCEndian::Little>
   struct ChunkCommon
   {
     /**
@@ -164,7 +164,7 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian = FourCCEndian::LITTLE
+    , FourCCEndian fourcc_endian = FourCCEndian::Little
   >
   struct DataChunk : public ChunkCommon<fourcc, fourcc_endian>
   {
@@ -252,7 +252,7 @@ namespace IO::Common
   <
     Utils::Meta::Concepts::PODType T
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian = FourCCEndian::LITTLE
+    , FourCCEndian fourcc_endian = FourCCEndian::Little
     , std::size_t size_min = std::numeric_limits<std::size_t>::max()
     , std::size_t size_max = std::numeric_limits<std::size_t>::max()
   >
@@ -301,7 +301,7 @@ namespace IO::Common
 
   // Interface validity checks
   static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1>>);
-  static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1, FourCCEndian::LITTLE, 2, 2>>);
+  static_assert(Concepts::DataArrayChunkProtocol<DataArrayChunk<std::uint32_t, 1, FourCCEndian::Little, 2, 2>>);
 
   /**
    * Represents a sparsely readable array of file chunks. The most common use case is ADT's MCNK.
@@ -361,18 +361,17 @@ namespace IO::Common
   <
     StringBlockChunkType type
     , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian = FourCCEndian::LITTLE
+    , FourCCEndian fourcc_endian = FourCCEndian::Little
     , std::size_t size_min = std::numeric_limits<std::size_t>::max()
     , std::size_t size_max = std::numeric_limits<std::size_t>::max()
   >
-  struct StringBlockChunk
+  struct StringBlockChunk : public ChunkCommon<fourcc, fourcc_endian>
   {
+    using ChunkCommon<fourcc, fourcc_endian>::Initialize;
     using ArrayImplT = std::conditional_t<type == StringBlockChunkType::NORMAL, std::vector<std::string>
         , std::vector<std::pair<std::uint32_t, std::string>>>;
 
     StringBlockChunk() = default;
-
-    void Initialize();
 
     void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::NORMAL);
     void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::OFFSET);
@@ -382,12 +381,6 @@ namespace IO::Common
 
     void Write(ByteBuffer& buf) const;
 
-    /**
-     * Returns true if chunk is initialized (has valid data and is present in file).
-     * @return true if chunk is initialized, else false.
-     */
-    [[nodiscard]]
-    bool IsInitialized() const { return _is_initialized; };
 
     /**
      * Returns the number of elements stored in the container.
@@ -484,10 +477,7 @@ namespace IO::Common
     [[nodiscard]]
     typename ArrayImplT_::value_type& operator[](std::size_t index);
 
-    static constexpr std::uint32_t magic = fourcc;
-
   private:
-    bool _is_initialized = false;
     ArrayImplT _data;
   };
 

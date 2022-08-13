@@ -37,7 +37,7 @@ namespace IO::ADT
                 <
                   DataStructures::SMLayer
                   , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                  , Common::FourCCEndian::LITTLE
+                  , Common::FourCCEndian::Little
                   , 0
                   , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                 > const& alpha_layer_params
@@ -49,7 +49,7 @@ namespace IO::ADT
                   <
                     DataStructures::SMLayer
                     , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                    , Common::FourCCEndian::LITTLE
+                    , Common::FourCCEndian::Little
                     , 0
                     , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                   > const& alpha_layer_params) const;

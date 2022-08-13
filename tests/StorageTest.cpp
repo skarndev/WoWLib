@@ -29,7 +29,7 @@ int main()
   FileKey::FileReadStatus status = key.Read(buf);
 
   Ensure(status == FileKey::FileReadStatus::SUCCESS, "Failed to read file.");
-  Ensure((buf.Read<std::uint32_t>() == Common::FourCC<"MD20", Common::FourCCEndian::BIG>), "Incorrect file contents.");
+  Ensure((buf.Read<std::uint32_t>() == Common::FourCC<"MD20", Common::FourCCEndian::Big>), "Incorrect file contents.");
 
   IO::ADT::ADTRoot<Common::ClientVersion::MOP> root{0};
 

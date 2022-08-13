@@ -5,6 +5,8 @@
 #include <Utils/Misc/ForceInline.hpp>
 #include <boost/callable_traits/return_type.hpp>
 
+#include <nameof.hpp>
+
 #include <functional>
 #include <type_traits>
 #include <concepts>
@@ -184,176 +186,88 @@ namespace IO::Common::Traits
   /**
    * Checks if passed type is either an enabled trait or an empty.
    * @tparam T Any type.
+   * @tparam Trait Trait type.
    */
   template<typename T>
   concept IOTraitOrEmpty = std::is_empty_v<T> || IOTraitNamedReq<T>;
 
   /**
-   * Checks if passed type is a pointer to member function that can represent a trait feature.
-   * @tparam T Any type.
-   */
-  template<typename T>
-  concept TraitFeaturePointer = std::is_member_function_pointer_v<T>
-    && (std::is_trivially_constructible_v<typename boost::callable_traits::return_type<T>::type>
-    || std::is_same_v<typename boost::callable_traits::return_type<T>::type, void>);
-
-  /**
-   * Checks if passed type is a pointer to member function that satisfies the provided signature.
-   * @tparam T Any type.
-   */
-  template<typename T>
-  concept ReadFeaturePointer = TraitFeaturePointer<T>
-     && std::is_same_v<T, bool(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer const&
-                                                                                   , Common::ChunkHeader const&)>;
-
-  /**
-    * Checks if passed type is a pointer to member function that satisfies the provided signature.
-    * @tparam T Any type.
-    */
-  template<typename T>
-  concept ExtendedReadFeaturePointer = TraitFeaturePointer<T>
-    && std::is_same_v<T, bool(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer const&
-                                                                                 , Common::ChunkHeader const&
-                                                                                 , std::uint32_t& chunk_counter)>;
-  /**
-    * Checks if passed type is a pointer to member function that satisfies the provided signature.
-    * @tparam T Any type.
-    */
-  template<typename T>
-  concept WriteFeaturePointer = TraitFeaturePointer<T>
-    && std::is_same_v<T, void(Utils::Meta::Traits::ClassOfMemberFunction_T<T>::*)(Common::ByteBuffer&) const>;
-
-  /**
-   * Adapter class accepting all traits of class, and providing convenience polling methods.
+   * Adapter class accepting all traits of class, and providing a common interface to invoke them.
    * It is recommended to use traits through this adapter class, but not required.
    * @tparam Traits
    */
   template<IOTraitOrEmpty ... Traits>
   struct IOTraits : public Traits ...
   {
-    template<auto feature, typename... Args>
-    requires (HasTraitEnabled
-              <
-                std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
-              >)
-    auto InvokeExistingTraitFeature(Args&&... args)
-    {
-      return (this->*feature)(std::forward<Args>(args)...);
-    }
-
-    template<auto feature, typename... Args>
-    requires (!HasTraitEnabled
-              <
-                std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
-              >)
-    auto InvokeExistingTraitFeature([[maybe_unused]] Args&&...)
-    {
-      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<decltype(feature)>::type>)
-      {
-        return typename boost::callable_traits::return_type<decltype(feature)>::type{};
-      }
-    }
-
-    template<auto feature, typename... Args>
-    requires (HasTraitEnabled
-              <
-                std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
-              >)
-    auto InvokeExistingTraitFeature(Args&&... args) const
-    {
-      return (this->*feature)(std::forward<Args>(args)...);
-    }
-
-    template<auto feature, typename... Args>
-    requires (!HasTraitEnabled
-              <
-                std::remove_pointer_t<IOTraits>
-                , typename Utils::Meta::Traits::ClassOfMemberFunction<decltype(feature)>::type
-              >)
-    auto InvokeExistingTraitFeature([[maybe_unused]] Args&&...) const
-    {
-      if constexpr(std::is_default_constructible_v<typename boost::callable_traits::return_type<decltype(feature)>::type>)
-      {
-        return typename boost::callable_traits::return_type<decltype(feature)>::type{};
-      }
-    }
-
-    template<auto... features>
-    requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
-    && ( (ReadFeaturePointer<decltype(features)> || ExtendedReadFeaturePointer<decltype(features)>) && ... ) )
-    bool InvokeExistingCommonReadFeaturesOf(Common::ByteBuffer const& buf
-                                          , Common::ChunkHeader const& chunk_header
-                                          , std::uint32_t& chunk_counter)
-    {
-      return HandleReadCases(FeatureList<features...>(), buf, chunk_header, chunk_counter);
-    };
-
-    template<auto... features>
-    requires ( (IOTraitNamedReq<Utils::Meta::Traits::ClassOfMemberFunction_T<decltype(features)>> && ...)
-               && ( WriteFeaturePointer<decltype(features)> && ... ) )
-    void InvokeExistingCommonWriteFeaturesOf(Common::ByteBuffer& buf) const
-    {
-      (InvokeExistingTraitFeature<features>(buf), ...);
-    }
-
-    bool InvokeExistingCommonReadFeatures(Common::ByteBuffer const& buf
-                                            , Common::ChunkHeader const& chunk_header
-                                            , std::uint32_t& chunk_counter)
-    {
-      return HandleReadCases(FeatureList<&Traits::Read...>(), buf, chunk_header, chunk_counter);
-    };
-
-    void InvokeExistingCommonWriteFeatures(Common::ByteBuffer& buf) const
-    {
-      (InvokeExistingTraitFeature<&Traits::Write>(buf), ...);
-    }
-
+    template<typename CRTP>
+    friend class AutoIOTraitInterface;
 
   private:
-    template<auto...>
-    struct FeatureList
+    template<typename... Ts>
+    struct TypePack {};
+
+  protected:
+    bool TraitsRead(Common::ByteBuffer const& buf
+                                            , Common::ChunkHeader const& chunk_header)
     {
+      return RecurseRead(buf, chunk_header, TypePack<Traits...>());
     };
 
-    bool HandleReadCases(FeatureList<>
-                     , [[maybe_unused]] Common::ByteBuffer const& buf
-                     , [[maybe_unused]] Common::ChunkHeader const& chunk_header
-                     , [[maybe_unused]] std::uint32_t& chunk_counter)
-    { return false; }
-
-    template<auto current_feature, auto... features>
-    bool HandleReadCases(FeatureList<current_feature, features...>
-                      , Common::ByteBuffer const& buf
-                      , Common::ChunkHeader const& chunk_header
-                      , std::uint32_t& chunk_counter)
+    void TraitsWrite(Common::ByteBuffer& buf) const
     {
-      // handle (buf, chunk_header, chunk_counter) overload variant
-      if constexpr (ExtendedReadFeaturePointer<decltype(current_feature)>)
-      {
-        if (InvokeExistingTraitFeature<current_feature>(buf, chunk_header, chunk_counter))
-          return true;
+      RecurseWrite(buf, TypePack<Traits...>());
+    }
 
-      }
-      // handle (buf, chunk_header) overload
-      else if constexpr (ReadFeaturePointer<decltype(current_feature)>)
+  private:
+    template<typename T, typename... Ts>
+    void RecurseWrite(Common::ByteBuffer& buf, TypePack<T, Ts...>) const
+    {
+      if constexpr (!std::is_empty_v<T>
+        && HasTraitEnabled<IOTraits, T>
+        && requires { { static_cast<void(T::*)(Common::ByteBuffer&)>(&T::Write) }; }
+        )
       {
-        if (InvokeExistingTraitFeature<current_feature>(buf, chunk_header))
-          return true;
-      }
-      else
-      {
-        static_assert(sizeof(current_feature) != 0 && "Not implemented. Concepts are wrong."
-                                                      " Should not have even gotten here.");
+        T::Write(buf);
       }
 
-      return HandleReadCases(FeatureList<features...>(), buf, chunk_header, chunk_counter);
+      if constexpr (sizeof...(Ts))
+      {
+        RecurseWrite(buf, TypePack<Ts...>());
+      }
+    }
+
+    template<typename T, typename...Ts>
+    [[nodiscard]]
+    bool RecurseRead(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header, TypePack<T, Ts...>)
+    {
+      if constexpr (!std::is_empty_v<T>
+        && HasTraitEnabled<IOTraits, T>
+        && requires {
+                      { static_cast<bool(T::*)(Common::ByteBuffer const&, Common::ChunkHeader const&) const>(&T::Read) };
+                    }
+        )
+      {
+        if (T::Read(buf))
+          return true;
+      }
+
+      if constexpr (sizeof...(Ts))
+      {
+        if (RecurseRead(buf, chunk_header, TypePack<Ts...>()))
+          return true;
+      }
+
+      return false;
     }
   };
 
-  template<typename CRTP>
+  enum class TraitType
+  {
+    Component,
+    File
+  };
+
+  template<typename CRTP, TraitType trait_type = TraitType::Component>
   class AutoIOTraitInterface
   {
   private:
@@ -362,158 +276,232 @@ namespace IO::Common::Traits
 
   public:
 
-    template<auto ...chunks>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-    [[nodiscard]]
-    bool ReadChunks(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
-    {
-      return decltype(CRTP::auto_trait)::template ReadChunksOf<chunks...>(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
-    };
-
     [[nodiscard]]
     bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    requires (trait_type == TraitType::Component)
     {
-      return decltype(CRTP::auto_trait)::template ReadChunk(GetThis(), chunk_header.fourcc, buf, chunk_header.size);
+      return decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), buf, chunk_header);
     };
 
-    template<auto ...chunks>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
-              && ...)
-    void WriteChunks(Common::ByteBuffer& buf) const
+    void Read(Common::ByteBuffer const& buf)
+    requires (trait_type == TraitType::File)
     {
-      decltype(CRTP::auto_trait)::template WriteChunksOf<chunks...>(GetThis(), buf);
-    };
+      LogDebugF(CCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
+
+      RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
+      RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
+
+      while (!buf.IsEof())
+      {
+        auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
+
+        // Use auto-trait if present in type
+        if constexpr (requires { { &CRTP::_auto_trait }; })
+        {
+          if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), buf, chunk_header))
+            continue;
+        }
+
+        // invoke optional method to handle unlisted chunks that cannot be processed automatically
+        if constexpr (requires (CRTP crtp){ { crtp.ReadExtra(buf, chunk_header) } -> std::same_as<bool>; })
+        {
+          if (GetThis()->ReadExtra(buf, chunk_header))
+            continue;
+        }
+
+        buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
+        LogError("Encountered unknown chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+      }
+
+      LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
+      EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
+                                                "Bad logic or corrupt file.");
+    }
 
     void Write(Common::ByteBuffer& buf) const
     {
-      decltype(CRTP::auto_trait)::template WriteChunks(GetThis(), buf);
+      // Use auto-trait if present in type
+      if constexpr (requires { { &CRTP::_auto_trait }; })
+      {
+        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
+      }
+
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtra(buf) } -> std::same_as<void>; })
+      {
+        GetThis()->WriteExtra(buf);
+      }
     };
 
-    template<auto ...chunks, typename Func>
-    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
-                && ...) && (std::invocable<std::add_lvalue_reference_t<
-      Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
-    auto ForAllChunks(Func&& func)
-    {
-      return decltype(CRTP::auto_trait)::template ForAllChunks<chunks...>(GetThis());
-    };
-
-    template<typename Func>
-    auto ForAllChunks(Func&& func)
-    {
-      return decltype(CRTP::auto_trait)::template ForAllChunks(GetThis());
-    };
-
-    template<auto ...chunks, typename Func>
-    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-              && (std::invocable<std::add_const<std::add_lvalue_reference_t<
-      Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>>> && ...))
-    void ForAllChunks(Func&& func) const
-    {
-      decltype(CRTP::auto_trait)::template ForAllChunks(GetThis(), func);
-    };
-
-    template<typename Func>
-    void ForAllChunks(Func&& func) const
-    {
-      decltype(CRTP::auto_trait)::template ForAllChunks(GetThis(), func);
-    };
   };
 
-  template<auto... all_chunks>
-  requires ((std::is_member_object_pointer_v<decltype(all_chunks)> && ...)
-            && (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(all_chunks)>>
-            && ...))
+  /**
+   * Checks if provided type is a member pointer to a chunk object.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  concept IsChunkMemberPointer = std::is_member_object_pointer_v<T>
+    && Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<T>>;
+
+  enum class IOHandlerType
+  {
+    Read,
+    Write,
+    Null
+  };
+
+  namespace details
+  {
+    struct Any {};
+  }
+
+  template<typename T>
+  concept IsIOHandlerCallbackRead = std::is_invocable_v<T, details::Any*
+    , DataChunk<std::uint32_t, FourCC<"TEST">>&, ByteBuffer const&, std::size_t>;
+
+  template<typename T>
+  concept IsIOHandlerCallbackWrite = std::is_invocable_v<T, details::Any const*
+    , DataChunk<std::uint32_t, FourCC<"TEST">> const&, ByteBuffer&>;
+
+  template<typename T>
+  concept IsIOHandlerCallbackReadOptional = IsIOHandlerCallbackRead<T> || std::is_same_v<T, std::nullptr_t>;
+
+  template<typename T>
+  concept IsIOHandlerCallbackWriteOptional = IsIOHandlerCallbackWrite<T> || std::is_same_v<T, std::nullptr_t>;
+
+  template<auto pre = nullptr, auto post = nullptr>
+  requires
+  (
+    (IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>)
+    || (IsIOHandlerCallbackWriteOptional<decltype(pre)> && IsIOHandlerCallbackWriteOptional<decltype(post)>)
+  )
+  struct IOHandler
+  {
+
+  private:
+    static constexpr IOHandlerType DetermineHandlerType()
+    {
+      if constexpr (std::is_same_v<decltype(pre), decltype(post)> && std::is_same_v<decltype(pre), std::nullptr_t>)
+        return IOHandlerType::Null;
+
+      if constexpr (IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>)
+        return IOHandlerType::Read;
+
+      return IOHandlerType::Write;
+    }
+
+  public:
+    static constexpr IOHandlerType handler_type = DetermineHandlerType();
+    static constexpr bool has_pre = std::is_same_v<decltype(pre), std::nullptr_t>;
+    static constexpr bool has_post = std::is_same_v<decltype(post), std::nullptr_t>;
+    static constexpr auto callback_pre = pre;
+    static constexpr auto callback_post = post;
+  };
+
+  /**
+   * Checks whether a given type is IOHandler.
+   * @tparam T Any type.
+   */
+  template<typename T, IOHandlerType type>
+  concept IsIOHandler = requires
+    {
+      { &T::handler_type };
+      { &T::has_pre };
+      { &T::has_post };
+      { &T::callback_pre };
+      { &T::callback_post };
+    } && (T::handler_type == type || T::handler_type == IOHandlerType::Null);
+
+  template
+  <
+    auto chunk
+    , IsIOHandler<IOHandlerType::Read> ReadHandler = IOHandler<nullptr, nullptr>
+    , IsIOHandler<IOHandlerType::Write> WriteHandler = IOHandler<nullptr, nullptr>
+  >
+  requires
+  (
+      IsChunkMemberPointer<decltype(chunk)>
+  )
+  struct TraitEntry
+  {
+    static constexpr std::uint32_t magic = Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunk)>::magic;
+    static constexpr bool _is_trait_entry = true;
+
+    template<typename Self>
+    static void Read(Self* self, ByteBuffer const& buf, std::size_t size)
+    {
+      if constexpr (ReadHandler::has_pre)
+        ReadHandler::callback_pre(self, self->*chunk, buf, size);
+
+      (self->*chunk).Read(buf, size);
+
+      if constexpr (ReadHandler::has_post)
+        ReadHandler::callback_post(self, self->*chunk, buf, size);
+    }
+
+    template<typename Self>
+    static void Write(Self* self, ByteBuffer& buf)
+    {
+      if constexpr (WriteHandler::has_pre)
+        WriteHandler::callback_pre(self, self->*chunk, buf);
+
+      (self->*chunk).Write(buf);
+
+      if constexpr (WriteHandler::has_post)
+        WriteHandler::callback_post(self, self->*chunk, buf);
+    }
+  };
+
+  template<typename T>
+  concept IsTraitEntry = requires { { T::_is_trait_entry } -> std::same_as<bool>;  };
+
+  template<typename... TraitEntries>
+  requires (IsTraitEntry<TraitEntries> && ...)
+
   class AutoIOTrait
   {
     template<typename>
     friend class AutoIOTraitInterface;
     
   private:
-    template<auto...>
-    struct ChunkList
-    {
-    };
+    template<typename...>
+    struct Pack {};
 
-    template<typename Self, typename Func>
-    static bool HandleCases(Self, std::uint32_t, ChunkList<>, Func&&)
-    { return false; };
-
-    template<typename Self, typename Func, auto current_chunk, auto... chunks>
-    static bool HandleCases(Self self, std::uint32_t i, ChunkList<current_chunk, chunks...>, Func&& func)
+    template<typename Self, typename CurEntry, typename... Entries>
+    static bool ReadChunkRecurse(Self* self
+                                 , Common::ByteBuffer const& buf
+                                 , ChunkHeader const& chunk_header
+                                 , Pack<CurEntry, Entries...>)
     {
-      if (Utils::Meta::Traits::TypeOfMemberObject_T<decltype(current_chunk)>::magic != i)
+      if (CurEntry::magic == chunk_header.fourcc)
       {
-        return HandleCases(self, i, ChunkList<chunks...>(), func);
+        CurEntry::Read(self, buf, chunk_header.size);
+        return true;
       }
 
-      func(self->*current_chunk);
+      if constexpr (sizeof...(Entries))
+      {
+        if (ReadChunkRecurse(self, buf, chunk_header, Pack<Entries...>{}))
+          return true;
+      }
 
-      return true;
-    };
-
-    template<auto... chunks, typename Self, typename Func>
-    static bool HandleCases(Self self, std::uint32_t i, Func&& func)
-    {
-      return HandleCases(self, i, ChunkList<chunks...>(), func);
-    };
+      return false;
+    }
 
   protected:
-    template<auto... chunks, typename Self>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>> && ...)
-    static bool ReadChunkOf(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
+
+    template<typename Self>
+    static bool ReadChunk(Self* self, Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
-      return HandleCases<chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+      ReadChunkRecurse(self, buf, chunk_header, Pack<TraitEntries...>{});
     };
 
     template<typename Self>
-    static bool ReadChunk(Self self, std::uint32_t fourcc, Common::ByteBuffer const& buf, std::size_t size)
+    static void WriteChunks(Self* self, Common::ByteBuffer& buf)
     {
-      bool result = HandleCases<all_chunks...>(self, fourcc, [&buf, size](auto& chunk) { chunk.Read(buf, size); });
+      (TraitEntries::Write(self, buf), ...);
+    }
 
-      if (result)
-        return result;
-
-      constexpr bool has_traits = requires { { self->InvokeExistingCommonReadFeatures };};
-    };
-
-    template<auto... chunks, typename Self>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
-      && ...)
-    static void WriteChunksOf(Self self, Common::ByteBuffer& buf)
-    {
-      auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
-      (write_lambda(self->*chunks), ...);
-    };
-
-    template<typename Self>
-    static void WriteChunks(Self self, Common::ByteBuffer& buf)
-    {
-      auto write_lambda = [&buf](auto const& chunk) { chunk.Write(buf);};
-      (write_lambda(self->*all_chunks), ...);
-
-      constexpr bool has_traits = requires { { self->InvokeExistingCommonWriteFeatures(buf) }; };
-
-      if constexpr (has_traits)
-      {
-        self->InvokeExistingCommonWriteFeatures(buf);
-      }
-    };
-
-    template<auto... chunks, typename Self, typename Func>
-    requires ((Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>
-      && ...) && (std::invocable<std::add_lvalue_reference_t<
-        Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunks)>>> && ...))
-    static void ForAllChunksOf(Self self, Func&& func)
-    {
-      (func(self->*chunks), ...);
-    };
-
-    template<typename Self, typename Func>
-    static void ForAllChunks(Self self, Func&& func)
-    {
-      (func(self->*all_chunks), ...);
-    };
   };
 }
 

@@ -1,6 +1,7 @@
 #ifndef UTILS_META_TEMPLATES_HPP
 #define UTILS_META_TEMPLATES_HPP
 #include <array>
+#include <vector>
 #include <type_traits>
 #include <algorithm>
 #include <limits>

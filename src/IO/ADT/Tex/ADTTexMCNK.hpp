@@ -38,7 +38,7 @@ namespace IO::ADT
         <
           DataStructures::SMLayer
           , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-          , Common::FourCCEndian::LITTLE
+          , Common::FourCCEndian::Little
           , 0
           , 4
         > _alpha_layers;

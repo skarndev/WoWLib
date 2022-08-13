@@ -20,7 +20,7 @@ void MCAL::Read(ByteBuffer const& buf
                   <
                     DataStructures::SMLayer
                     , ADTTexMCNKSubchunks::MCLY
-                    , FourCCEndian::LITTLE
+                    , FourCCEndian::Little
                     , 0
                     , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                   > const& alpha_layer_params
@@ -145,7 +145,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
                     <
                         DataStructures::SMLayer
                         , ADTTexMCNKSubchunks::MCLY
-                        , FourCCEndian::LITTLE
+                        , FourCCEndian::Little
                         , 0
                         , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
                     > const& alpha_layer_params) const

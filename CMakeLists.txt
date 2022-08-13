@@ -170,6 +170,7 @@ set(EpsilonAddon_INCLUDE_DIRS
         "${EXTERNAL_SOURCE_DIR}/backward-cpp"
         "${EXTERNAL_SOURCE_DIR}/bitpacker/include" "src"
         "${EXTERNAL_SOURCE_DIR}/ordered-map/include"
+        "${EXTERNAL_SOURCE_DIR}/nameof/include"
         "${Boost_INCLUDE_DIRS}")
 target_include_directories(EpsilonAddon PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 

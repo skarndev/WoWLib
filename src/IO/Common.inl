@@ -206,26 +206,12 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize()
-  {
-    RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
-    _is_initialized = true;
-  }
-
-  template
-  <
-    StringBlockChunkType type
-    , std::uint32_t fourcc
-    , FourCCEndian fourcc_endian
-    , std::size_t size_min
-    , std::size_t size_max
-  >
   void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
   requires (type == StringBlockChunkType::NORMAL)
   {
-    RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+    RequireF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
     _data = strings;
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template
@@ -239,7 +225,7 @@ namespace IO::Common
   void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Initialize(std::vector<std::string> const& strings)
   requires (type == StringBlockChunkType::OFFSET)
   {
-    RequireF(LCodeZones::FILE_IO, !_is_initialized, "Attempted to initialize an already initialized chunk.");
+    RequireF(LCodeZones::FILE_IO, !this->_is_initialized, "Attempted to initialize an already initialized chunk.");
     _data.resize(strings.size());
 
     std::uint32_t cur_ofs = 0;
@@ -249,7 +235,7 @@ namespace IO::Common
       cur_ofs += (string.size() + 1);
     }
 
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template
@@ -282,7 +268,7 @@ namespace IO::Common
                 , "Expected to read satisfying size constraint (min: %d, max: %d), got size %d instead."
                 , size_min, size_max, _data.size());
 
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template
@@ -319,7 +305,7 @@ namespace IO::Common
 
     // make sure data is in ascending order
     std::sort(_data.begin(), _data.end(), [](auto const& a, auto const& b) -> bool { return a.first < b.first; });
-    _is_initialized = true;
+    this->_is_initialized = true;
   }
 
   template
@@ -332,7 +318,7 @@ namespace IO::Common
   >
   void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
   {
-    if (!_is_initialized) [[unlikely]]
+    if (!this->_is_initialized) [[unlikely]]
       return;
 
     LogDebugF(LCodeZones::FILE_IO, "Writing string chunk: %s, length: %d."

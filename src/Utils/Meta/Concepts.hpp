@@ -17,7 +17,7 @@ namespace Utils::Meta::Concepts
    */
   template<typename T>
   concept ImplicitLifetimeType = details::ImplicitLifetimeTypeSingular<T>
-    || std::is_array_v<T> && details::ImplicitLifetimeTypeSingular<std::remove_all_extents_t<T>>;
+    || (std::is_array_v<T> && details::ImplicitLifetimeTypeSingular<std::remove_all_extents_t<T>>);
 
   /**
    * Checks if type T satisfies the criteria of POD (plain old data).
