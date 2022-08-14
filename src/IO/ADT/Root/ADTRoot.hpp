@@ -58,13 +58,16 @@ namespace IO::ADT
     MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
 
+  private:
+    std::size_t _header_pos = 0;
+
     static constexpr
     Common::Traits::AutoIOTrait
     <
       Common::Traits::TraitEntry
       <
         &ADTRoot::_version
-        , Common::Traits::IOHandler
+        , Common::Traits::IOHandlerRead
           <
             nullptr
             , [](ADTRoot* self, auto& version, Common::ByteBuffer const& buf, std::size_t size)
@@ -73,11 +76,22 @@ namespace IO::ADT
             }
           >
       >
-     , Common::Traits::TraitEntry<&ADTRoot::_header>
+     , Common::Traits::TraitEntry
+       <
+         &ADTRoot::_header
+         , Common::Traits::IOHandlerRead<>
+         , Common::Traits::IOHandlerWrite
+         <
+           [](ADTRoot* self, auto& version, Common::ByteBuffer& buf)
+           {
+
+           }
+         >
+       >
      , Common::Traits::TraitEntry
        <
         &ADTRoot::_chunks
-        , Common::Traits::IOHandler
+        , Common::Traits::IOHandlerRead
           <
             nullptr
             , [](ADTRoot* self, auto& chunks, Common::ByteBuffer const& buf, std::size_t size)

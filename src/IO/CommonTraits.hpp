@@ -346,8 +346,7 @@ namespace IO::Common::Traits
   enum class IOHandlerType
   {
     Read,
-    Write,
-    Null
+    Write
   };
 
   namespace details
@@ -372,26 +371,25 @@ namespace IO::Common::Traits
   template<auto pre = nullptr, auto post = nullptr>
   requires
   (
-    (IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>)
-    || (IsIOHandlerCallbackWriteOptional<decltype(pre)> && IsIOHandlerCallbackWriteOptional<decltype(post)>)
+    IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>
   )
-  struct IOHandler
+  struct IOHandlerRead
   {
+    static constexpr IOHandlerType handler_type = IOHandlerType::Read;
+    static constexpr bool has_pre = std::is_same_v<decltype(pre), std::nullptr_t>;
+    static constexpr bool has_post = std::is_same_v<decltype(post), std::nullptr_t>;
+    static constexpr auto callback_pre = pre;
+    static constexpr auto callback_post = post;
+  };
 
-  private:
-    static constexpr IOHandlerType DetermineHandlerType()
-    {
-      if constexpr (std::is_same_v<decltype(pre), decltype(post)> && std::is_same_v<decltype(pre), std::nullptr_t>)
-        return IOHandlerType::Null;
-
-      if constexpr (IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>)
-        return IOHandlerType::Read;
-
-      return IOHandlerType::Write;
-    }
-
-  public:
-    static constexpr IOHandlerType handler_type = DetermineHandlerType();
+  template<auto pre = nullptr, auto post = nullptr>
+  requires
+  (
+    IsIOHandlerCallbackWriteOptional<decltype(pre)> && IsIOHandlerCallbackWriteOptional<decltype(post)>
+  )
+  struct IOHandlerWrite
+  {
+    static constexpr IOHandlerType handler_type = IOHandlerType::Write;
     static constexpr bool has_pre = std::is_same_v<decltype(pre), std::nullptr_t>;
     static constexpr bool has_post = std::is_same_v<decltype(post), std::nullptr_t>;
     static constexpr auto callback_pre = pre;
@@ -410,13 +408,13 @@ namespace IO::Common::Traits
       { &T::has_post };
       { &T::callback_pre };
       { &T::callback_post };
-    } && (T::handler_type == type || T::handler_type == IOHandlerType::Null);
+    } && (T::handler_type == type);
 
   template
   <
     auto chunk
-    , IsIOHandler<IOHandlerType::Read> ReadHandler = IOHandler<nullptr, nullptr>
-    , IsIOHandler<IOHandlerType::Write> WriteHandler = IOHandler<nullptr, nullptr>
+    , IsIOHandler<IOHandlerType::Read> ReadHandler = IOHandlerRead<nullptr, nullptr>
+    , IsIOHandler<IOHandlerType::Write> WriteHandler = IOHandlerWrite<nullptr, nullptr>
   >
   requires
   (
