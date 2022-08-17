@@ -27,17 +27,39 @@ namespace IO::ADT
     void Write(Common::ByteBuffer& buf) const;
   };
 
+  namespace details
+  {
+    struct ADTRootWriteContext
+    {
+      std::size_t header_pos = 0;
+      std::size_t liquid_pos = 0;
+      std::size_t mfbo_pos = 0;
+    };
+
+  }
+
   template<Common::ClientVersion client_version>
-  class ADTRoot : public Common::Traits::IOTraits
+  class ADTRoot : public Common::Traits::AutoIOTraits
                          <
-                            Common::Traits::VersionTrait
-                            <
-                              BlendMeshes
-                              , client_version
-                              , Common::ClientVersion::MOP
-                            >
+                           Common::Traits::IOTraits
+                           <
+                             Common::Traits::VersionTrait
+                             <
+                               BlendMeshes
+                               , client_version
+                               , Common::ClientVersion::MOP
+                             >
+                           >
+                           , Common::Traits::DefaultTraitContext
+                           , details::ADTRootWriteContext
                          >
-                , public Common::Traits::AutoIOTraitInterface<ADTRoot<client_version>, Common::Traits::TraitType::File>
+                , public Common::Traits::AutoIOTraitInterface
+                         <
+                           ADTRoot<client_version>
+                           , Common::Traits::DefaultTraitContext
+                           , details::ADTRootWriteContext
+                           , Common::Traits::TraitType::File
+                         >
   {
 
   public:
@@ -59,52 +81,69 @@ namespace IO::ADT
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
 
   private:
-    std::size_t _header_pos = 0;
 
     static constexpr
     Common::Traits::AutoIOTrait
     <
-      Common::Traits::TraitEntry
+      Common::Traits::TraitEntries
       <
-        &ADTRoot::_version
-        , Common::Traits::IOHandlerRead
-          <
-            nullptr
-            , [](ADTRoot* self, auto& version, Common::ByteBuffer const& buf, std::size_t size)
-            {
-              InvariantF(CCodeZones::FILE_IO, static_cast<std::uint32_t>(version) == 18, "Version must be 18");
-            }
-          >
-      >
-     , Common::Traits::TraitEntry
-       <
-         &ADTRoot::_header
-         , Common::Traits::IOHandlerRead<>
-         , Common::Traits::IOHandlerWrite
+        Common::Traits::TraitEntry
+        <
+          &ADTRoot::_version
+          , Common::Traits::IOHandlerRead
+            <
+              nullptr
+              , [](ADTRoot* self, auto& ctx, auto& version, Common::ByteBuffer const& buf, std::size_t size)
+              {
+                InvariantF(CCodeZones::FILE_IO, static_cast<std::uint32_t>(version) == 18, "Version must be 18");
+              }
+            >
+        >
+       , Common::Traits::TraitEntry
          <
-           [](ADTRoot* self, auto& version, Common::ByteBuffer& buf)
-           {
-
-           }
+           &ADTRoot::_header
+           , Common::Traits::IOHandlerRead<>
+           , Common::Traits::IOHandlerWrite
+           <
+             [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& version, Common::ByteBuffer& buf)
+             {
+                ctx.header_pos = buf.Tell();
+             }
+           >
          >
-       >
-     , Common::Traits::TraitEntry
-       <
-        &ADTRoot::_chunks
-        , Common::Traits::IOHandlerRead
-          <
-            nullptr
-            , [](ADTRoot* self, auto& chunks, Common::ByteBuffer const& buf, std::size_t size)
-            {
-              InvariantF(CCodeZones::FILE_IO
-                         , chunks[0].IsInitialized() && chunks[255].IsInitialized()
-                         , "Expected to read exactly 256 chunks.");
-            }
-          >
-       >
-     , Common::Traits::TraitEntry<&ADTRoot::_liquids>
-     , Common::Traits::TraitEntry<&ADTRoot::_flight_bounds>
-    > _auto_trait {};
+       , Common::Traits::TraitEntry
+         <
+          &ADTRoot::_chunks
+          , Common::Traits::IOHandlerRead
+            <
+              nullptr
+              , [](ADTRoot* self, auto& chunks, Common::ByteBuffer const& buf, std::size_t size)
+              {
+                InvariantF(CCodeZones::FILE_IO
+                           , std::all_of(chunks.begin(), chunks.end(), [](auto& chunk) { return chunk.IsInitialized(); })
+                           , "Expected to read exactly 256 chunks.");
+
+              }
+            >
+         >
+       , Common::Traits::TraitEntry
+         <
+           &ADTRoot::_liquids
+           , Common::Traits::IOHandlerRead<>
+           , Common::Traits::IOHandlerWrite
+             <
+               [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& liquids, Common::ByteBuffer& buf)
+
+               {
+                 ctx.liquid_pos = buf.Tell();
+               }
+             >
+         >
+       , Common::Traits::TraitEntry<&ADTRoot::_flight_bounds>
+      >
+      , Common::Traits::DefaultTraitContext
+      , details::ADTRootWriteContext
+   > _auto_trait {};
 
   };
 

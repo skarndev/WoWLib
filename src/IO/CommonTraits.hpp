@@ -192,150 +192,6 @@ namespace IO::Common::Traits
   concept IOTraitOrEmpty = std::is_empty_v<T> || IOTraitNamedReq<T>;
 
   /**
-   * Adapter class accepting all traits of class, and providing a common interface to invoke them.
-   * It is recommended to use traits through this adapter class, but not required.
-   * @tparam Traits
-   */
-  template<IOTraitOrEmpty ... Traits>
-  struct IOTraits : public Traits ...
-  {
-    template<typename CRTP>
-    friend class AutoIOTraitInterface;
-
-  private:
-    template<typename... Ts>
-    struct TypePack {};
-
-  protected:
-    bool TraitsRead(Common::ByteBuffer const& buf
-                                            , Common::ChunkHeader const& chunk_header)
-    {
-      return RecurseRead(buf, chunk_header, TypePack<Traits...>());
-    };
-
-    void TraitsWrite(Common::ByteBuffer& buf) const
-    {
-      RecurseWrite(buf, TypePack<Traits...>());
-    }
-
-  private:
-    template<typename T, typename... Ts>
-    void RecurseWrite(Common::ByteBuffer& buf, TypePack<T, Ts...>) const
-    {
-      if constexpr (!std::is_empty_v<T>
-        && HasTraitEnabled<IOTraits, T>
-        && requires { { static_cast<void(T::*)(Common::ByteBuffer&)>(&T::Write) }; }
-        )
-      {
-        T::Write(buf);
-      }
-
-      if constexpr (sizeof...(Ts))
-      {
-        RecurseWrite(buf, TypePack<Ts...>());
-      }
-    }
-
-    template<typename T, typename...Ts>
-    [[nodiscard]]
-    bool RecurseRead(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header, TypePack<T, Ts...>)
-    {
-      if constexpr (!std::is_empty_v<T>
-        && HasTraitEnabled<IOTraits, T>
-        && requires {
-                      { static_cast<bool(T::*)(Common::ByteBuffer const&, Common::ChunkHeader const&) const>(&T::Read) };
-                    }
-        )
-      {
-        if (T::Read(buf))
-          return true;
-      }
-
-      if constexpr (sizeof...(Ts))
-      {
-        if (RecurseRead(buf, chunk_header, TypePack<Ts...>()))
-          return true;
-      }
-
-      return false;
-    }
-  };
-
-  enum class TraitType
-  {
-    Component,
-    File
-  };
-
-  template<typename CRTP, TraitType trait_type = TraitType::Component>
-  class AutoIOTraitInterface
-  {
-  private:
-    CRTP* GetThis() { return static_cast<CRTP*>(this); };
-    CRTP const* GetThis() const { return static_cast<CRTP const*>(this); };
-
-  public:
-
-    [[nodiscard]]
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
-    requires (trait_type == TraitType::Component)
-    {
-      return decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), buf, chunk_header);
-    };
-
-    void Read(Common::ByteBuffer const& buf)
-    requires (trait_type == TraitType::File)
-    {
-      LogDebugF(CCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
-
-      RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
-      RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-
-      while (!buf.IsEof())
-      {
-        auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
-
-        // Use auto-trait if present in type
-        if constexpr (requires { { &CRTP::_auto_trait }; })
-        {
-          if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), buf, chunk_header))
-            continue;
-        }
-
-        // invoke optional method to handle unlisted chunks that cannot be processed automatically
-        if constexpr (requires (CRTP crtp){ { crtp.ReadExtra(buf, chunk_header) } -> std::same_as<bool>; })
-        {
-          if (GetThis()->ReadExtra(buf, chunk_header))
-            continue;
-        }
-
-        buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("Encountered unknown chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
-      }
-
-      LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
-      EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
-                                                "Bad logic or corrupt file.");
-    }
-
-    void Write(Common::ByteBuffer& buf) const
-    {
-      // Use auto-trait if present in type
-      if constexpr (requires { { &CRTP::_auto_trait }; })
-      {
-        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
-      }
-
-      // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.WriteExtra(buf) } -> std::same_as<void>; })
-      {
-        GetThis()->WriteExtra(buf);
-      }
-    };
-
-  };
-
-  /**
    * Checks if provided type is a member pointer to a chunk object.
    * @tparam T Any type.
    */
@@ -343,35 +199,83 @@ namespace IO::Common::Traits
   concept IsChunkMemberPointer = std::is_member_object_pointer_v<T>
     && Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<T>>;
 
+
+  /**
+   * An empty type representing default featureless read/write trait context.
+   */
+  struct DefaultTraitContext {};
+
+  /**
+   * Determines the type of IO::Common::Traits::IOHandler.
+   */
   enum class IOHandlerType
   {
-    Read,
-    Write
+    Read, ///> Read handler.
+    Write ///> Write handler.
   };
 
   namespace details
   {
+    /**
+     * An empty struct to validate generic arguments. If it passes through, it is likely anything else will pass
+     * through.
+     */
     struct Any {};
   }
 
-  template<typename T>
-  concept IsIOHandlerCallbackRead = std::is_invocable_v<T, details::Any*
-    , DataChunk<std::uint32_t, FourCC<"TEST">>&, ByteBuffer const&, std::size_t>;
+  /**
+   * Checks whether provided type is an IO::Common::Traits::IOHandler read callback object.
+   * @tparam T Any type.
+   * @tparam pre True if callback is intended to be used for pre-read stage.
+   */
+  template<typename T, bool pre>
+  concept IsIOHandlerCallbackRead = (pre ? std::is_invocable_r_v<bool, T, details::Any*, details::Any&
+      , details::Any&, ByteBuffer const&, ChunkHeader const&>
+    : std::is_invocable_v<T, details::Any*, details::Any&
+      , details::Any&, ByteBuffer const&, ChunkHeader const&>);
 
-  template<typename T>
-  concept IsIOHandlerCallbackWrite = std::is_invocable_v<T, details::Any const*
-    , DataChunk<std::uint32_t, FourCC<"TEST">> const&, ByteBuffer&>;
+  /**
+   * Checks whether provided type is an IO::Common::Traits::IOHandler write callback object.
+   * @tparam T Any type.
+   * @tparam pre True if callback is intended to be used for pre-write stage.
+   */
+  template<typename T, bool pre>
+  concept IsIOHandlerCallbackWrite = (pre ? std::is_invocable_r_v<bool, T, details::Any const*, details::Any&
+      , details::Any&, ByteBuffer&>
+    : std::is_invocable_v<T, details::Any const*, details::Any&
+      , details::Any&, ByteBuffer&>);
 
-  template<typename T>
-  concept IsIOHandlerCallbackReadOptional = IsIOHandlerCallbackRead<T> || std::is_same_v<T, std::nullptr_t>;
+  /**
+   * Checks whether provided type is an IO::Common::Traits::IOHandler read callback object or std::nullptr_t.
+   * @tparam T Any type.
+   * @tparam pre True if callback is intended to be used for pre-read stage.
+   */
+  template<typename T, bool pre>
+  concept IsIOHandlerCallbackReadOptional = IsIOHandlerCallbackRead<T, pre> || std::is_same_v<T, std::nullptr_t>;
 
-  template<typename T>
-  concept IsIOHandlerCallbackWriteOptional = IsIOHandlerCallbackWrite<T> || std::is_same_v<T, std::nullptr_t>;
+  /**
+   * Checks whether provided type is an IO::Common::Traits::IOHandler write callback object or std::nulptr_t.
+   * @tparam T Any type.
+   * @tparam pre True if callback is intended to be used for pre-write stage.
+   */
+  template<typename T, bool pre>
+  concept IsIOHandlerCallbackWriteOptional = IsIOHandlerCallbackWrite<T, pre> || std::is_same_v<T, std::nullptr_t>;
 
+  /**
+   * Defines a set of pre and post optional read callbacks to be used with Common::Traits::IOTraits
+   * or Common::Traits::AutoIOTrait entries.
+   * @tparam pre Pre-read callback (off, if nullptr). If result is false, chunk or trait won't be read.
+   * Must match signature:
+   * bool(auto* self, auto& ctx, auto& chunk_or_trait, IO::Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
+   * @tparam post Post-read callback (off, if nullptr). Invoked only when pre condition returned true,
+   * and chunk or trait was read.
+   * Must match signature:
+   * void(auto* self, auto& ctx, auto& chunk_or_trait, IO::Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
+   */
   template<auto pre = nullptr, auto post = nullptr>
   requires
   (
-    IsIOHandlerCallbackReadOptional<decltype(pre)> && IsIOHandlerCallbackReadOptional<decltype(post)>
+    IsIOHandlerCallbackReadOptional<decltype(pre), true> && IsIOHandlerCallbackReadOptional<decltype(post), false>
   )
   struct IOHandlerRead
   {
@@ -382,10 +286,21 @@ namespace IO::Common::Traits
     static constexpr auto callback_post = post;
   };
 
+  /**
+   * Defines a set of pre and post optional write callbacks to be used with Common::Traits::IOTraits
+   * or Common::Traits::AutoIOTrait entries.
+   * @tparam pre Pre-read callback (off, if nullptr). If result is false, chunk or trait won't be written.
+   * Must match signature:
+   * bool(auto* self, auto& ctx, auto& chunk_or_trait, IO::Common::ByteBuffer& buf)
+   * @tparam post Post-read callback (off, if nullptr). Invoked only when pre condition returned true
+   * (and chunk/trait was read).
+   * Must match signature:
+   * void(auto* self, auto& ctx, auto& chunk_or_trait, IO::Common::ByteBuffer& buf)
+   */
   template<auto pre = nullptr, auto post = nullptr>
   requires
   (
-    IsIOHandlerCallbackWriteOptional<decltype(pre)> && IsIOHandlerCallbackWriteOptional<decltype(post)>
+    IsIOHandlerCallbackWriteOptional<decltype(pre), true> && IsIOHandlerCallbackWriteOptional<decltype(post), false>
   )
   struct IOHandlerWrite
   {
@@ -410,6 +325,12 @@ namespace IO::Common::Traits
       { &T::callback_post };
     } && (T::handler_type == type);
 
+  /**
+   * Defines an entry to be passed into IO::Common::Traits::TraitEntries.
+   * @tparam chunk Pointer to member object satisfying common requirements of a chunk.
+   * @tparam ReadHandler IO::Common::Traits::IOHandlerRead or alike (read handler).
+   * @tparam WriteHandler IO::Common::Traits::IOHanderWrite or alike (write handler).
+   */
   template
   <
     auto chunk
@@ -425,61 +346,399 @@ namespace IO::Common::Traits
     static constexpr std::uint32_t magic = Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunk)>::magic;
     static constexpr bool _is_trait_entry = true;
 
-    template<typename Self>
-    static void Read(Self* self, ByteBuffer const& buf, std::size_t size)
+    template<typename Self, typename ReadContext>
+    static bool Read(Self* self, ReadContext& read_ctx, ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
       if constexpr (ReadHandler::has_pre)
-        ReadHandler::callback_pre(self, self->*chunk, buf, size);
+      {
+        if (!ReadHandler::callback_pre(self, read_ctx, self->*chunk, buf, chunk_header))
+          return false;
+      }
 
-      (self->*chunk).Read(buf, size);
+      if (!(self->*chunk).Read(buf, chunk_header))
+        return false;
 
       if constexpr (ReadHandler::has_post)
-        ReadHandler::callback_post(self, self->*chunk, buf, size);
+        ReadHandler::callback_post(self, read_ctx, self->*chunk, buf, chunk_header);
+
+      return true;
     }
 
-    template<typename Self>
-    static void Write(Self* self, ByteBuffer& buf)
+    template<typename Self, typename WriteContext>
+    static void Write(Self* self, WriteContext& write_ctx, ByteBuffer& buf)
     {
       if constexpr (WriteHandler::has_pre)
-        WriteHandler::callback_pre(self, self->*chunk, buf);
+      {
+        if (!WriteHandler::callback_pre(self, write_ctx, self->*chunk, buf))
+          return;
+      }
 
       (self->*chunk).Write(buf);
 
       if constexpr (WriteHandler::has_post)
-        WriteHandler::callback_post(self, self->*chunk, buf);
+        WriteHandler::callback_post(self, write_ctx, self->*chunk, buf);
+    }
+  };
+
+  /**
+   * Checks if provided type is an instance of template IO::Common::Traits::TraitEntry.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  concept IsTraitEntry = requires { { T::_is_trait_entry } -> std::same_as<bool>;  };
+
+  /**
+   * Pack like aggregate of IO::Common::Traits::TraitEntry. To be used with IO::Common::Traits::AutoIOTrait.
+   * @tparam Entries Instances of template IO::Common::Traits::TraitEntry.
+   */
+  template<typename... Entries>
+  requires (IsTraitEntry<Entries> && ...)
+  struct TraitEntries {};
+
+  /**
+   * Defines an entry to be passed into IO::Common::Traits::IOTraits.
+   * @tparam Trait Any type satisfying the named requirements of an IOTrait.
+   * @tparam ReadHandler IO::Common::Traits::IOHandlerRead or alike (read handler).
+   * @tparam WriteHandler  IO::Common::Traits::IOHandlerWrite or alike (write handler).
+   */
+  template
+  <
+    IOTraitOrEmpty Trait
+    , IsIOHandler<IOHandlerType::Read> ReadHandler = IOHandlerRead<nullptr, nullptr>
+    , IsIOHandler<IOHandlerType::Write> WriteHandler = IOHandlerWrite<nullptr, nullptr>
+  >
+  struct IOTrait
+  {
+    using TraitT = Trait;
+    static constexpr bool _is_io_trait = true;
+
+    template<typename Self, typename ReadContext>
+    static void Read(Self* self, ReadContext& read_ctx, ByteBuffer const& buf, ChunkHeader const& chunk_header)
+    {
+      if constexpr (ReadHandler::has_pre)
+      {
+        if (!ReadHandler::callback_pre(self, read_ctx, *static_cast<Trait*>(self), buf, chunk_header))
+          return;
+      }
+
+      static_cast<Trait*>(self)->Read(read_ctx, buf, chunk_header);
+
+      if constexpr (ReadHandler::has_post)
+        ReadHandler::callback_post(self, read_ctx, *static_cast<Trait*>(self), buf, chunk_header);
+    }
+
+    template<typename Self, typename WriteContext>
+    static void Write(Self* self, WriteContext& write_ctx, ByteBuffer& buf)
+    {
+      if constexpr (WriteHandler::has_pre)
+      {
+        if (!WriteHandler::callback_pre(self, write_ctx, *static_cast<Trait*>(self), buf))
+          return;
+      }
+
+      static_cast<Trait*>(self)->Write(buf);
+
+      if constexpr (WriteHandler::has_post)
+        WriteHandler::callback_post(self, write_ctx, *static_cast<Trait*>(self), buf);
     }
   };
 
   template<typename T>
-  concept IsTraitEntry = requires { { T::_is_trait_entry } -> std::same_as<bool>;  };
+  concept IsIOTrait = requires { { T::_is_io_trait } -> std::same_as<bool>;  };
 
-  template<typename... TraitEntries>
-  requires (IsTraitEntry<TraitEntries> && ...)
+  template<typename... Traits>
+  requires (IsIOTrait<Traits> && ...)
+  struct IOTraits {};
 
-  class AutoIOTrait
+
+  /**
+   * Adapter class accepting all traits of class, and providing a common interface to invoke them.
+   * It is recommended to use traits through this adapter class, but not required.
+   * @tparam Traits
+   */
+  template
+  <
+    typename Traits
+    , std::default_initializable ReadContext = DefaultTraitContext
+    , std::default_initializable WriteContext = DefaultTraitContext
+  >
+  struct AutoIOTraits;
+
+  template
+  <
+    typename... Traits
+    , std::default_initializable ReadContext
+    , std::default_initializable WriteContext
+  >
+  struct AutoIOTraits<ReadContext, WriteContext, IOTraits<Traits...>> : public Traits::TraitT ...
+  {
+    template<typename CRTP>
+    friend class AutoIOTraitInterface;
+
+  private:
+    template<typename... Ts>
+    struct TypePack {};
+
+  protected:
+    bool TraitsRead(ReadContext& ctx, Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    {
+      return RecurseRead(ctx, buf, chunk_header, TypePack<Traits...>());
+    };
+
+    void TraitsWrite(WriteContext& ctx, Common::ByteBuffer& buf) const
+    {
+      RecurseWrite(ctx, buf, TypePack<Traits...>());
+    }
+
+  private:
+    template<typename T, typename... Ts>
+    void RecurseWrite(WriteContext& ctx, Common::ByteBuffer& buf, TypePack<T, Ts...>) const
+    {
+      // check if trait is enabled
+      if constexpr (!std::is_empty_v<typename T::TraitT> && HasTraitEnabled<AutoIOTraits, typename T::TraitT>)
+      {
+        T::Write(this, ctx, buf);
+      }
+
+      if constexpr (sizeof...(Ts))
+      {
+        RecurseWrite(ctx, buf, TypePack<Ts...>());
+      }
+    }
+
+    template<typename T, typename...Ts>
+    [[nodiscard]]
+    bool RecurseRead(ReadContext& ctx
+                     , Common::ByteBuffer const& buf
+                     , Common::ChunkHeader const& chunk_header
+                     , TypePack<T, Ts...>)
+    {
+      // check if trait is enabled
+      if constexpr (!std::is_empty_v<typename T::TraitT>
+        && HasTraitEnabled<AutoIOTraits, typename T::TraitT>)
+      {
+        if (T::Read(this, ctx, buf))
+          return true;
+      }
+
+      if constexpr (sizeof...(Ts))
+      {
+        if (RecurseRead(ctx, buf, chunk_header, TypePack<Ts...>()))
+          return true;
+      }
+
+      return false;
+    }
+  };
+
+  enum class TraitType
+  {
+    Component,
+    File
+  };
+
+  template
+  <
+    typename CRTP
+    , std::default_initializable ReadContext = DefaultTraitContext
+    , std::default_initializable WriteContext = DefaultTraitContext
+    , TraitType trait_type = TraitType::Component
+  >
+  class AutoIOTraitInterface
+  {
+  private:
+    CRTP* GetThis() { return static_cast<CRTP*>(this); };
+    CRTP const* GetThis() const { return static_cast<CRTP const*>(this); };
+
+  public:
+
+    [[nodiscard]]
+    bool Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    requires (trait_type == TraitType::Component)
+    {
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPre(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+      {
+        if (GetThis()->ReadExtraPre(read_ctx, buf, chunk_header))
+          return true;
+      }
+
+      if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), read_ctx, buf, chunk_header))
+        return true;
+
+      // check if derived class also inherits from traits
+      if constexpr (requires { { &CRTP::TraitsRead }; })
+      {
+        // validate signature
+        static_assert(requires { { static_cast<bool(CRTP::*)(ReadContext&, Common::ByteBuffer const&
+          , Common::ChunkHeader const&)>(&CRTP::TraitsRead) }; }
+          && "Invalid TraitsRead. Possibly context type mismatch.");
+
+        return GetThis()->TraitsRead(read_ctx, buf, chunk_header);
+      }
+
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPost(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+      {
+        if (GetThis()->ReadExtraPost(read_ctx, buf, chunk_header))
+          return false;
+      }
+
+      return false;
+    };
+
+    void Read(Common::ByteBuffer const& buf)
+    requires (trait_type == TraitType::File)
+    {
+      LogDebugF(CCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
+
+      RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
+      RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
+
+      constexpr bool has_auto_trait = requires { { &CRTP::_auto_trait }; };
+
+      if constexpr (has_auto_trait)
+      {
+        static_assert(std::is_same_v<typename CRTP::_auto_trait::ReadContextT, ReadContext>
+                      && "Context type mistmatch.");
+        static_assert(std::is_same_v<typename CRTP::_auto_trait::WriteContextT, WriteContext>
+                      && "Context type mistmatch.");
+      }
+
+      ReadContext read_ctx {};
+
+      while (!buf.IsEof())
+      {
+        auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
+
+        // invoke optional method to handle unlisted chunks that cannot be processed automatically
+        if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPre(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+        {
+          if (GetThis()->ReadExtraPre(read_ctx, buf, chunk_header))
+            continue;
+        }
+
+        // Use auto-trait if present in type
+        if constexpr (has_auto_trait)
+        {
+          if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), read_ctx, buf, chunk_header))
+            continue;
+        }
+
+        // check if derived class also inherits from traits
+        if constexpr (requires { { &CRTP::TraitsRead }; })
+        {
+          // validate signature
+          static_assert(requires { { static_cast<bool(CRTP::*)(ReadContext&, Common::ByteBuffer const&
+            , Common::ChunkHeader const&)>(&CRTP::TraitsRead) }; }
+            && "Invalid TraitsRead. Possibly context type mismatch.");
+
+          if(GetThis()->TraitsRead(read_ctx, buf, chunk_header))
+            continue;
+        }
+
+        // invoke optional method to handle unlisted chunks that cannot be processed automatically
+        if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPost(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+        {
+          if (GetThis()->ReadExtraPost(read_ctx, buf, chunk_header))
+            continue;
+        }
+
+        buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
+        LogError("Encountered unknown chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+      }
+
+      LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
+      EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
+                                                "Bad logic or corrupt file.");
+    }
+
+    void Write(Common::ByteBuffer& buf) const
+    requires (trait_type == TraitType::File)
+    {
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPre(buf) } -> std::same_as<void>; })
+      {
+        GetThis()->WriteExtraPre(buf);
+      }
+
+      // Use auto-trait if present in type
+      if constexpr (requires { { &CRTP::_auto_trait }; })
+      {
+        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
+      }
+
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPost(buf) } -> std::same_as<void>; })
+      {
+        GetThis()->WriteExtraPost(buf);
+      }
+    };
+
+    void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
+    requires (trait_type == TraitType::Component)
+    {
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPre(buf) } -> std::same_as<void>; })
+      {
+        GetThis()->WriteExtraPre(buf);
+      }
+
+      // Use auto-trait if present in type
+      if constexpr (requires { { &CRTP::_auto_trait }; })
+      {
+        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
+      }
+
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPost(buf) } -> std::same_as<void>; })
+      {
+        GetThis()->WriteExtraPost(buf);
+      }
+    };
+
+
+  };
+
+
+  template
+  <
+    typename EntryPack,
+    std::default_initializable ReadContext = DefaultTraitContext
+    , std::default_initializable WriteContext = DefaultTraitContext
+  >
+  class AutoIOTrait;
+
+  template<typename... Entries, std::default_initializable ReadContext, std::default_initializable WriteContext>
+  class AutoIOTrait<TraitEntries<Entries...>, ReadContext, WriteContext>
   {
     template<typename>
     friend class AutoIOTraitInterface;
+
+  public:
+    using ReadContextT = ReadContext;
+    using WriteContextT = WriteContext;
     
   private:
     template<typename...>
     struct Pack {};
 
-    template<typename Self, typename CurEntry, typename... Entries>
+    template<typename Self, typename CurEntry, typename... TEntries>
     static bool ReadChunkRecurse(Self* self
+                                 , ReadContext& read_ctx
                                  , Common::ByteBuffer const& buf
                                  , ChunkHeader const& chunk_header
-                                 , Pack<CurEntry, Entries...>)
+                                 , Pack<CurEntry, TEntries...>)
     {
       if (CurEntry::magic == chunk_header.fourcc)
       {
-        CurEntry::Read(self, buf, chunk_header.size);
+        CurEntry::Read(self, read_ctx, buf, chunk_header);
         return true;
       }
 
-      if constexpr (sizeof...(Entries))
+      if constexpr (sizeof...(TEntries))
       {
-        if (ReadChunkRecurse(self, buf, chunk_header, Pack<Entries...>{}))
+        if (ReadChunkRecurse(self, read_ctx, buf, chunk_header, Pack<TEntries...>{}))
           return true;
       }
 
@@ -489,15 +748,15 @@ namespace IO::Common::Traits
   protected:
 
     template<typename Self>
-    static bool ReadChunk(Self* self, Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
+    static bool ReadChunk(Self* self, ReadContext& read_ctx, Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
-      ReadChunkRecurse(self, buf, chunk_header, Pack<TraitEntries...>{});
+      ReadChunkRecurse(self, read_ctx, buf, chunk_header, Pack<Entries...>{});
     };
 
     template<typename Self>
-    static void WriteChunks(Self* self, Common::ByteBuffer& buf)
+    static void WriteChunks(Self* self, WriteContext& write_ctx, Common::ByteBuffer& buf)
     {
-      (TraitEntries::Write(self, buf), ...);
+      (Entries::Write(self, write_ctx, buf), ...);
     }
 
   };
