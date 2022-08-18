@@ -36,7 +36,10 @@ namespace IO::Common
   }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
-  inline void DataChunk<T, fourcc, fourcc_endian>::Read(ByteBuffer const& buf, std::size_t size)
+  template<typename ReadContext>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Read([[maybe_unused]] ReadContext& ctx
+                                                        , ByteBuffer const& buf
+                                                        , std::size_t size)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d."
               , FourCCStr<fourcc, fourcc_endian>
@@ -50,7 +53,8 @@ namespace IO::Common
   }
 
   template<Utils::Meta::Concepts::PODType T, std::uint32_t fourcc, FourCCEndian fourcc_endian>
-  inline void DataChunk<T, fourcc, fourcc_endian>::Write(ByteBuffer& buf) const
+  template<typename WriteContext>
+  inline void DataChunk<T, fourcc, fourcc_endian>::Write([[maybe_unused]] WriteContext& ctx, ByteBuffer& buf) const
   {
     if (!this->_is_initialized) [[unlikely]]
       return;
@@ -126,8 +130,10 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf
-                                                                                   , std::size_t size)
+  template<typename ReadContext>
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Read([[maybe_unused]] ReadContext& ctx
+                                                                                 , ByteBuffer const& buf
+                                                                                 , std::size_t size)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, size: %d."
               , FourCCStr<fourcc, fourcc_endian>
@@ -168,7 +174,9 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
+  template<typename WriteContext>
+  inline void DataArrayChunk<T, fourcc, fourcc_endian, size_min, size_max>::Write([[maybe_unused]] WriteContext& ctx
+                                                                                  , ByteBuffer& buf) const
   {
     if (!this->_is_initialized) [[unlikely]]
       return;
@@ -246,7 +254,10 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
+  template<typename ReadContext>
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read([[maybe_unused]] ReadContext& ctx
+                                                                               , ByteBuffer const& buf
+                                                                               , std::size_t size)
   requires (type == StringBlockChunkType::NORMAL)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading string chunk: %s, size: %d."
@@ -279,7 +290,10 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read(ByteBuffer const& buf, std::size_t size)
+  template<typename ReadContext>
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Read([[maybe_unused]] ReadContext& ctx
+                                                                               , ByteBuffer const& buf
+                                                                               , std::size_t size)
   requires (type == StringBlockChunkType::OFFSET)
   {
     LogDebugF(LCodeZones::FILE_IO, "Reading string chunk: %s, size: %d."
@@ -316,7 +330,9 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Write(ByteBuffer& buf) const
+  template<typename WriteContext>
+  void StringBlockChunk<type, fourcc, fourcc_endian, size_min, size_max>::Write([[maybe_unused]] WriteContext& ctx
+                                                                                , ByteBuffer& buf) const
   {
     if (!this->_is_initialized) [[unlikely]]
       return;
@@ -642,7 +658,10 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void SparseChunkArray<Chunk, size_min, size_max>::Read(ByteBuffer const& buf, std::uint32_t size)
+  template<typename ReadContext>
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Read([[maybe_unused]] ReadContext& ctx
+                                                                , ByteBuffer const& buf
+                                                                , std::uint32_t size)
   {
     if (!this->_is_initialized)
     {
@@ -680,7 +699,9 @@ namespace IO::Common
     , std::size_t size_min
     , std::size_t size_max
   >
-  inline void SparseChunkArray<Chunk, size_min, size_max>::Write(ByteBuffer& buf) const
+  template<typename WriteContext>
+  inline void SparseChunkArray<Chunk, size_min, size_max>::Write([[maybe_unused]] WriteContext& ctx
+                                                                 , ByteBuffer& buf) const
   {
     if (!this->_is_initialized) [[unlikely]]
       return;

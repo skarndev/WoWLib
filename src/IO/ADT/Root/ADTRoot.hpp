@@ -8,14 +8,23 @@
 
 #include <array>
 #include <cstdint>
+#include <concepts>
 
 namespace IO::ADT
 {
   /**
    * Implements a VersionTrait enabling terrain blend batches support for ADTRoot.
    * Blend batches are responsible for seamlessly blending WMOs with terrain.
+   * @tparam ReadContext Any default constructible used as read context.
+   * @tparam WriteContext Any default constructible used as write context.
    */
-  class BlendMeshes
+  template<std::default_initializable ReadContext, std::default_initializable WriteContext>
+  class BlendMeshes : public Common::Traits::AutoIOTraitInterface
+                             <
+                               BlendMeshes<ReadContext, WriteContext>
+                               , ReadContext
+                               , WriteContext
+                             >
   {
   protected:
     Common::DataArrayChunk<DataStructures::MBMH, ChunkIdentifiers::ADTRootChunks::MBMH> _blend_mesh_headers;
@@ -23,8 +32,21 @@ namespace IO::ADT
     Common::DataArrayChunk<DataStructures::MBNV, ChunkIdentifiers::ADTRootChunks::MBNV> _blend_mesh_vertices;
     Common::DataArrayChunk<std::uint16_t, ChunkIdentifiers::ADTRootChunks::MBMI> _blend_mesh_indices;
 
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
-    void Write(Common::ByteBuffer& buf) const;
+  private:
+
+    static constexpr
+    Common::Traits::AutoIOTrait
+    <
+      Common::Traits::TraitEntries
+      <
+        Common::Traits::TraitEntry<&BlendMeshes::_blend_mesh_headers>
+        , Common::Traits::TraitEntry<&BlendMeshes::_blend_mesh_bounding_boxes>
+        , Common::Traits::TraitEntry<&BlendMeshes::_blend_mesh_vertices>
+        , Common::Traits::TraitEntry<&BlendMeshes::_blend_mesh_indices>
+      >
+      , ReadContext
+      , WriteContext
+    > _auto_trait{};
   };
 
   namespace details
@@ -34,6 +56,7 @@ namespace IO::ADT
       std::size_t header_pos = 0;
       std::size_t liquid_pos = 0;
       std::size_t mfbo_pos = 0;
+      std::uint32_t header_flags = 0;
     };
 
   }
@@ -45,7 +68,7 @@ namespace IO::ADT
                            <
                              Common::Traits::VersionTrait
                              <
-                               BlendMeshes
+                               BlendMeshes<Common::Traits::DefaultTraitContext, details::ADTRootWriteContext>
                                , client_version
                                , Common::ClientVersion::MOP
                              >
@@ -68,8 +91,9 @@ namespace IO::ADT
 
     [[nodiscard]]
     std::uint32_t FileDataID() const { return _file_data_id; };
-    
-    void Write(Common::ByteBuffer& buf) const;
+
+  private:
+    void WriteExtraPost(details::ADTRootWriteContext& ctx, Common::ByteBuffer& buf) const;
 
   private:
     std::uint32_t _file_data_id;
@@ -81,7 +105,6 @@ namespace IO::ADT
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
 
   private:
-
     static constexpr
     Common::Traits::AutoIOTrait
     <
@@ -133,13 +156,24 @@ namespace IO::ADT
            , Common::Traits::IOHandlerWrite
              <
                [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& liquids, Common::ByteBuffer& buf)
-
                {
-                 ctx.liquid_pos = buf.Tell();
+                 ctx.liquid_pos = static_cast<std::uint32_t>(buf.Tell() - (ctx.header_pos + 8));
                }
              >
          >
-       , Common::Traits::TraitEntry<&ADTRoot::_flight_bounds>
+       , Common::Traits::TraitEntry
+         <
+           &ADTRoot::_flight_bounds
+           , Common::Traits::IOHandlerRead<>
+           , Common::Traits::IOHandlerWrite
+           <
+             [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& liquids, Common::ByteBuffer& buf)
+             {
+               ctx.mfbo_pos = static_cast<std::uint32_t>(buf.Tell() - (ctx.header_pos + 8));
+               ctx.header_flags += DataStructures::MHDRFlags::mhdr_MFBO;
+             }
+           >
+         >
       >
       , Common::Traits::DefaultTraitContext
       , details::ADTRootWriteContext

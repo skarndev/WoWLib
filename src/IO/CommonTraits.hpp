@@ -214,6 +214,15 @@ namespace IO::Common::Traits
     Write ///> Write handler.
   };
 
+  /**
+   * Determines type of IO::Common::Traits::AutoIOTraitInterface.
+   */
+  enum class TraitType
+  {
+    Component, ///> Trait is a component used to nesting into files or other component traits.
+    File ///> Trait is a file, which is a final component that should not be inherited from within traits system.
+  };
+
   namespace details
   {
     /**
@@ -355,7 +364,7 @@ namespace IO::Common::Traits
           return false;
       }
 
-      if (!(self->*chunk).Read(buf, chunk_header))
+      if (!(self->*chunk).Read(read_ctx, buf, chunk_header))
         return false;
 
       if constexpr (ReadHandler::has_post)
@@ -373,7 +382,7 @@ namespace IO::Common::Traits
           return;
       }
 
-      (self->*chunk).Write(buf);
+      (self->*chunk).Write(write_ctx, buf);
 
       if constexpr (WriteHandler::has_post)
         WriteHandler::callback_post(self, write_ctx, self->*chunk, buf);
@@ -385,7 +394,7 @@ namespace IO::Common::Traits
    * @tparam T Any type.
    */
   template<typename T>
-  concept IsTraitEntry = requires { { T::_is_trait_entry } -> std::same_as<bool>;  };
+  concept IsTraitEntry = requires { { T::_is_trait_entry } -> std::same_as<const bool&>;  };
 
   /**
    * Pack like aggregate of IO::Common::Traits::TraitEntry. To be used with IO::Common::Traits::AutoIOTrait.
@@ -444,7 +453,7 @@ namespace IO::Common::Traits
   };
 
   template<typename T>
-  concept IsIOTrait = requires { { T::_is_io_trait } -> std::same_as<bool>;  };
+  concept IsIOTrait = requires { { T::_is_io_trait } -> std::same_as<const bool&>;  };
 
   template<typename... Traits>
   requires (IsIOTrait<Traits> && ...)
@@ -472,7 +481,13 @@ namespace IO::Common::Traits
   >
   struct AutoIOTraits<ReadContext, WriteContext, IOTraits<Traits...>> : public Traits::TraitT ...
   {
-    template<typename CRTP>
+    template
+    <
+      typename CRTP
+      , std::default_initializable
+      , std::default_initializable
+      , TraitType
+    >
     friend class AutoIOTraitInterface;
 
   private:
@@ -531,12 +546,16 @@ namespace IO::Common::Traits
     }
   };
 
-  enum class TraitType
-  {
-    Component,
-    File
-  };
-
+  /**
+   * Provides automatic Read/Write interfaces for classes using the traits system.
+   * If the derived class also inherits from AutoIOTraits, traits defined there will be processed automatically.
+   * If _auto_trait field is present in the derived class and is an instance of IO::Common::Traits::AutoIOTrait,
+   * chunks defined there will be processed automatically.
+   * @tparam CRTP Derived class ineheriting this class.
+   * @tparam ReadContext Any default-constructible type that will be used as a shared read context.
+   * @tparam WriteContext Any default-constructible type that will be used as a shared write context.
+   * @tparam trait_type Type of trait. See IO::Common::Traits::TraitType.
+   */
   template
   <
     typename CRTP
@@ -556,54 +575,20 @@ namespace IO::Common::Traits
     bool Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
     requires (trait_type == TraitType::Component)
     {
-      // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPre(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
-      {
-        if (GetThis()->ReadExtraPre(read_ctx, buf, chunk_header))
-          return true;
-      }
+      ValidateDependentInterfaces();
 
-      if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), read_ctx, buf, chunk_header))
-        return true;
-
-      // check if derived class also inherits from traits
-      if constexpr (requires { { &CRTP::TraitsRead }; })
-      {
-        // validate signature
-        static_assert(requires { { static_cast<bool(CRTP::*)(ReadContext&, Common::ByteBuffer const&
-          , Common::ChunkHeader const&)>(&CRTP::TraitsRead) }; }
-          && "Invalid TraitsRead. Possibly context type mismatch.");
-
-        return GetThis()->TraitsRead(read_ctx, buf, chunk_header);
-      }
-
-      // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPost(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
-      {
-        if (GetThis()->ReadExtraPost(read_ctx, buf, chunk_header))
-          return false;
-      }
-
-      return false;
+      return ReadCommon(read_ctx, buf, chunk_header);
     };
 
     void Read(Common::ByteBuffer const& buf)
     requires (trait_type == TraitType::File)
     {
-      LogDebugF(CCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
+      ValidateDependentInterfaces();
+      LogDebugF(LCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
+      LogIndentScoped;
 
       RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
       RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-
-      constexpr bool has_auto_trait = requires { { &CRTP::_auto_trait }; };
-
-      if constexpr (has_auto_trait)
-      {
-        static_assert(std::is_same_v<typename CRTP::_auto_trait::ReadContextT, ReadContext>
-                      && "Context type mistmatch.");
-        static_assert(std::is_same_v<typename CRTP::_auto_trait::WriteContextT, WriteContext>
-                      && "Context type mistmatch.");
-      }
 
       ReadContext read_ctx {};
 
@@ -611,38 +596,8 @@ namespace IO::Common::Traits
       {
         auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
 
-        // invoke optional method to handle unlisted chunks that cannot be processed automatically
-        if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPre(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
-        {
-          if (GetThis()->ReadExtraPre(read_ctx, buf, chunk_header))
-            continue;
-        }
-
-        // Use auto-trait if present in type
-        if constexpr (has_auto_trait)
-        {
-          if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), read_ctx, buf, chunk_header))
-            continue;
-        }
-
-        // check if derived class also inherits from traits
-        if constexpr (requires { { &CRTP::TraitsRead }; })
-        {
-          // validate signature
-          static_assert(requires { { static_cast<bool(CRTP::*)(ReadContext&, Common::ByteBuffer const&
-            , Common::ChunkHeader const&)>(&CRTP::TraitsRead) }; }
-            && "Invalid TraitsRead. Possibly context type mismatch.");
-
-          if(GetThis()->TraitsRead(read_ctx, buf, chunk_header))
-            continue;
-        }
-
-        // invoke optional method to handle unlisted chunks that cannot be processed automatically
-        if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPost(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
-        {
-          if (GetThis()->ReadExtraPost(read_ctx, buf, chunk_header))
-            continue;
-        }
+        if (ReadCommon(read_ctx, buf, chunk_header))
+          continue;
 
         buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
         LogError("Encountered unknown chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
@@ -656,51 +611,122 @@ namespace IO::Common::Traits
     void Write(Common::ByteBuffer& buf) const
     requires (trait_type == TraitType::File)
     {
-      // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPre(buf) } -> std::same_as<void>; })
-      {
-        GetThis()->WriteExtraPre(buf);
-      }
+      ValidateDependentInterfaces();
+      RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer");
+      LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_TYPE(CRTP));
+      LogIndentScoped;
 
-      // Use auto-trait if present in type
-      if constexpr (requires { { &CRTP::_auto_trait }; })
-      {
-        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
-      }
+      WriteContext write_ctx{};
 
-      // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPost(buf) } -> std::same_as<void>; })
-      {
-        GetThis()->WriteExtraPost(buf);
-      }
+      WriteCommon(write_ctx, buf);
     };
 
     void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
     requires (trait_type == TraitType::Component)
     {
+      ValidateDependentInterfaces();
+      WriteCommon(write_ctx, buf);
+    };
+
+  private:
+    void WriteCommon(WriteContext& write_ctx, Common::ByteBuffer& buf) const
+    {
       // invoke optional method to handle unlisted chunks that cannot be processed automatically
-      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPre(buf) } -> std::same_as<void>; })
+      if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPre(write_ctx, buf) } -> std::same_as<void>; })
       {
-        GetThis()->WriteExtraPre(buf);
+        GetThis()->WriteExtraPre(write_ctx, buf);
       }
 
       // Use auto-trait if present in type
       if constexpr (requires { { &CRTP::_auto_trait }; })
       {
-        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), buf);
+        decltype(CRTP::_auto_trait)::template WriteChunks(GetThis(), write_ctx, buf);
+      }
+
+      // check if derived class also inherits from traits
+      if constexpr (requires { { &CRTP::TraitsWrite }; })
+      {
+        GetThis()->TraitsWrite(write_ctx, buf);
       }
 
       // invoke optional method to handle unlisted chunks that cannot be processed automatically
       if constexpr (requires (CRTP crtp){ { crtp.WriteExtraPost(buf) } -> std::same_as<void>; })
       {
-        GetThis()->WriteExtraPost(buf);
+        GetThis()->WriteExtraPost(write_ctx, buf);
       }
-    };
+    }
 
+    bool ReadCommon(ReadContext& read_ctx, Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
+    {
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPre(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+      {
+        if (GetThis()->ReadExtraPre(read_ctx, buf, chunk_header))
+          return true;
+      }
 
+      // Use auto-trait if present in type
+      if constexpr (requires { { &CRTP::_auto_trait }; })
+      {
+        if (decltype(CRTP::_auto_trait)::template ReadChunk(GetThis(), read_ctx, buf, chunk_header))
+          return true;
+      }
+
+      // check if derived class also inherits from traits
+      if constexpr (requires { { &CRTP::TraitsRead }; })
+      {
+        if(GetThis()->TraitsRead(read_ctx, buf, chunk_header))
+          return true;
+      }
+
+      // invoke optional method to handle unlisted chunks that cannot be processed automatically
+      if constexpr (requires (CRTP crtp){ { crtp.ReadExtraPost(read_ctx, buf, chunk_header) } -> std::same_as<bool>; })
+      {
+        if (GetThis()->ReadExtraPost(read_ctx, buf, chunk_header))
+          return true;
+      }
+
+      return false;
+    }
+
+    constexpr void ValidateDependentInterfaces()
+    {
+      // AutoIOTrait
+      if constexpr (requires { { &CRTP::_auto_trait }; })
+      {
+        static_assert(std::is_same_v<typename CRTP::_auto_trait::ReadContextT, ReadContext>
+                      && "Context type mistmatch.");
+        static_assert(std::is_same_v<typename CRTP::_auto_trait::WriteContextT, WriteContext>
+                      && "Context type mistmatch.");
+      }
+
+      // AutoIOTraits::TraitsRead
+      if constexpr (requires { { &CRTP::TraitsRead }; })
+      {
+        // validate signature
+        static_assert(requires { { static_cast<bool(CRTP::*)(ReadContext&, Common::ByteBuffer const&
+                                                             , Common::ChunkHeader const&)>(&CRTP::TraitsRead) }; }
+                      && "Invalid TraitsRead signature. Possibly context type mismatch.");
+      }
+
+      // AutoIOTraits::TraitsWrite
+      if constexpr (requires { { &CRTP::TraitsRead }; })
+      {
+        // validate signature
+        static_assert(requires { { static_cast<void(CRTP::*)(WriteContext&, Common::ByteBuffer&)>(&CRTP::TraitsWrite) }; }
+                      && "Invalid TraitsWrite. Possibly context type mismatch.");
+
+      }
+    }
   };
 
-
+  /**
+   * A descriptor class that enables automatic handling of chunk members in a class, providing Read/Write functionality.
+   * Must be used a membmer variable named "_auto_trait". Accessed by IO::Common::Traits::AutoIOTraitInteface.
+   * @tparam EntryPack Instance of template IO::Common::Traits::TraitEntries.
+   * @tparam ReadContext Any default-constructible type that will be used as a shared read context.
+   * @tparam WriteContext Any default-constructible type that will be used as a shared write context.
+   */
   template
   <
     typename EntryPack,
@@ -712,7 +738,13 @@ namespace IO::Common::Traits
   template<typename... Entries, std::default_initializable ReadContext, std::default_initializable WriteContext>
   class AutoIOTrait<TraitEntries<Entries...>, ReadContext, WriteContext>
   {
-    template<typename>
+    template
+    <
+      typename CRTP
+      , std::default_initializable
+      , std::default_initializable
+      , TraitType
+    >
     friend class AutoIOTraitInterface;
 
   public:

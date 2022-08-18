@@ -190,14 +190,18 @@ namespace IO::Common
      * Read the data chunk from ByteBuffer.
      * @param buf ByteBuffer to read data from.
      * @param size Number of bytes to read from the buffer.
+     * @tparam ctx Read context.
      */
-    void Read(ByteBuffer const& buf, std::size_t size);
+    template<typename ReadContext>
+    void Read(ReadContext& ctx, ByteBuffer const& buf, std::size_t size);
 
     /**
      * Write the data chunk into a ByteBuffer.
      * @param buf Self-owned ByteBuffer instance to write data into.
+     * @tparam ctx Write context.
      */
-    void Write(ByteBuffer& buf) const;
+    template<typename WriteContext>
+    void Write(WriteContext& ctx, ByteBuffer& buf) const;
 
     /**
      * Size of the data chunk in bytes that it would take when written to file (without header).
@@ -279,14 +283,18 @@ namespace IO::Common
      * Read the array cunk from ByteBuffer (also initializes it).
      * @param buf ByteBuffer instance to read data from.
      * @param size Number of bytes to read from ByteBuffer.
+     * @tparam ctx Read context.
      */
-    void Read(ByteBuffer const& buf, std::size_t size);
+    template<typename ReadContext>
+    void Read(ReadContext& ctx, ByteBuffer const& buf, std::size_t size);
 
     /**
      * Write contents of the array chunk into ByteBuffer.
      * @param buf Self-owned ByteBuffer instance to write data into.
+     * @tparam ctx Write context.
      */
-    void Write(ByteBuffer& buf) const;
+    template<typename WriteContext>
+    void Write(WriteContext& ctx, ByteBuffer& buf) const;
 
    /**
     * Returns the number of bytes that this array chunk would take in a file. (without header).
@@ -325,8 +333,11 @@ namespace IO::Common
     void Initialize(ArrayImplT const& data_array);
     void Initialize(ValueType const& value, std::size_t n);
 
-    void Read(ByteBuffer const& buf, std::uint32_t size);
-    void Write(ByteBuffer& buf) const;
+    template<typename ReadContext>
+    void Read(ReadContext& ctx, ByteBuffer const& buf, std::uint32_t size);
+
+    template<typename WriteContext>
+    void Write(WriteContext& ctx, ByteBuffer& buf) const;
 
     [[nodiscard]]
     std::size_t ByteSize() const;
@@ -376,10 +387,14 @@ namespace IO::Common
     void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::NORMAL);
     void Initialize(std::vector<std::string> const& strings) requires (type == StringBlockChunkType::OFFSET);
 
-    void Read(ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::NORMAL);
-    void Read(ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::OFFSET);
+    template<typename ReadContext>
+    void Read(ReadContext& ctx, ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::NORMAL);
 
-    void Write(ByteBuffer& buf) const;
+    template<typename ReadContext>
+    void Read(ReadContext& ctx, ByteBuffer const& buf, std::size_t size) requires (type == StringBlockChunkType::OFFSET);
+
+    template<typename WriteContext>
+    void Write(WriteContext& ctx, ByteBuffer& buf) const;
 
 
     /**
