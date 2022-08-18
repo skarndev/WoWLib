@@ -584,14 +584,19 @@ namespace IO::Common::Traits
     void Read(Common::ByteBuffer const& buf)
     requires (trait_type == TraitType::File)
     {
+      ReadContext read_ctx {};
+      Read(read_ctx, buf);
+    }
+
+    void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf)
+    requires (trait_type == TraitType::File)
+    {
       ValidateDependentInterfaces();
       LogDebugF(LCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
       LogIndentScoped;
 
       RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
       RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-
-      ReadContext read_ctx {};
 
       while (!buf.IsEof())
       {
@@ -607,6 +612,7 @@ namespace IO::Common::Traits
       LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
       EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
                                                 "Bad logic or corrupt file.");
+
     }
 
     void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, std::size_t size)
@@ -638,16 +644,22 @@ namespace IO::Common::Traits
     void Write(Common::ByteBuffer& buf) const
     requires (trait_type == TraitType::File)
     {
+      WriteContext write_ctx {};
+
+      Write(write_ctx, buf);
+    };
+
+    void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
+    requires (trait_type == TraitType::File)
+    {
       ValidateDependentInterfaces();
       RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
 
       LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_TYPE(CRTP));
       LogIndentScoped;
 
-      WriteContext write_ctx{};
-
       WriteCommon(write_ctx, buf);
-    };
+    }
 
     void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
     requires (trait_type == TraitType::Component)

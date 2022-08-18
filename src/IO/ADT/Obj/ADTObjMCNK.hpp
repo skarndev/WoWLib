@@ -15,7 +15,6 @@ namespace IO::ADT
                            , Common::Traits::TraitType::Chunk
                          >
   {
-
   private:
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0MCNKSubchunks::MCRD> _model_references;
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0MCNKSubchunks::MCRW> _map_object_references;
