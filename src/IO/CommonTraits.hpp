@@ -220,7 +220,8 @@ namespace IO::Common::Traits
   enum class TraitType
   {
     Component, ///> Trait is a component used to nesting into files or other component traits.
-    File ///> Trait is a file, which is a final component that should not be inherited from within traits system.
+    File, ///> Trait is a file, which is a final component that should not be inherited from within traits system.
+    Chunk ///> Trait is a chunk.
   };
 
   namespace details
@@ -364,7 +365,7 @@ namespace IO::Common::Traits
           return false;
       }
 
-      if (!(self->*chunk).Read(read_ctx, buf, chunk_header))
+      if (!(self->*chunk).Read(read_ctx, buf, chunk_header.size))
         return false;
 
       if constexpr (ReadHandler::has_post)
@@ -445,7 +446,7 @@ namespace IO::Common::Traits
           return;
       }
 
-      static_cast<Trait*>(self)->Write(buf);
+      static_cast<Trait*>(self)->Write(write_ctx, buf);
 
       if constexpr (WriteHandler::has_post)
         WriteHandler::callback_post(self, write_ctx, *static_cast<Trait*>(self), buf);
@@ -600,7 +601,7 @@ namespace IO::Common::Traits
           continue;
 
         buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
-        LogError("Encountered unknown chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+        LogError("Encountered unknown or unhandled chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
       }
 
       LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
@@ -608,11 +609,38 @@ namespace IO::Common::Traits
                                                 "Bad logic or corrupt file.");
     }
 
+    void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, std::size_t size)
+    requires (trait_type == TraitType::Chunk)
+    {
+      ValidateDependentInterfaces();
+
+      LogDebugF(LCodeZones::FILE_IO, "Reading chunk: %s, size: %d."
+                , FourCCStr<CRTP::magic, CRTP::magic_endian>
+                , size);
+      LogIndentScoped;
+
+      std::size_t end_pos = buf.Tell() + size;
+
+      while(buf.Tell() != end_pos)
+      {
+        EnsureF(CCodeZones::FILE_IO, buf.Tell() < end_pos, "Disproportional read attempt. Read past expected end.");
+
+        auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
+
+        if (ReadCommon(read_ctx, buf, chunk_header))
+          continue;
+
+        buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
+        LogError("Encountered unknown or unhandled chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+      }
+    }
+
     void Write(Common::ByteBuffer& buf) const
     requires (trait_type == TraitType::File)
     {
       ValidateDependentInterfaces();
-      RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer");
+      RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
+
       LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_TYPE(CRTP));
       LogIndentScoped;
 
@@ -625,8 +653,40 @@ namespace IO::Common::Traits
     requires (trait_type == TraitType::Component)
     {
       ValidateDependentInterfaces();
+      RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
+
       WriteCommon(write_ctx, buf);
     };
+
+    void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
+    requires (trait_type == TraitType::Chunk)
+    {
+      if (!GetThis()->_is_initialized) [[unlikely]]
+        return;
+
+      ValidateDependentInterfaces();
+      RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
+
+      LogDebugF(LCodeZones::FILE_IO, "Writing chunk: %s."
+                , FourCCStr<CRTP::fourcc, CRTP::fourcc_endian>);
+
+      std::size_t pos = buf.Tell();
+
+      Common::ChunkHeader chunk_header {CRTP::fourcc, 0};
+      buf.Write(chunk_header);
+
+      WriteCommon(write_ctx, buf);
+
+      std::size_t end_pos = buf.Tell();
+      buf.Seek(pos);
+
+      EnsureF(CCodeZones::FILE_IO, (end_pos - pos - sizeof(Common::ChunkHeader)) <= std::numeric_limits<std::uint32_t>::max()
+              , "Chunk size overflow.");
+
+      chunk_header.size = static_cast<std::uint32_t>(end_pos - pos - sizeof(Common::ChunkHeader));
+      buf.Write(chunk_header);
+      buf.Seek(end_pos);
+    }
 
   private:
     void WriteCommon(WriteContext& write_ctx, Common::ByteBuffer& buf) const
@@ -716,6 +776,16 @@ namespace IO::Common::Traits
         static_assert(requires { { static_cast<void(CRTP::*)(WriteContext&, Common::ByteBuffer&)>(&CRTP::TraitsWrite) }; }
                       && "Invalid TraitsWrite. Possibly context type mismatch.");
 
+      }
+
+      if constexpr (trait_type == TraitType::Chunk)
+      {
+        static_assert(requires (CRTP crtp)
+                      {
+                        { CRTP::magic } -> std::same_as<std::uint32_t const&>;
+                        { CRTP::magic_endian } -> std::same_as<FourCCEndian const&>;
+                        { crtp._is_initialized } -> std::same_as<bool>;
+                     }, "Missing FourCC and endian for type.");
       }
     }
   };

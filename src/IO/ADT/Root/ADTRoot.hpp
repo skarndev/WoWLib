@@ -66,11 +66,14 @@ namespace IO::ADT
                          <
                            Common::Traits::IOTraits
                            <
-                             Common::Traits::VersionTrait
+                             Common::Traits::IOTrait
                              <
-                               BlendMeshes<Common::Traits::DefaultTraitContext, details::ADTRootWriteContext>
-                               , client_version
-                               , Common::ClientVersion::MOP
+                               Common::Traits::VersionTrait
+                               <
+                                 BlendMeshes<Common::Traits::DefaultTraitContext, details::ADTRootWriteContext>
+                                 , client_version
+                                 , Common::ClientVersion::MOP
+                               >
                              >
                            >
                            , Common::Traits::DefaultTraitContext
@@ -100,7 +103,19 @@ namespace IO::ADT
 
     Common::DataChunk<DataStructures::MVER, ChunkIdentifiers::ADTCommonChunks::MVER> _version;
     Common::DataChunk<DataStructures::MHDR, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
-    Common::SparseChunkArray<MCNKRoot<client_version>, 256, 256> _chunks;
+
+    Common::SparseChunkArray
+    <
+      MCNKRoot
+      <
+        client_version
+        , Common::Traits::DefaultTraitContext
+        , details::ADTRootWriteContext
+      >
+      , 256
+      , 256
+    > _chunks;
+
     MH2O _liquids;
     Common::DataChunk<DataStructures::MFBO, ChunkIdentifiers::ADTRootChunks::MFBO> _flight_bounds;
 
@@ -131,6 +146,7 @@ namespace IO::ADT
              [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& version, Common::ByteBuffer& buf)
              {
                 ctx.header_pos = buf.Tell();
+                return true;
              }
            >
          >
@@ -158,6 +174,7 @@ namespace IO::ADT
                [](ADTRoot* self, details::ADTRootWriteContext& ctx, auto& liquids, Common::ByteBuffer& buf)
                {
                  ctx.liquid_pos = static_cast<std::uint32_t>(buf.Tell() - (ctx.header_pos + 8));
+                 return true;
                }
              >
          >
@@ -171,6 +188,7 @@ namespace IO::ADT
              {
                ctx.mfbo_pos = static_cast<std::uint32_t>(buf.Tell() - (ctx.header_pos + 8));
                ctx.header_flags += DataStructures::MHDRFlags::mhdr_MFBO;
+               return true;
              }
            >
          >

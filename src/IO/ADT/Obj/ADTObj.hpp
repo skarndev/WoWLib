@@ -15,6 +15,9 @@
 
 namespace IO::ADT
 {
+  /**
+   * Determines LOD level of ADTObj file.
+   */
   enum class ADTObjLodLevel
   {
     NORMAL = 0, ///> obj0 file.
@@ -34,7 +37,11 @@ namespace IO::ADT
 
   class ADTDoodadsetOverrides;
 
-  // switch the implementation (obj0 vs obj1)
+  /**
+   * Switches the implementation of ADTObj file based on lod level.
+   * @tparam client_version Version of the game client.
+   * @tparam lod_level Lod level.
+   */
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
   using LodLevelImpl = Common::Traits::SwitchableTrait
     <
@@ -53,6 +60,11 @@ namespace IO::ADT
       >
     >;
 
+  /**
+   * Split ADT file containing data associated with object placements.
+   * @tparam client_version Version of the game client.
+   * @tparam lod_level Lod level.
+   */
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
   class ADTObj : protected Common::Traits::IOTraits
                             <

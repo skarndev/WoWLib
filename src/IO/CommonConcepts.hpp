@@ -40,9 +40,9 @@ namespace IO::Common::Concepts
   concept ChunkProtocolCommon = requires (T t, details::Any any)
   {
     { static_cast<void(T::*)()>(&T::Initialize)};
-    { t.template Read<details::Any>(any, Common::ByteBuffer(), std::size_t())} -> std::same_as<void>;
+    { t.Read(any, Common::ByteBuffer(), std::size_t())} -> std::same_as<void>;
     // { static_cast<void(T::*)(Common::ByteBuffer const&, std::size_t)>(&T::Read) };
-    { static_cast<void(T::*)(details::Any&, Common::ByteBuffer&) const>(&T::template Write<details::Any>) };
+    { static_cast<void(T::*)(details::Any&, Common::ByteBuffer&) const>(&T::Write) };
     { static_cast<std::size_t(T::*)() const>(&T::ByteSize) };
     { static_cast<bool(T::*)() const>(&T::IsInitialized) };
     { &T::magic } ;
