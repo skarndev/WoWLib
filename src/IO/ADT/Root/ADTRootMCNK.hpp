@@ -78,40 +78,40 @@ namespace IO::ADT
   private:
     DataStructures::SMChunk _header;
     Common::DataArrayChunk
-      <
-        float
-        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT
-        , Common::FourCCEndian::Little
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-      > _heightmap;
+    <
+      float
+      , ChunkIdentifiers::ADTRootMCNKSubchunks::MCVT
+      , Common::FourCCEndian::Little
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+    > _heightmap;
 
     Common::DataArrayChunk
-      <
-        Common::DataStructures::CArgb
-        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV
-        , Common::FourCCEndian::Little
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-      > _vertex_lighting;
+    <
+      Common::DataStructures::CArgb
+      , ChunkIdentifiers::ADTRootMCNKSubchunks::MCLV
+      , Common::FourCCEndian::Little
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+    > _vertex_lighting;
 
     Common::DataArrayChunk
-      <
-        DataStructures::MCCVEntry
-        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV
-        , Common::FourCCEndian::Little
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-      > _vertex_color;
+    <
+      DataStructures::MCCVEntry
+      , ChunkIdentifiers::ADTRootMCNKSubchunks::MCCV
+      , Common::FourCCEndian::Little
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+    > _vertex_color;
 
     Common::DataArrayChunk
-      <
-        DataStructures::MCNREntry
-        , ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR
-        , Common::FourCCEndian::Little
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-        , Common::WorldConstants::CHUNK_BUF_SIZE
-      > _normals;
+    <
+      DataStructures::MCNREntry
+      , ChunkIdentifiers::ADTRootMCNKSubchunks::MCNR
+      , Common::FourCCEndian::Little
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+      , Common::WorldConstants::CHUNK_BUF_SIZE
+    > _normals;
 
     Common::DataChunk<DataStructures::MCLQ, ChunkIdentifiers::ADTRootMCNKSubchunks::MCLQ> _tbc_water;
     Common::DataArrayChunk<DataStructures::MCSE, ChunkIdentifiers::ADTRootMCNKSubchunks::MCSE> _sound_emitters;

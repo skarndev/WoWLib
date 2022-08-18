@@ -66,22 +66,38 @@ namespace IO::ADT
    * @tparam lod_level Lod level.
    */
   template<Common::ClientVersion client_version, ADTObjLodLevel lod_level>
-  class ADTObj : protected Common::Traits::IOTraits
-                            <
-                              LodLevelImpl<client_version, lod_level>
-                              , Common::Traits::VersionTrait
+  class ADTObj : public Common::Traits::AutoIOTraits
+                        <
+                          Common::Traits::IOTraits
+                          <
+                            Common::Traits::IOTrait<LodLevelImpl<client_version, lod_level>>
+                            , Common::Traits::IOTrait
+                              <
+                                Common::Traits::VersionTrait
                                 <
                                   ADTLodMapObjectBatches
                                   , client_version
                                   , Common::ClientVersion::BFA
                                 >
-                              , Common::Traits::VersionTrait
+                              >
+                            , Common::Traits::IOTrait
+                              <
+                                Common::Traits::VersionTrait
                                 <
                                   ADTDoodadsetOverrides
                                   , client_version
                                   , Common::ClientVersion::SL
                                 >
-                            >
+                              >
+                          >
+                        >
+               , public Common::Traits::AutoIOTraitInterface
+                        <
+                          ADTObj<client_version, lod_level>
+                          , Common::Traits::DefaultTraitContext
+                          , Common::Traits::DefaultTraitContext
+                          , Common::Traits::TraitType::File
+                        >
   {
   static_assert(client_version >= Common::ClientVersion::CATA && "Split files did not exist before Cataclysm.");
   public:
@@ -89,10 +105,6 @@ namespace IO::ADT
         : _file_data_id(file_data_id)
     {
     };
-
-    void Read(Common::ByteBuffer const& buf);
-
-    void Write(Common::ByteBuffer& buf) const;
 
   private:
     // This method converts MODF/MDDF references to filename offsets into filename indices.
@@ -113,16 +125,11 @@ namespace IO::ADT
 
   };
 
-    // ADT obj0-specific
+  // ADT obj0-specific
 
   // Enables storing textures by filepath
-  class ADTObj0ModelStorageFilepath
+  class ADTObj0ModelStorageFilepath : public Common::Traits::AutoIOTraitInterface<ADTObj0ModelStorageFilepath>
   {
-  public:
-    [[nodiscard]]
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
-
-    void Write(Common::ByteBuffer& buf) const;
   protected:
     Common::StringBlockChunk<Common::StringBlockChunkType::OFFSET
                               , ChunkIdentifiers::ADTObj0Chunks::MMDX
@@ -135,60 +142,82 @@ namespace IO::ADT
                             > _map_object_filenames;
 
     Common::DataArrayChunk<std::uint32_t, ChunkIdentifiers::ADTObj0Chunks::MWID> _map_object_filename_offsets;
-  } IMPLEMENTS_IO_TRAIT(ADTObj0ModelStorageFilepath);
+
+  private:
+    static constexpr
+    Common::Traits::AutoIOTrait
+    <
+      Common::Traits::TraitEntries
+      <
+        Common::Traits::TraitEntry<&ADTObj0ModelStorageFilepath::_model_filenames>
+        , Common::Traits::TraitEntry<&ADTObj0ModelStorageFilepath::_model_filename_offsets>
+        , Common::Traits::TraitEntry<&ADTObj0ModelStorageFilepath::_map_object_filenames>
+        , Common::Traits::TraitEntry<&ADTObj0ModelStorageFilepath::_map_object_filename_offsets>
+      >
+    > _auto_trait {};
+  };
 
   template<Common::ClientVersion client_version>
-  class AdtObj0SpecificData : protected Common::Traits::IOTraits
+  class AdtObj0SpecificData : public Common::Traits::AutoIOTraits
+                                     <
+                                       Common::Traits::IOTraits
+                                       <
+                                        Common::Traits::IOTrait
                                         <
                                           Common::Traits::VersionTrait
-                                            <
-                                              ADTObj0ModelStorageFilepath
-                                              , client_version
-                                              , Common::ClientVersion::CATA
-                                              , Common::ClientVersion::BFA
-                                            >
+                                          <
+                                            ADTObj0ModelStorageFilepath
+                                            , client_version
+                                            , Common::ClientVersion::CATA
+                                            , Common::ClientVersion::BFA
+                                          >
                                         >
+                                       >
+                                     >
   {
   public:
     AdtObj0SpecificData();
-
-    [[nodiscard]]
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header, std::uint32_t& chunk_counter);
-
-    void Write(Common::ByteBuffer& buf) const;
 
   protected:
     Common::DataArrayChunk<DataStructures::MDDF, ChunkIdentifiers::ADTObj0Chunks::MDDF> _model_placements;
     Common::DataArrayChunk<DataStructures::MODF, ChunkIdentifiers::ADTObj0Chunks::MODF> _map_object_placements;
     std::array<MCNKObj, Common::WorldConstants::CHUNKS_PER_TILE> _chunks;
-  } IMPLEMENTS_IO_TRAIT(AdtObj0SpecificData<Common::ClientVersion::ANY>);
+  };
 
   // ADT obj-1 specific
 
   // Enables support for model lod batches in obj1
-  class LodModelBatches
+  class LodModelBatches : public Common::Traits::AutoIOTraitInterface<LodModelBatches>
   {
-  public:
-    [[nodiscard]]
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
-
-    void Write(Common::ByteBuffer& buf) const;
-
   protected:
     Common::DataArrayChunk<char, ChunkIdentifiers::ADTObj1Chunks::MLDB> _lod_model_batches;
 
+  private:
+    static constexpr Common::Traits::AutoIOTrait
+    <
+      Common::Traits::TraitEntries
+      <
+        Common::Traits::TraitEntry<&LodModelBatches::_lod_model_batches>
+      >
+    > _auto_trait {};
   } IMPLEMENTS_IO_TRAIT(LodModelBatches);
 
   template<Common::ClientVersion client_version>
-  class AdtObj1SpecificData : protected Common::Traits::IOTraits
-                                        <
-                                          Common::Traits::VersionTrait
-                                            <
-                                              LodModelBatches
-                                              , client_version
-                                              , Common::ClientVersion::SL
-                                            >
-                                        >
+  class AdtObj1SpecificData : public Common::Traits::AutoIOTraits
+                                     <
+                                       Common::Traits::IOTraits
+                                       <
+                                         Common::Traits::IOTrait
+                                         <
+                                           Common::Traits::VersionTrait
+                                             <
+                                               LodModelBatches
+                                               , client_version
+                                               , Common::ClientVersion::SL
+                                             >
+                                         >
+                                       >
+                                     >
                               , public Common::Traits::AutoIOTraitInterface<AdtObj1SpecificData<client_version>>
   {
   public:
@@ -196,11 +225,6 @@ namespace IO::ADT
 
     template<Common::ClientVersion client_v>
     void GenerateLod(ADTObj<client_v, ADTObjLodLevel::NORMAL> const& tile_obj);
-
-    [[nodiscard]]
-    bool Read(Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header);
-
-    void Write(Common::ByteBuffer& buf) const;
 
   protected:
     Common::DataArrayChunk<DataStructures::MLMD, ChunkIdentifiers::ADTObj1Chunks::MLMD> _lod_map_object_placements;
@@ -211,16 +235,20 @@ namespace IO::ADT
     Common::DataArrayChunk<DataStructures::MLFD, ChunkIdentifiers::ADTObj1Chunks::MLFD> _lod_mapping;
 
   public:
-    static constexpr Common::Traits::AutoIOTrait
+    static constexpr
+    Common::Traits::AutoIOTrait
+    <
+      Common::Traits::TraitEntries
       <
-        &AdtObj1SpecificData::_lod_map_object_placements,
-        &AdtObj1SpecificData::_lod_map_object_extents,
-        &AdtObj1SpecificData::_lod_model_placements,
-        &AdtObj1SpecificData::_lod_model_extents,
-        &AdtObj1SpecificData::_lod_model_unknown,
-        &AdtObj1SpecificData::_lod_mapping
-      > auto_trait = {};
-  } IMPLEMENTS_IO_TRAIT(AdtObj1SpecificData<Common::ClientVersion::SL>);
+        Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_map_object_placements>
+        , Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_map_object_extents>
+        , Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_model_placements>
+        , Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_model_extents>
+        , Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_model_unknown>
+        , Common::Traits::TraitEntry<&AdtObj1SpecificData::_lod_mapping>
+      >
+    > _auto_trait {};
+  };
 
   // Enables support for LOD map object batches (BfA+).
   class ADTLodMapObjectBatches : public Common::Traits::AutoIOTraitInterface<ADTLodMapObjectBatches>
@@ -228,30 +256,36 @@ namespace IO::ADT
   protected:
     Common::DataArrayChunk<char, ChunkIdentifiers::ADTObjCommonChunks::MLMB> _lod_map_object_batches;
 
-  public:
-    static constexpr Common::Traits::AutoIOTrait<&ADTLodMapObjectBatches::_lod_map_object_batches> auto_trait = {};
-  } IMPLEMENTS_IO_TRAIT(ADTLodMapObjectBatches);
+  private:
+    static constexpr
+    Common::Traits::AutoIOTrait
+    <
+      Common::Traits::TraitEntries
+      <
+        Common::Traits::TraitEntry<&ADTLodMapObjectBatches::_lod_map_object_batches>
+      >
+    > _auto_trait = {};
+  };
 
   class ADTDoodadsetOverrides : public Common::Traits::AutoIOTraitInterface<ADTDoodadsetOverrides>
   {
-    template<auto... all_chunks>
-    requires (Common::Concepts::ChunkProtocolCommon<Utils::Meta::Traits::TypeOfMemberObject_T<decltype(all_chunks)>>
-              && ...)
-    friend class Common::Traits::AutoIOTrait;
-
   protected:
     Common::DataArrayChunk<std::int16_t, ChunkIdentifiers::ADTObjCommonChunks::MWDS> _wmo_doodadset_overrides;
     Common::DataArrayChunk<DataStructures::MWDR
                             , ChunkIdentifiers::ADTObjCommonChunks::MWDR> _wmo_doodadset_overrides_ranges;
 
-  public:
-     static constexpr Common::Traits::AutoIOTrait
-                      <
-                       &ADTDoodadsetOverrides::_wmo_doodadset_overrides
-                      , &ADTDoodadsetOverrides::_wmo_doodadset_overrides_ranges
-                      > auto_trait = {};
+  private:
+   static constexpr
+   Common::Traits::AutoIOTrait
+   <
+    Common::Traits::TraitEntries
+    <
+      Common::Traits::TraitEntry<&ADTDoodadsetOverrides::_wmo_doodadset_overrides>
+      , Common::Traits::TraitEntry<&ADTDoodadsetOverrides::_wmo_doodadset_overrides_ranges>
+    >
+   > _auto_trait = {};
 
-  } IMPLEMENTS_IO_TRAIT(ADTDoodadsetOverrides);
+  };
 
 }
 #include <IO/ADT/Obj/ADTObj.inl>
