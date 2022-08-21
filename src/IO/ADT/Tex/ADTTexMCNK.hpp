@@ -13,6 +13,14 @@
 
 namespace IO::ADT
 {
+
+  template<typename T>
+  concept MCNKTexReadContext = MCALReadContext<T>;
+
+  template<typename T>
+  concept MCNKTexWriteContext = MCALWriteContext<T>;
+
+  template<MCNKTexReadContext ReadContext, MCNKTexWriteContext WriteContext>
   class MCNKTex
   {
   public:
@@ -20,13 +28,9 @@ namespace IO::ADT
   public:
     MCNKTex() = default;
 
-    void Read(Common::ByteBuffer const& buf
-              , std::size_t size
-              , MCAL::AlphaFormat alpha_format
-              , bool fix_alphamap);
+    void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, std::size_t size);
 
-    void  Write(Common::ByteBuffer& buf
-                , MCAL::AlphaFormat alpha_format) const;
+    void  Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
     FORCEINLINE bool IsInitialized() const { return true; };
@@ -35,16 +39,16 @@ namespace IO::ADT
 
     private:
       Common::DataArrayChunk
-        <
-          DataStructures::SMLayer
-          , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-          , Common::FourCCEndian::Little
-          , 0
-          , 4
-        > _alpha_layers;
+      <
+        DataStructures::SMLayer
+        , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+        , Common::FourCCEndian::Little
+        , 0
+        , 4
+      > _alpha_layers;
 
       MCSH _shadowmap;
-      MCAL _alphamaps;
+      MCAL<ReadContext, WriteContext> _alphamaps;
 
   // getters
   public:

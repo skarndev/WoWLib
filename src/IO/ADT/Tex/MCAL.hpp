@@ -4,6 +4,7 @@
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
 #include <IO/WorldConstants.hpp>
+#include <Utils/Meta/Templates.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -11,86 +12,52 @@
 
 namespace IO::ADT
 {
-  class MCAL
+  using Alphamap = std::array<std::uint8_t, Common::WorldConstants::N_PIXELS_PER_ALPHAMAP>;
+
+  enum class AlphaFormat
   {
-    using Alphamap = std::array<std::uint8_t, Common::WorldConstants::N_PIXELS_PER_ALPHAMAP>;
-    using Alphamaps = std::vector<Alphamap>;
+    LOWRES = 0,
+    HIGHRES = 1
+  };
 
+  enum class AlphaCompression
+  {
+    UNCOMPRESSED = 0,
+    COMPRESSED = 1
+  };
+
+  using MCLYChunk = Common::DataArrayChunk
+                    <
+                      DataStructures::SMLayer
+                      , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
+                      , Common::FourCCEndian::Little
+                      , 0
+                      , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
+                    >;
+
+
+  template<typename T>
+  concept MCALReadContext = requires (T t) {
+                                             { t.alpha_layer_params } -> std::same_as<MCLYChunk&>;
+                                             { t.fix_alpha } -> std::same_as<bool&>;
+                                             { t.alpha_format } -> std::same_as<AlphaFormat&>;
+                                           };
+
+
+  template<typename T>
+  concept MCALWriteContext = requires (T t) {
+                                              { t.alpha_layer_params } -> std::same_as<MCLYChunk&>;
+                                              { t.alpha_format } -> std::same_as<AlphaFormat&>;
+                                            };
+
+
+  template<MCALReadContext ReadContext, MCALWriteContext WriteContext>
+  class MCAL : public Utils::Meta::Templates::ConstrainedArray<Alphamap, 0, 3>
+  {
   public:
+    void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf, std::size_t size);
 
-    enum class AlphaFormat
-    {
-      LOWRES = 0,
-      HIGHRES = 1
-    };
-
-    enum class AlphaCompression
-    {
-      UNCOMPRESSED = 0,
-      COMPRESSED = 1
-    };
-
-    void Read(Common::ByteBuffer const& buf
-              , std::size_t size
-              , AlphaFormat format
-              , Common::DataArrayChunk
-                <
-                  DataStructures::SMLayer
-                  , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                  , Common::FourCCEndian::Little
-                  , 0
-                  , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
-                > const& alpha_layer_params
-              , bool fix_alpha);
-
-    void Write(Common::ByteBuffer& buf
-               , AlphaFormat format
-               , Common::DataArrayChunk
-                  <
-                    DataStructures::SMLayer
-                    , ChunkIdentifiers::ADTTexMCNKSubchunks::MCLY
-                    , Common::FourCCEndian::Little
-                    , 0
-                    , Common::WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
-                  > const& alpha_layer_params) const;
-
-    // access interface
-    Alphamap& Add();
-
-    [[nodiscard]]
-    Alphamap& At(std::uint8_t index);
-
-    [[nodiscard]]
-    Alphamap const& At(std::uint8_t index) const;
-
-    void Clear() { _alphamap_layers.clear(); };
-
-    void Remove(std::uint8_t index);
-
-    // iterators
-    [[nodiscard]]
-    Alphamaps::iterator begin() { return _alphamap_layers.begin(); };
-
-    [[nodiscard]]
-    Alphamaps::iterator end() { return _alphamap_layers.end(); };
-
-    [[nodiscard]]
-    Alphamaps::const_iterator begin() const { return _alphamap_layers.cbegin(); };
-
-    [[nodiscard]]
-    Alphamaps::const_iterator end() const { return _alphamap_layers.cend(); };
-
-    [[nodiscard]]
-    Alphamaps::const_iterator cbegin() const { return _alphamap_layers.cbegin(); };
-
-    [[nodiscard]]
-    Alphamaps::const_iterator cend() const { return _alphamap_layers.cend(); };
-
-    [[nodiscard]]
-    Alphamap& operator[](std::size_t index);
-
-    [[nodiscard]]
-    Alphamap const& operator[](std::size_t index) const;
+    void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const;
 
     [[nodiscard]]
     FORCEINLINE bool IsInitialized() const { return true; };
@@ -106,6 +73,5 @@ namespace IO::ADT
       return alpha / div + (alpha % div <= (div >> 1) ? 0 : 1);
     };
 
-    Alphamaps _alphamap_layers;
   };
 }

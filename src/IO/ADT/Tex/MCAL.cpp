@@ -6,6 +6,7 @@
 #include <Utils/Meta/Future.hpp>
 
 #include <boost/range/combine.hpp>
+#include <boost/range/iterator_range.hpp>
 
 #include <algorithm>
 
@@ -13,45 +14,39 @@ using namespace IO::ADT;
 using namespace IO::Common;
 using namespace IO::ADT::ChunkIdentifiers;
 
-void MCAL::Read(ByteBuffer const& buf
-                , std::size_t size
-                , AlphaFormat format
-                , DataArrayChunk
-                  <
-                    DataStructures::SMLayer
-                    , ADTTexMCNKSubchunks::MCLY
-                    , FourCCEndian::Little
-                    , 0
-                    , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
-                  > const& alpha_layer_params
-                , bool fix_alpha)
+template<MCALReadContext ReadContext, MCALWriteContext WriteContext>
+inline void MCAL<ReadContext, WriteContext>::Read(ReadContext& read_ctx
+                                                  , ByteBuffer const& buf
+                                                  , std::size_t size)
 {
 
   RequireF(CCodeZones::FILE_IO
-           , alpha_layer_params.Size() > 0 && alpha_layer_params.Size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
+           , read_ctx.alpha_layer_params.Size() > 0
+           && read_ctx.alpha_layer_params.Size() <= WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
            , "Only 3 alpha layers is supported.");
-  RequireF(CCodeZones::FILE_IO, (fix_alpha && format == AlphaFormat::LOWRES) || !fix_alpha,
+  RequireF(CCodeZones::FILE_IO, (read_ctx.fix_alpha && read_ctx.alpha_format == AlphaFormat::LOWRES)
+          || !read_ctx.fix_alpha,
           "Alpha fixing is only needed for lowres alpha.");
 
   LogDebugF(LCodeZones::FILE_IO, "Reading chunk: MCAL, size: %d.", size);
 
-  if (format == AlphaFormat::HIGHRES)
+  if (read_ctx.alpha_format == AlphaFormat::HIGHRES)
   {
-    for (std::size_t layer_idx = 1; layer_idx < alpha_layer_params.Size(); ++layer_idx)
+    for (std::size_t layer_idx = 1; layer_idx < read_ctx.alpha_layer_params.Size(); ++layer_idx)
     {
-      auto compression_type = alpha_layer_params[layer_idx].flags.alpha_map_compressed
+      auto compression_type = read_ctx.alpha_layer_params[layer_idx].flags.alpha_map_compressed
           ? AlphaCompression::COMPRESSED : AlphaCompression::UNCOMPRESSED;
 
       // 4096 uncompressed highres alpha
       if (compression_type == AlphaCompression::UNCOMPRESSED)
       {
-          auto& alphamap = _alphamap_layers.emplace_back();
+          auto& alphamap = _data.emplace_back();
           buf.Read(alphamap.begin(), alphamap.end());
       }
       // compressed highres alpha
       else
       {
-        auto& alphamap = _alphamap_layers.emplace_back();
+        auto& alphamap = _data.emplace_back();
 
         std::size_t pixel = 0;
 
@@ -82,12 +77,12 @@ void MCAL::Read(ByteBuffer const& buf
   // uncompressed 2048 alpha
   else
   {
-    for (std::size_t layer_idx = 1; layer_idx < alpha_layer_params.Size(); ++layer_idx)
+    for (std::size_t layer_idx = 1; layer_idx < read_ctx.alpha_layer_params.Size(); ++layer_idx)
     {
-      InvariantF(CCodeZones::FILE_IO, !alpha_layer_params[layer_idx].flags.alpha_map_compressed
+      InvariantF(CCodeZones::FILE_IO, !read_ctx.alpha_layer_params[layer_idx].flags.alpha_map_compressed
         , "Appha compression is not supported for 2048 alpha. Potentially corrupt file.");
 
-      auto& alphamap = _alphamap_layers.emplace_back();
+      auto& alphamap = _data.emplace_back();
 
       std::size_t pos = buf.Tell();
       const char* raw_buffer = buf.Data() + pos;
@@ -104,7 +99,7 @@ void MCAL::Read(ByteBuffer const& buf
       buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(2048);
 
       // Fill last row and column from the previous ones
-      if (fix_alpha)
+      if (read_ctx.fix_alpha)
       {
         constexpr std::uint32_t last_pixel_idx = WorldConstants::ALPHAMAP_DIM - 1;
         constexpr std::uint32_t pre_last_pixel_idx = last_pixel_idx - 1;
@@ -127,7 +122,7 @@ void MCAL::Read(ByteBuffer const& buf
     {
       std::uint8_t max_alpha = 255;
 
-      for (auto it = _alphamap_layers.rbegin(); it < _alphamap_layers.rend(); ++it)
+      for (auto it = _data.rbegin(); it < _data.rend(); ++it)
       {
         std::uint8_t val = MCAL::NormalizeLowresAlpha((*it)[i] * max_alpha);
         EnsureF(CCodeZones::FILE_IO, max_alpha >= val, "Unexpected underflow.");
@@ -139,31 +134,26 @@ void MCAL::Read(ByteBuffer const& buf
 }
 
 
-void MCAL::Write(IO::Common::ByteBuffer& buf
-                 , MCAL::AlphaFormat format
-                 , DataArrayChunk
-                    <
-                        DataStructures::SMLayer
-                        , ADTTexMCNKSubchunks::MCLY
-                        , FourCCEndian::Little
-                        , 0
-                        , WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
-                    > const& alpha_layer_params) const
+template<MCALReadContext ReadContext, MCALWriteContext WriteContext>
+void MCAL<ReadContext, WriteContext>::Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
 {
-
-
   RequireF(CCodeZones::FILE_IO
-           , !_alphamap_layers.empty() && _alphamap_layers.size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
-           , "Only alpha layers is supported.");
+           , !_data.empty() && _data.size() < WorldConstants::CHUNK_MAX_TEXTURE_LAYERS
+           , "Only 3 alpha layers is supported.");
+
+  RequireF(CCodeZones::FILE_IO, _data.size() == (write_ctx.alpha_layer_params.Size() - 1)
+           , "Layers params size mismatch.");
 
   ChunkHeader header {Common::FourCC<"MCAL">, 0};
   std::size_t chunk_pos = buf.Tell();
   buf.Write(header);
 
   // highres 4096 alpha
-  if (format == AlphaFormat::HIGHRES)
+  if (write_ctx.alpha_format == AlphaFormat::HIGHRES)
   {
-    for (auto const&& [alphamap, layer_params] : boost::combine(_alphamap_layers, alpha_layer_params))
+    for (auto const&& [alphamap, layer_params]
+      : boost::combine(_data, boost::iterator_range(write_ctx.alpha_layer_params.begin() + 1
+                                                    , write_ctx.alpha_layer_params.end())))
     {
       auto compression = layer_params.flags.alpha_map_compressed
           ? AlphaCompression::COMPRESSED : AlphaCompression::UNCOMPRESSED;
@@ -274,7 +264,7 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
     {
       std::int32_t max_alpha = 255;
 
-      for (auto&& [alphamap, temp_alphamap] : boost::combine(_alphamap_layers, temp_layers))
+      for (auto&& [alphamap, temp_alphamap] : boost::combine(_data, temp_layers))
       {
         if (max_alpha <= 0) [[unlikely]]
         {
@@ -311,46 +301,5 @@ void MCAL::Write(IO::Common::ByteBuffer& buf
   buf.Seek(end_pos);
   buf.Write(header);
 }
-
-MCAL::Alphamap& MCAL::Add()
-{
-  InvariantF(CCodeZones::FILE_IO, _alphamap_layers.size() < 3, "3 alphamap layers are supported at max.");
-
-  auto& layer = _alphamap_layers.emplace_back();
-  std::fill(layer.begin(), layer.end(), 0);
-
-  return layer;
-}
-
-MCAL::Alphamap& MCAL::At(std::uint8_t index)
-{
-  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  return _alphamap_layers[index];
-}
-
-MCAL::Alphamap const& MCAL::At(std::uint8_t index) const
-{
-  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  return _alphamap_layers[index];
-}
-
-void MCAL::Remove(std::uint8_t index)
-{
-  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  _alphamap_layers.erase(_alphamap_layers.begin() + index);
-}
-
-MCAL::Alphamap const& MCAL::operator[](std::size_t index) const
-{
-  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  return _alphamap_layers[index];
-}
-
-MCAL::Alphamap& MCAL::operator[](std::size_t index)
-{
-  RequireF(CCodeZones::FILE_IO, index < _alphamap_layers.size(), "Out of bounds access.");
-  return _alphamap_layers[index];
-}
-
 
 
