@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IO_ADT_TEX_MCAL_HPP
+#define IO_ADT_TEX_MCAL_HPP
 #include <IO/Common.hpp>
 #include <IO/ByteBuffer.hpp>
 #include <IO/ADT/DataStructures.hpp>
@@ -75,3 +76,6 @@ namespace IO::ADT
 
   };
 }
+
+#include <IO/ADT/Tex/MCAL.inl>
+#endif // IO_ADT_TEX_MCAL_HPP
