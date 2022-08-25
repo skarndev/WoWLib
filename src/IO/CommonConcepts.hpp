@@ -37,13 +37,12 @@ namespace IO::Common::Concepts
    * @tparam fourcc_req 0 or FourCC check to enforce.
    */
   template<typename T, std::uint32_t fourcc_req = 0>
-  concept ChunkProtocolCommon = requires (T t, details::Any any)
+  concept ChunkProtocolCommon = requires (T t, details::Any any, Common::ByteBuffer buf, std::size_t size)
   {
     { static_cast<void(T::*)()>(&T::Initialize)};
-    { t.Read(any, Common::ByteBuffer(), std::size_t())} -> std::same_as<void>;
-    // { static_cast<void(T::*)(Common::ByteBuffer const&, std::size_t)>(&T::Read) };
-    { static_cast<void(T::*)(details::Any&, Common::ByteBuffer&) const>(&T::Write) };
-    { static_cast<std::size_t(T::*)() const>(&T::ByteSize) };
+    { t.Read(any, buf, size)} -> std::same_as<void>;
+    { t.Write(any, buf) } -> std::same_as<void>;
+    // { static_cast<std::size_t(T::*)() const>(&T::ByteSize) };
     { static_cast<bool(T::*)() const>(&T::IsInitialized) };
     { &T::magic } ;
     { &T::magic_endian } ;

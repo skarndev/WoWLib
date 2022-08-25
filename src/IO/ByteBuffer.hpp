@@ -302,6 +302,14 @@ namespace IO::Common
      */
     void Flush(std::ostream& stream) const;
 
+    /**
+     * Checks if two ByteBuffer instances contain identical contents.
+     * @param other ByteBuffer instance.
+     * @return true if content is identical, else false.
+     */
+    [[nodiscard]]
+    bool operator==(ByteBuffer const& other) const;
+
   private:
     bool _is_data_owned;
     mutable std::size_t _cur_pos;

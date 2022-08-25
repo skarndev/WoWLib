@@ -290,8 +290,8 @@ namespace IO::Common::Traits
   struct IOHandlerRead
   {
     static constexpr IOHandlerType handler_type = IOHandlerType::Read;
-    static constexpr bool has_pre = std::is_same_v<decltype(pre), std::nullptr_t>;
-    static constexpr bool has_post = std::is_same_v<decltype(post), std::nullptr_t>;
+    static constexpr bool has_pre = !std::is_same_v<decltype(pre), std::nullptr_t>;
+    static constexpr bool has_post = !std::is_same_v<decltype(post), std::nullptr_t>;
     static constexpr auto callback_pre = pre;
     static constexpr auto callback_post = post;
   };
@@ -315,8 +315,8 @@ namespace IO::Common::Traits
   struct IOHandlerWrite
   {
     static constexpr IOHandlerType handler_type = IOHandlerType::Write;
-    static constexpr bool has_pre = std::is_same_v<decltype(pre), std::nullptr_t>;
-    static constexpr bool has_post = std::is_same_v<decltype(post), std::nullptr_t>;
+    static constexpr bool has_pre = !std::is_same_v<decltype(pre), std::nullptr_t>;
+    static constexpr bool has_post = !std::is_same_v<decltype(post), std::nullptr_t>;
     static constexpr auto callback_pre = pre;
     static constexpr auto callback_post = post;
   };
@@ -365,8 +365,7 @@ namespace IO::Common::Traits
           return false;
       }
 
-      if (!(self->*chunk).Read(read_ctx, buf, chunk_header.size))
-        return false;
+      (self->*chunk).Read(read_ctx, buf, chunk_header.size);
 
       if constexpr (ReadHandler::has_post)
         ReadHandler::callback_post(self, read_ctx, self->*chunk, buf, chunk_header);
@@ -485,9 +484,9 @@ namespace IO::Common::Traits
     template
     <
       typename CRTP
-      , std::default_initializable
-      , std::default_initializable
       , TraitType
+      , std::default_initializable
+      , std::default_initializable
     >
     friend class AutoIOTraitInterface;
 
@@ -495,7 +494,8 @@ namespace IO::Common::Traits
     template<typename... Ts>
     struct TypePack {};
 
-  protected:
+  // interface
+  private:
     bool TraitsRead(ReadContext& ctx, Common::ByteBuffer const& buf, Common::ChunkHeader const& chunk_header)
     {
       return RecurseRead(ctx, buf, chunk_header, TypePack<Traits...>());
@@ -506,6 +506,7 @@ namespace IO::Common::Traits
       RecurseWrite(ctx, buf, TypePack<Traits...>());
     }
 
+  // impl
   private:
     template<typename T, typename... Ts>
     void RecurseWrite(WriteContext& ctx, Common::ByteBuffer& buf, TypePack<T, Ts...>) const
@@ -560,9 +561,9 @@ namespace IO::Common::Traits
   template
   <
     typename CRTP
+    , TraitType trait_type
     , std::default_initializable ReadContext = DefaultTraitContext
     , std::default_initializable WriteContext = DefaultTraitContext
-    , TraitType trait_type = TraitType::Component
   >
   class AutoIOTraitInterface
   {
@@ -609,7 +610,6 @@ namespace IO::Common::Traits
         LogError("Encountered unknown or unhandled chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
       }
 
-      LogDebugF(LCodeZones::FILE_IO, "Done reading %s", NAMEOF_TYPE(CRTP));
       EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
                                                 "Bad logic or corrupt file.");
 
@@ -761,15 +761,15 @@ namespace IO::Common::Traits
       return false;
     }
 
-    constexpr void ValidateDependentInterfaces()
+    constexpr void ValidateDependentInterfaces() const
     {
       // AutoIOTrait
       if constexpr (requires { { &CRTP::_auto_trait }; })
       {
-        static_assert(std::is_same_v<typename CRTP::_auto_trait::ReadContextT, ReadContext>
-                      && "Context type mistmatch.");
-        static_assert(std::is_same_v<typename CRTP::_auto_trait::WriteContextT, WriteContext>
-                      && "Context type mistmatch.");
+        static_assert(std::is_same_v<typename decltype(CRTP::_auto_trait)::ReadContextT, ReadContext>
+                      && "Context type mismatch.");
+        static_assert(std::is_same_v<typename decltype(CRTP::_auto_trait)::WriteContextT, WriteContext>
+                      && "Context type mismatch.");
       }
 
       // AutoIOTraits::TraitsRead
@@ -823,16 +823,17 @@ namespace IO::Common::Traits
     template
     <
       typename CRTP
-      , std::default_initializable
-      , std::default_initializable
       , TraitType
+      , std::default_initializable
+      , std::default_initializable
     >
     friend class AutoIOTraitInterface;
 
   public:
     using ReadContextT = ReadContext;
     using WriteContextT = WriteContext;
-    
+
+  // impl
   private:
     template<typename...>
     struct Pack {};
@@ -859,12 +860,13 @@ namespace IO::Common::Traits
       return false;
     }
 
-  protected:
+  // interface
+  private:
 
     template<typename Self>
     static bool ReadChunk(Self* self, ReadContext& read_ctx, Common::ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
-      ReadChunkRecurse(self, read_ctx, buf, chunk_header, Pack<Entries...>{});
+      return ReadChunkRecurse(self, read_ctx, buf, chunk_header, Pack<Entries...>{});
     };
 
     template<typename Self>

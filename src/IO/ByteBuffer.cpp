@@ -181,4 +181,20 @@ std::string_view ByteBuffer::ReadString() const
   return sv;
 }
 
+bool ByteBuffer::operator==(ByteBuffer const& other) const
+{
+  if (!_data || !other._data || _size != other._size)
+  {
+    return false;
+  }
+
+  for (std::size_t i = 0; i < _size; ++i)
+  {
+    if (_data.get()[i] != other._data.get()[i])
+      return false;
+  }
+
+  return true;
+}
+
 

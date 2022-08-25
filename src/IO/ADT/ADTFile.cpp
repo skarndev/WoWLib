@@ -1,16 +1,16 @@
 #include <IO/ADT/ADTFile.hpp>
-#include <IO/ADT/Obj/ADTObj.hpp>
-#include <IO/ADT/Tex/ADTTex.hpp>
-#include <IO/ADT/Root/ADTRoot.hpp>
+//#include <IO/ADT/Obj/ADTObj.hpp>
+//#include <IO/ADT/Tex/ADTTex.hpp>
+//#include <IO/ADT/Root/ADTRoot.hpp>
 
 using namespace IO::ADT;
 
 ADTFile::ADTFile(std::uint32_t file_data_id)
 {
 
-  Common::ByteBuffer buf{};
+  //Common::ByteBuffer buf{};
 
-  ADTRoot<Common::ClientVersion::SL> root_sl{1};
+  //ADTRoot<Common::ClientVersion::SL> root_sl{1};
 
 //  ADTObj<Common::ClientVersion::SL, ADTObjLodLevel::NORMAL> normal_sl{1};
 //  ADTObj<Common::ClientVersion::SL, ADTObjLodLevel::LOD> lod_sl{1};
