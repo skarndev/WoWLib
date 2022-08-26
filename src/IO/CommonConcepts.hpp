@@ -2,6 +2,8 @@
 #include <IO/ByteBuffer.hpp>
 #include <type_traits>
 #include <vector>
+#include <tuple>
+#include <boost/callable_traits.hpp>
 
 /**
  * These concepts are created in order to ensure in compiletime
@@ -42,7 +44,7 @@ namespace IO::Common::Concepts
     { static_cast<void(T::*)()>(&T::Initialize)};
     { t.Read(any, buf, size)} -> std::same_as<void>;
     { t.Write(any, buf) } -> std::same_as<void>;
-    // { static_cast<std::size_t(T::*)() const>(&T::ByteSize) };
+    //{ static_cast<std::size_t(T::*)() const>(&T::ByteSize) };
     { static_cast<bool(T::*)() const>(&T::IsInitialized) };
     { &T::magic } ;
     { &T::magic_endian } ;

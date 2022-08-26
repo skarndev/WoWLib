@@ -9,40 +9,63 @@ using namespace IO::Common;
 using namespace IO::Common::Traits;
 using namespace IO::ADT;
 
+struct TestVersionTrait : public AutoIOTraitInterface<TestVersionTrait, TraitType::Component>
+{
+  AutoIOTraitInterfaceUser;
+private:
+  DataChunk<std::uint32_t, ChunkIdentifiers::ADTRootChunks::MFBO> _trait_header;
+
+public:
+  [[nodiscard]]
+  auto& GetTraitHeader()  const { return _trait_header; };
+
+private:
+  static constexpr
+  AutoIOTrait
+    <
+      TraitEntry<&TestVersionTrait::_trait_header>
+    > _auto_trait {};
+
+};
+
 struct TestComplexChunk : public ChunkCommon<ChunkIdentifiers::ADTRootChunks::MCNK>
                         , public AutoIOTraitInterface<TestComplexChunk, TraitType::Chunk>
 {
+  AutoIOTraitInterfaceUser;
+
 private:
-  DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _header;
+  DataChunk<std::uint32_t, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
 
 public:
-  auto& GetHeader() { return _header; };
+  [[nodiscard]]
+  auto& GetHeader() const { return _header; };
 
 private:
   static constexpr
   AutoIOTrait
   <
-    TraitEntries
-    <
-      TraitEntry<&TestComplexChunk::_header>
-    >
+    TraitEntry<&TestComplexChunk::_header>
   > _auto_trait {};
 };
 
-struct TestFile : public AutoIOTraitInterface<TestFile, TraitType::File>
-{
 
-  template
-  <
-    typename
-    , IO::Common::Traits::TraitType
-    , std::default_initializable
-    , std::default_initializable
-  >
-  friend class IO::Common::Traits::AutoIOTraitInterface;
+template<ClientVersion client_version>
+struct TestFile : public AutoIOTraitInterface<TestFile<client_version>, TraitType::File>
+                , public AutoIOTraits
+                <
+                  IOTrait
+                  <
+                    VersionTrait<TestVersionTrait, client_version, ClientVersion::SL>
+                  >
+                >
+{
+  AutoIOTraitInterfaceUser;
 
 public:
+  [[nodiscard]]
   auto& GetHeader() const { return _header; };
+
+  [[nodiscard]]
   auto& GetComplexChunk() const { return _complex_chunk;};
 
 private:
@@ -52,38 +75,61 @@ private:
   static constexpr
   AutoIOTrait
   <
-    TraitEntries
-    <
-      TraitEntry<&TestFile::_header>,
-      TraitEntry<&TestFile::_complex_chunk>
-    >
+    TraitEntry<&TestFile::_header>
+    , TraitEntry<&TestFile::_complex_chunk>
   > _auto_trait {};
 };
+
+template<bool with_trait>
+void PrepareFile(ByteBuffer& buf)
+{
+  // header
+  buf.Write(ChunkIdentifiers::ADTCommonChunks::MVER);
+  buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
+  buf.Write(static_cast<std::uint32_t>(0));
+
+  // inlined complex chunk
+  buf.Write(ChunkIdentifiers::ADTRootChunks::MCNK);
+  buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t) + sizeof(ChunkHeader)));
+  buf.Write(ChunkIdentifiers::ADTRootChunks::MHDR);
+  buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
+  buf.Write(static_cast<std::uint32_t>(1));
+
+  if constexpr (with_trait)
+  {
+    buf.Write(ChunkIdentifiers::ADTRootChunks::MFBO);
+    buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
+    buf.Write(static_cast<std::uint32_t>(2));
+  }
+  buf.Seek(0);
+}
 
 int main()
 {
   ByteBuffer bb {};
+  ByteBuffer bb1 {};
 
-  // prepare file
-  bb.Write(ChunkIdentifiers::ADTCommonChunks::MVER);
-  bb.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
-  bb.Write(static_cast<std::uint32_t>(0));
+  // prepare files
+  PrepareFile<false>(bb);
+  PrepareFile<true>(bb1);
 
-  bb.Write(ChunkIdentifiers::ADTRootChunks::MHDR);
-  bb.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
-  bb.Write(static_cast<std::uint32_t>(1));
-  bb.Seek(0);
-
-  // test file
-  TestFile t;
+  // test files
+  TestFile<ClientVersion::LEGION> t;
   t.Read(bb);
+  TestFile<ClientVersion::SL> t1;
+  t1.Read(bb1);
 
-  ByteBuffer bb1{};
-  t.Write(bb1);
 
-  Ensure(bb == bb1, "Read and Write do not match");
+  ByteBuffer w_bb {};
+  ByteBuffer w_bb1 {};
+  t.Write(w_bb);
+  t1.Write(w_bb1);
+
+  Ensure(bb == w_bb, "Read and Write do not match");
+  Ensure(bb1 == w_bb1, "Read and Write do not match");
 
   LogDebug("First: %d", t.GetHeader().data);
-  LogDebug("Second: %d", t.GetHeader2().data);
+  LogDebug("Second: %d", t.GetComplexChunk().GetHeader().data);
+  LogDebug("Trait: %d:", t1.GetTraitHeader().data);
   return 0;
 }
