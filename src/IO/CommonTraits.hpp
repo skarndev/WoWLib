@@ -77,7 +77,7 @@ namespace IO::Common::Traits
      * @tparam V2 Second value.
      * @tparam T Type to store.
      */
-    template<auto V1, decltype(V1) V2, typename T>
+    template<auto V1, auto V2, typename T>
     struct ValuesEqualT : std::bool_constant<V1 == V2>
     {
       using type = T;
@@ -418,18 +418,21 @@ namespace IO::Common::Traits
     using TraitT = Trait;
 
     template<typename Self, typename ReadContext>
-    static void Read(Self* self, ReadContext& read_ctx, ByteBuffer const& buf, ChunkHeader const& chunk_header)
+    static bool Read(Self* self, ReadContext& read_ctx, ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
       if constexpr (ReadHandler::has_pre)
       {
         if (!ReadHandler::callback_pre(self, read_ctx, *static_cast<Trait*>(self), buf, chunk_header))
-          return;
+          return false;
       }
 
-      static_cast<Trait*>(self)->ReadTrait(read_ctx, buf, chunk_header);
+      if (!static_cast<Trait*>(self)->ReadTrait(read_ctx, buf, chunk_header))
+        return false;
 
       if constexpr (ReadHandler::has_post)
         ReadHandler::callback_post(self, read_ctx, *static_cast<Trait*>(self), buf, chunk_header);
+
+      return true;
     }
 
     template<typename Self, typename WriteContext>
@@ -441,7 +444,7 @@ namespace IO::Common::Traits
           return;
       }
 
-      static_cast<Trait*>(self)->WriteTrait(write_ctx, buf);
+      static_cast<const Trait*>(self)->WriteTrait(write_ctx, buf);
 
       if constexpr (WriteHandler::has_post)
         WriteHandler::callback_post(self, write_ctx, *static_cast<Trait*>(self), buf);
@@ -522,7 +525,7 @@ namespace IO::Common::Traits
       if constexpr (!std::is_empty_v<typename T::TraitT>
         && HasTraitEnabled<AutoIOTraits, typename T::TraitT>)
       {
-        if (T::Read(this, ctx, buf))
+        if (T::Read(this, ctx, buf, chunk_header))
           return true;
       }
 
@@ -762,6 +765,9 @@ namespace IO::Common::Traits
     template<typename>
     friend class details::AutoIOTraitInterfaceChunkImpl;
 
+    template<IOTraitOrEmpty, IsIOHandler<IOHandlerRead>, IsIOHandler<IOHandlerWrite>>
+    friend struct IOTrait;
+
     using Derived = CRTP;
 
   public:
@@ -801,7 +807,7 @@ namespace IO::Common::Traits
       }
 
       // check if derived class also inherits from traits
-      if constexpr (requires { { &CRTP::TraitsWrite }; })
+      if constexpr (requires { { &CRTP::template TraitsWrite<WriteContext> }; })
       {
         GetThis()->TraitsWrite(write_ctx, buf);
       }
@@ -831,7 +837,7 @@ namespace IO::Common::Traits
       }
 
       // check if derived class also inherits from traits
-      if constexpr (requires { { &CRTP::TraitsRead }; })
+      if constexpr (requires { { &CRTP::template TraitsRead<ReadContext> }; })
       {
         if(GetThis()->TraitsRead(read_ctx, buf, chunk_header))
           return true;
