@@ -76,7 +76,22 @@ private:
   AutoIOTrait
   <
     TraitEntry<&TestFile::_header>
-    , TraitEntry<&TestFile::_complex_chunk>
+    , TraitEntry
+    <
+      &TestFile::_complex_chunk
+      , IOHandlerRead
+        <
+          [](auto const* self, auto& ctx, auto& chunk, ByteBuffer const& buf, ChunkHeader const& chunk_header) -> bool
+          {
+            LogDebug("Printing from callback pre on Read, fourcc: %s", FourCCToStr(chunk_header.fourcc));
+            return true; // return true to continue reading
+          }
+          , [](auto const* self, auto& ctx, auto& chunk, ByteBuffer const& buf, ChunkHeader const& chunk_header)
+          {
+            LogDebug("Printing from callback post on Read, fourcc: %s", FourCCToStr(chunk_header.fourcc));
+          }
+        >
+    >
   > _auto_trait {};
 };
 
