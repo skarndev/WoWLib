@@ -188,6 +188,47 @@ namespace Utils::Meta::Templates
 
   };
 
+  /**
+   * Implements a wrapper over enumerations intended to be used for versioned enum-like constructs.
+   * @tparam client_version Version of game client.
+   * @tparam ValueType Value type of the enum.
+   */
+  template<auto client_version, std::integral ValueType>
+  requires (std::is_integral_v<decltype(client_version)> || std::is_enum_v<decltype(client_version)>)
+  struct VersionedEnum
+  {
+    VersionedEnum() = default;
+    VersionedEnum(ValueType value) : _data(value) {};
+
+    [[nodiscard]]
+    operator ValueType() const { return _data; };
+
+    VersionedEnum& operator=(ValueType other) { _data = other; return *this; };
+
+    template<auto other_client_version>
+    [[nodiscard]]
+    bool operator==(VersionedEnum<other_client_version, ValueType> const& other) const
+    {
+      return _data == static_cast<ValueType>(other);
+    }
+
+    template<auto other_client_version>
+    [[nodiscard]]
+    bool operator<(VersionedEnum<other_client_version, ValueType> const& other) const
+    {
+      return _data < static_cast<ValueType>(other);
+    }
+
+    template<auto other_client_version>
+    [[nodiscard]]
+    bool operator>(VersionedEnum<other_client_version, ValueType> const& other) const
+    {
+      return _data > static_cast<ValueType>(other);
+    }
+
+  protected:
+    ValueType _data;
+  };
 
 }
 

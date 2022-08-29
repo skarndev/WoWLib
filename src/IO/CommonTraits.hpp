@@ -560,7 +560,7 @@ namespace IO::Common::Traits
       void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf)
       {
         GetThis()->ValidateDependentInterfaces();
-        LogDebugF(LCodeZones::FILE_IO, "Reading %s file...", NAMEOF_TYPE(CRTP));
+        LogDebugF(LCodeZones::FILE_IO, "Reading %s file...", NAMEOF_SHORT_TYPE(CRTP));
         LogIndentScoped;
 
         RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
@@ -587,16 +587,16 @@ namespace IO::Common::Traits
       {
         WriteContext write_ctx {};
 
-        WriteFile(write_ctx, buf);
+        Write(write_ctx, buf);
       };
 
       template<typename WriteContext>
-      void WriteFile(WriteContext& write_ctx, Common::ByteBuffer& buf) const
+      void Write(WriteContext& write_ctx, Common::ByteBuffer& buf) const
       {
         GetThis()->ValidateDependentInterfaces();
         RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
 
-        LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_TYPE(CRTP));
+        LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_SHORT_TYPE(CRTP));
         LogIndentScoped;
 
         GetThis()->WriteCommon(write_ctx, buf);
