@@ -2,6 +2,7 @@
 #include <IO/CommonTraits.hpp>
 #include <IO/ADT/DataStructures.hpp>
 #include <IO/ADT/ChunkIdentifiers.hpp>
+#include <IO/WDT/WDTRoot.hpp>
 
 #include <cstdint>
 
@@ -13,7 +14,7 @@ struct TestVersionTrait : public AutoIOTraitInterface<TestVersionTrait, TraitTyp
 {
   AutoIOTraitInterfaceUser;
 private:
-  DataChunk<std::uint32_t, ChunkIdentifiers::ADTRootChunks::MFBO> _trait_header;
+  DataChunk<std::uint32_t, IO::ADT::ChunkIdentifiers::ADTRootChunks::MFBO> _trait_header;
 
 public:
   [[nodiscard]]
@@ -28,13 +29,13 @@ private:
 
 };
 
-struct TestComplexChunk : public ChunkCommon<ChunkIdentifiers::ADTRootChunks::MCNK>
+struct TestComplexChunk : public ChunkCommon<IO::ADT::ChunkIdentifiers::ADTRootChunks::MCNK>
                         , public AutoIOTraitInterface<TestComplexChunk, TraitType::Chunk>
 {
   AutoIOTraitInterfaceUser;
 
 private:
-  DataChunk<std::uint32_t, ChunkIdentifiers::ADTRootChunks::MHDR> _header;
+  DataChunk<std::uint32_t, IO::ADT::ChunkIdentifiers::ADTRootChunks::MHDR> _header;
 
 public:
   [[nodiscard]]
@@ -69,7 +70,7 @@ public:
   auto& GetComplexChunk() const { return _complex_chunk;};
 
 private:
-  DataChunk<std::uint32_t, ChunkIdentifiers::ADTCommonChunks::MVER> _header;
+  DataChunk<std::uint32_t, IO::ADT::ChunkIdentifiers::ADTCommonChunks::MVER> _header;
   TestComplexChunk _complex_chunk;
 
   static constexpr
@@ -99,20 +100,20 @@ template<bool with_trait>
 void PrepareFile(ByteBuffer& buf)
 {
   // header
-  buf.Write(ChunkIdentifiers::ADTCommonChunks::MVER);
+  buf.Write(IO::ADT::ChunkIdentifiers::ADTCommonChunks::MVER);
   buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
   buf.Write(static_cast<std::uint32_t>(0));
 
   // inlined complex chunk
-  buf.Write(ChunkIdentifiers::ADTRootChunks::MCNK);
+  buf.Write(IO::ADT::ChunkIdentifiers::ADTRootChunks::MCNK);
   buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t) + sizeof(ChunkHeader)));
-  buf.Write(ChunkIdentifiers::ADTRootChunks::MHDR);
+  buf.Write(IO::ADT::ChunkIdentifiers::ADTRootChunks::MHDR);
   buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
   buf.Write(static_cast<std::uint32_t>(1));
 
   if constexpr (with_trait)
   {
-    buf.Write(ChunkIdentifiers::ADTRootChunks::MFBO);
+    buf.Write(IO::ADT::ChunkIdentifiers::ADTRootChunks::MFBO);
     buf.Write(static_cast<std::uint32_t>(sizeof(std::uint32_t)));
     buf.Write(static_cast<std::uint32_t>(2));
   }
@@ -146,5 +147,17 @@ int main()
   LogDebug("First: %d", t.GetHeader().data);
   LogDebug("Second: %d", t.GetComplexChunk().GetHeader().data);
   LogDebug("Trait: %d:", t1.GetTraitHeader().data);
+
+  IO::WDT::WDTRoot<ClientVersion::BFA> wdt{};
+
+  std::fstream stream {};
+  stream.open("C:\\Users\\Skarn\\Downloads\\ahnqiraj.wdt");
+  ByteBuffer wdt_buf{stream};
+  wdt.Read(wdt_buf);
+  Ensure(wdt_buf.Tell() == wdt_buf.Size(), "Finished parsing before EOF.");
+
+  ByteBuffer wdt_buf_out {};
+  wdt.Write(wdt_buf_out);
+  Ensure(wdt_buf == wdt_buf_out, "Read and Write do not match");
   return 0;
 }

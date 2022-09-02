@@ -127,7 +127,7 @@ namespace IO::Common::Traits
   };
 
   /**
-   * Represents of of the trait options to be used with IO::Common::Traits::SwitchableTrait
+   * Represents one of the trait options to be used with IO::Common::Traits::SwitchableTrait
    * @tparam val Trait identifier to match against, e.g. an enum.
    * @tparam T Type of trait implementation.
    * @tparam client_version Current version of the client.
@@ -351,21 +351,31 @@ namespace IO::Common::Traits
   struct TraitEntry
   {
     static constexpr std::uint32_t magic = Utils::Meta::Traits::TypeOfMemberObject_T<decltype(chunk)>::magic;
+    static constexpr std::string_view field_name = NAMEOF_MEMBER(chunk);
 
     template<typename Self, typename ReadContext>
     static bool Read(Self* self, ReadContext& read_ctx, ByteBuffer const& buf, ChunkHeader const& chunk_header)
     {
-      if constexpr (ReadHandler::has_pre)
+      LogDebugF(LCodeZones::FILE_IO, "Reading field: %s:", field_name.data());
+      LogDebugF(LCodeZones::FILE_IO, "{");
+
       {
-        if (!ReadHandler::callback_pre(self, read_ctx, self->*chunk, buf, chunk_header))
-          return false;
+        LogIndentScoped;
+
+        if constexpr (ReadHandler::has_pre)
+        {
+          if (!ReadHandler::callback_pre(self, read_ctx, self->*chunk, buf, chunk_header))
+            return false;
+        }
+
+        (self->*chunk).Read(read_ctx, buf, chunk_header.size);
+
+        if constexpr (ReadHandler::has_post)
+          ReadHandler::callback_post(self, read_ctx, self->*chunk, buf, chunk_header);
+
       }
 
-      (self->*chunk).Read(read_ctx, buf, chunk_header.size);
-
-      if constexpr (ReadHandler::has_post)
-        ReadHandler::callback_post(self, read_ctx, self->*chunk, buf, chunk_header);
-
+      LogDebugF(LCodeZones::FILE_IO, "}");
       return true;
     }
 
@@ -560,25 +570,30 @@ namespace IO::Common::Traits
       void Read(ReadContext& read_ctx, Common::ByteBuffer const& buf)
       {
         GetThis()->ValidateDependentInterfaces();
-        LogDebugF(LCodeZones::FILE_IO, "Reading %s file...", NAMEOF_SHORT_TYPE(CRTP));
-        LogIndentScoped;
+        LogDebugF(LCodeZones::FILE_IO, "Reading %s file:", NAMEOF_SHORT_TYPE(typename CRTP::Derived));
+        LogDebugF(LCodeZones::FILE_IO, "{");
 
-        RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
-        RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
-
-        while (!buf.IsEof())
         {
-          auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
+          LogIndentScoped;
+          RequireF(CCodeZones::FILE_IO, !buf.Tell(), "Attempted to read ByteBuffer from non-zero adress.");
+          RequireF(CCodeZones::FILE_IO, !buf.IsEof(), "Attempted to read ByteBuffer past EOF.");
 
-          if (GetThis()->ReadCommon(read_ctx, buf, chunk_header))
-            continue;
+          while (!buf.IsEof())
+          {
+            auto const& chunk_header = buf.ReadView<Common::ChunkHeader>();
 
-          buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
-          LogError("Encountered unknown or unhandled chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+            if (GetThis()->ReadCommon(read_ctx, buf, chunk_header))
+              continue;
+
+            buf.Seek<Common::ByteBuffer::SeekDir::Forward, Common::ByteBuffer::SeekType::Relative>(chunk_header.size);
+            LogError("Encountered unknown or unhandled chunk %s.", Common::FourCCToStr(chunk_header.fourcc));
+          }
+
+          EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
+                                                    "Bad logic or corrupt file.");
         }
 
-        EnsureF(CCodeZones::FILE_IO, buf.IsEof(), "Not all chunks have been parsed in the file. "
-                                                  "Bad logic or corrupt file.");
+        LogDebugF(LCodeZones::FILE_IO, "}");
 
       }
 
@@ -596,7 +611,7 @@ namespace IO::Common::Traits
         GetThis()->ValidateDependentInterfaces();
         RequireF(CCodeZones::FILE_IO, buf.IsDataOnwed(), "Attempt to write into read-only buffer.");
 
-        LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_SHORT_TYPE(CRTP));
+        LogDebugF(LCodeZones::FILE_IO, "Writing %s file...", NAMEOF_SHORT_TYPE(typename CRTP::Derived));
         LogIndentScoped;
 
         GetThis()->WriteCommon(write_ctx, buf);
@@ -923,7 +938,7 @@ namespace IO::Common::Traits
         return true;
       }
 
-      if constexpr (sizeof...(TEntries))
+      if constexpr (sizeof...(TEntries) > 0)
       {
         if (ReadChunkRecurse(self, read_ctx, buf, chunk_header, Pack<TEntries...>{}))
           return true;
@@ -958,7 +973,3 @@ namespace IO::Common::Traits
 #define AutoIOTraitInterfaceUser \
 template<typename, IO::Common::Traits::TraitType> \
 friend class IO::Common::Traits::AutoIOTraitInterface
-
-
-
-

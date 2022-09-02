@@ -106,4 +106,9 @@ namespace IO::Common::WorldConstants
 
    // Number of pixels per shadowmap (ADT::MCNK::MCSH)
    constexpr unsigned N_PIXELS_PER_SHADOWMAP = SHADOWMAP_DIM * SHADOWMAP_DIM;
+
+   /**
+    * Number of height points in WDT::MAOH.
+    */
+   constexpr unsigned MAP_AREA_OCCLUSION_HEIGHTMAP_SIZE = 17 * 17 + 16 * 16;
 }

@@ -135,12 +135,13 @@ namespace IO::Common
                                                                                  , ByteBuffer const& buf
                                                                                  , std::size_t size)
   {
-    LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, size: %d."
-              , FourCCStr<fourcc, fourcc_endian>
-              , size);
-
     RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
-        "Provided size is not evenly divisible divisible by the size of underlying structure.");
+      "Provided size is not evenly divisible divisible by the size of underlying structure.");
+
+    LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, length: %d, size: %d."
+              , FourCCStr<fourcc, fourcc_endian>
+              , size / sizeof(T)
+              , size);
 
     std::size_t n_elements;
 

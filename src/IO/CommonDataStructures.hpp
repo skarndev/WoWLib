@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace IO::Common::DataStructures
 {
@@ -39,5 +40,14 @@ namespace IO::Common::DataStructures
   {
     C3Vector position;
     float radius;
+  };
+
+  /**
+   * Represents index of a tile on a WDT grid.
+   */
+  struct TileIndex
+  {
+    std::uint16_t x; ///> Tile's x coordinate.
+    std::uint16_t y; ///> Tile's y coordinate.
   };
 }
