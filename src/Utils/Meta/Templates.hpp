@@ -1,10 +1,15 @@
 #ifndef UTILS_META_TEMPLATES_HPP
 #define UTILS_META_TEMPLATES_HPP
+
+#include <boost/hana/string.hpp>
+
 #include <array>
 #include <vector>
 #include <type_traits>
 #include <algorithm>
 #include <limits>
+#include <string_view>
+
 
 namespace Utils::Meta::Templates
 {
@@ -39,6 +44,7 @@ namespace Utils::Meta::Templates
     return { {std::forward<T>(t)...} };
   }
 
+
   /**
    * Utility structure to allow passing string literals as non-type template parameters.
    * @tparam n Number of characters in string (normally deduced).
@@ -51,7 +57,27 @@ namespace Utils::Meta::Templates
       std::copy_n(str, n - 1, value);
     }
 
+    constexpr StringLiteral(const char* str, [[maybe_unused]] std::size_t n_chars)
+    {
+      std::copy_n(str, n - 1, value);
+    }
+
     char value[n - 1];
+    const std::size_t size = n - 1;
+
+    template<std::size_t other_n>
+    constexpr bool operator==(StringLiteral<other_n> const& other) const
+    {
+      if constexpr (other_n != n)
+        return false;
+
+      for (std::size_t i = 0; i < n - 1; ++i)
+      {
+        if (value[i] != other.value[i])
+          return false;
+      }
+      return true;
+    }
   };
 
   /**
@@ -229,6 +255,20 @@ namespace Utils::Meta::Templates
   protected:
     ValueType _data;
   };
+
+  /**
+   * Always false. Use for static_asserts etc.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  struct AlwaysFalse : std::false_type {};
+
+  /**
+   * Always false. Use for static_asserts etc.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  constexpr bool AlwaysFalse_V = AlwaysFalse<T>::value;
 
 }
 

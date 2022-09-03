@@ -36,7 +36,7 @@ namespace Utils::Meta::Traits
   template<typename Class, typename Value>
   struct ClassOfMemberObject<Value Class::*>
   {
-    typedef Class type;
+    using type = Class;
   };
 
   /**
@@ -52,12 +52,13 @@ namespace Utils::Meta::Traits
    * @tparam T Member object pointer
    */
   template<typename T>
+  requires (std::is_member_object_pointer_v<T>)
   struct TypeOfMemberObject;
 
   template<typename Class, typename Value>
   struct TypeOfMemberObject<Value Class::*>
   {
-    typedef Value type;
+    using type = Value;
   };
 
   /**
@@ -67,5 +68,28 @@ namespace Utils::Meta::Traits
   template<typename T>
   requires (std::is_member_object_pointer_v<T>)
   using TypeOfMemberObject_T = typename TypeOfMemberObject<T>::type;
+
+  /**
+   * Extracts class of any member pointer (function or object).
+   * @tparam T Member pointer.
+   */
+  template<typename T>
+  struct ClassOfMember;
+
+  template<typename T>
+  requires (std::is_member_function_pointer_v<T>)
+  struct ClassOfMember<T> : public ClassOfMemberFunction<T> {};
+
+  template<typename T>
+  requires (std::is_member_object_pointer_v<T>)
+  struct ClassOfMember<T> : public ClassOfMemberObject<T> {};
+
+  /**
+   * Extracts class of any member pointer (function or object).
+   * @tparam T Member pointer.
+   */
+  template<typename T>
+  requires (std::is_member_pointer_v<T>)
+  using ClassOfMember_T = typename ClassOfMember<T>::type;
 }
 

@@ -2,7 +2,8 @@
 
 #include <IO/Common.hpp>
 #include <Utils/Meta/Future.hpp>
-
+#include <boost/pfr.hpp>
+#include <nameof.hpp>
 #include <algorithm>
 
 namespace IO::Common
@@ -49,6 +50,8 @@ namespace IO::Common
              , "Provided size is not the same as the size of underlying structure.");
 
     buf.Read(data);
+
+
     this->_is_initialized = true;
   }
 
@@ -136,7 +139,7 @@ namespace IO::Common
                                                                                  , std::size_t size)
   {
     RequireF(CCodeZones::FILE_IO, !(size % sizeof(T)),
-      "Provided size is not evenly divisible divisible by the size of underlying structure.");
+      "Provided size is not evenly divisible by the size of underlying structure.");
 
     LogDebugF(LCodeZones::FILE_IO, "Reading array chunk: %s, length: %d, size: %d."
               , FourCCStr<fourcc, fourcc_endian>

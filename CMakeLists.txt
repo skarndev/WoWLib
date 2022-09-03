@@ -79,6 +79,13 @@ if(LOGGING_FLAGS_FILE_IO)
   math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x4")
 endif()
 
+option(LOGGING_FLAGS_FILE_IO_DETAILS "Enable File IO details loggers?" ON)
+if(LOGGING_FLAGS_FILE_IO_DETAILS)
+  message( STATUS "File IO details loggers enabled")
+  math(EXPR LOGGING_FLAGS_ "${LOGGING_FLAGS_} | 0x8")
+endif()
+
+
 add_definitions(-DLOGGING_FLAGS=${LOGGING_FLAGS_})
 
 # contract flags
@@ -195,6 +202,15 @@ if(BUILD_TESTS)
   add_executable(traits_test "tests/TraitsTest.cpp")
   target_link_libraries(traits_test EpsilonAddon)
   target_include_directories(traits_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
+
+  add_executable(reflection_test "tests/ReflectionTest.cpp")
+  target_link_libraries(reflection_test EpsilonAddon)
+  target_include_directories(reflection_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
+
+  add_executable(meta_algorithms_test "tests/MetaAlgorithms.cpp")
+  target_link_libraries(meta_algorithms_test EpsilonAddon)
+  target_include_directories(meta_algorithms_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
+
 endif()
 
 # documentation

@@ -1,4 +1,6 @@
 #pragma once
+#include <Utils/Meta/Traits.hpp>
+
 #include <type_traits>
 #include <concepts>
 
@@ -33,4 +35,20 @@ namespace Utils::Meta::Concepts
    */
   template<typename T, typename... Ts>
   concept AnyOf = (std::same_as<T, Ts> || ...);
+
+  /**
+   * Checks if type T is a member pointer.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  concept MemberPointer = std::is_member_pointer_v<T>;
+
+  /**
+   * Checks if type T is a member pointer of Class.
+   * @tparam Any type.
+   * @tparam Any class.
+   */
+   template<typename T, typename Class>
+   concept IsMemberOf = MemberPointer<T> && std::is_same_v<Traits::ClassOfMember_T<T>, Class>;
+
 }
