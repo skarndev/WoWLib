@@ -10,3 +10,13 @@
 #    define FORCEINLINE inline
 #  endif
 #endif
+
+#if !defined(FORCEINLINE_ATTR)
+#  if defined(__clang__)
+#     define FORCEINLINE_ATTR [[clang::always_inline]]
+#  elif defined(_MSC_VER)
+#    define FORCEINLINE_ATTR [[msvc::forceinline]]
+#  elif defined(__GNUC__) || defined(__GNUG__)
+#    define FORCEINLINE_ATTR [[gnu::always_inline]]
+#  endif
+#endif

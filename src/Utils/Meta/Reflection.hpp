@@ -3,6 +3,7 @@
 #include <Utils/Meta/Concepts.hpp>
 #include <Utils/Meta/Traits.hpp>
 #include <Utils/Meta/Templates.hpp>
+#include <Utils/Meta/Algorithms.hpp>
 #include <nameof.hpp>
 #include <boost/preprocessor.hpp>
 
@@ -21,17 +22,19 @@ namespace Utils::Meta::Reflection
       static constexpr Templates::StringLiteral this_type_name = type_name;
 
       template<Templates::StringLiteral member_name>
-      static consteval bool HasMember()
+      static constexpr bool HasMember()
       {
-        for (auto field_name : field_names)
+        bool has_member = false;
+        INLINE_FOR(i, 0, ReflectionDescriptorImpl::field_names.size())
         {
-          constexpr const char* cur_member_name_cstr = field_name.data();
+          constexpr const char* cur_member_name_cstr = ReflectionDescriptorImpl::field_names[i].data();
 
-          if constexpr (Templates::StringLiteral<field_name.size() + 1>
-                          {cur_member_name_cstr, field_name.size()} == member_name)
-                          return true;
-        }
-        return false;
+          if constexpr (Templates::StringLiteral<ReflectionDescriptorImpl::field_names[i].size() + 1>
+                          {cur_member_name_cstr, ReflectionDescriptorImpl::field_names[i].size()} == member_name)
+            has_member = true;
+        };
+
+        return has_member;
       };
 
       template<Templates::StringLiteral member_name>
