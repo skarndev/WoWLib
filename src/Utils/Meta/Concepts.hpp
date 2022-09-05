@@ -9,7 +9,7 @@ namespace Utils::Meta::Concepts
   namespace details
   {
     template<typename T>
-    concept ImplicitLifetimeTypeSingular = std::is_scalar_v<T> || std::is_class_v<T>
+    concept ImplicitLifetimeTypeSingular = (std::is_scalar_v<T> || std::is_class_v<T>)
       && std::is_trivially_default_constructible_v<T> && std::is_trivially_destructible_v<T>;
   }
 
@@ -50,5 +50,21 @@ namespace Utils::Meta::Concepts
    */
    template<typename T, typename Class>
    concept IsMemberOf = MemberPointer<T> && std::is_same_v<Traits::ClassOfMember_T<T>, Class>;
+
+   /**
+   * Checks if type is an instance of provided template (type only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only type parameters.
+   */
+   template<typename T, template<typename...> typename Template>
+   concept InstanceOf = Utils::Meta::Traits::IsInstanceOf_V<T, Template>;
+
+  /**
+   * Checks if type is an instance of provided template (NTTP only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only non-type parameters.
+   */
+   template<typename T, template<auto...> typename Template>
+   concept InstanceOf_NTTP = Utils::Meta::Traits::IsInstanceOf_NTTP_V<T, Template>;
 
 }

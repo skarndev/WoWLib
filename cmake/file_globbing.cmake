@@ -12,10 +12,10 @@ FUNCTION(collect_files output base_dir do_recurse globbing_exprs exclude_dirs)
         FOREACH(file IN LISTS files)
                 SET(match FALSE)
 
-                FOREACH(dir IN LISTS exclude_dirs)
-                        IF("${file}" MATCHES "/${dir}/")
+                FOREACH(dir ${exclude_dirs})
+                    IF("${file}" MATCHES "/${dir}/")
                         SET(match TRUE)
-                        ENDIF()
+                    ENDIF()
                 ENDFOREACH()
 
                 IF(NOT ${match})

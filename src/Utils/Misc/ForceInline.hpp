@@ -13,7 +13,7 @@
 
 #if !defined(FORCEINLINE_ATTR)
 #  if defined(__clang__)
-#     define FORCEINLINE_ATTR [[clang::always_inline]]
+#     define FORCEINLINE_ATTR __attribute__ ((__always_inline__))
 #  elif defined(_MSC_VER)
 #    define FORCEINLINE_ATTR [[msvc::forceinline]]
 #  elif defined(__GNUC__) || defined(__GNUG__)

@@ -4,8 +4,10 @@
 #include <Utils/Meta/Traits.hpp>
 #include <Utils/Meta/Templates.hpp>
 #include <Utils/Meta/Algorithms.hpp>
+#include <Utils/Meta/DataTypes.hpp>
 #include <nameof.hpp>
 #include <boost/preprocessor.hpp>
+#include <boost/callable_traits.hpp>
 
 #include <string_view>
 
@@ -38,9 +40,59 @@ namespace Utils::Meta::Reflection
       };
 
       template<Templates::StringLiteral member_name>
-      static consteval auto GetMemberPtr()
+      requires (HasMember<member_name>())
+      static consteval bool IsMemberFunc()
       {
-        return GetMemberPtrImpl<member_name, mem_ptrs...>();
+        return std::is_member_function_pointer_v<decltype(GetMemberPtr<member_name>())>;
+      }
+
+      template<Templates::StringLiteral member_name>
+      requires (HasMember<member_name>())
+      static consteval bool IsMemberVar()
+      {
+        return std::is_member_object_pointer_v<decltype(GetMemberPtr<member_name>())>;
+      }
+
+      template<Templates::StringLiteral member_name>
+      requires (HasMember<member_name>() && IsMemberVar<member_name>())
+      static auto& GetMember(T& object)
+      {
+        constexpr auto member_ptr = GetMemberPtr<member_name>();
+        return object.*member_ptr;
+      }
+
+      template<Templates::StringLiteral member_name>
+      requires (HasMember<member_name>() && IsMemberVar<member_name>())
+      static auto const& GetMember(T const& object)
+      {
+        constexpr auto member_ptr = GetMemberPtr<member_name>();
+        return object.*member_ptr;
+      }
+
+      template<Templates::StringLiteral member_name, typename...Args>
+      requires (HasMember<member_name>() && IsMemberFunc<member_name>())
+      static auto InvokeMemberFunc(T& object, Args... args)
+      {
+        constexpr auto member_ptr = GetMemberPtr<member_name>();
+
+        return (object.*member_ptr)(std::forward<Args>(args)...);
+      }
+
+      template<Templates::StringLiteral member_name>
+      static consteval auto GetMemberPtr()
+      requires (HasMember<member_name>())
+      {
+        using ret = decltype(Algorithms::FindNTTP<DataTypes::ConstPack<mem_ptrs...>
+          , [](auto var, auto i) -> bool
+          {
+            constexpr std::string_view cur_member_name = NAMEOF_MEMBER(decltype(var)::value);
+            constexpr const char* cur_member_name_cstr = cur_member_name.data();
+
+            return Templates::StringLiteral<cur_member_name.size() + 1>{cur_member_name_cstr, cur_member_name.size()}
+            == member_name;
+          }>);
+
+        return ret::value;
       }
 
     private:

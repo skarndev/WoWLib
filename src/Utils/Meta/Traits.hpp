@@ -91,5 +91,43 @@ namespace Utils::Meta::Traits
   template<typename T>
   requires (std::is_member_pointer_v<T>)
   using ClassOfMember_T = typename ClassOfMember<T>::type;
+
+  /**
+   * Checks if type is an instance of provided template (type only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only type parameters.
+   */
+  template<typename T, template<typename...> typename Template>
+  struct IsInstanceOf : public std::false_type {};
+
+  template<template<typename...> typename Template, typename... Args>
+  struct IsInstanceOf<Template<Args...>, Template> : public std::true_type {};
+
+  /**
+   * Checks if type is an instance of provided template (type only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only type parameters.
+   */
+  template<typename T, template<typename...> typename Template>
+  constexpr bool IsInstanceOf_V = IsInstanceOf<T, Template>::value;
+
+  /**
+   * Checks if type is an instance of provided template (NTTP only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only non-type parameters.
+   */
+  template<typename T, template<auto...> typename Template>
+  struct IsInstanceOf_NTTP : public std::false_type {};
+
+  template<template<auto...> typename Template, auto... Args>
+  struct IsInstanceOf_NTTP<Template<Args...>, Template> : public std::true_type {};
+
+  /**
+   * Checks if type is an instance of provided template (NTTP only).
+   * @tparam T Any type.
+   * @tparam Template Any template accepting only non-type parameters.
+   */
+  template<typename T, template<auto...> typename Template>
+  constexpr bool IsInstanceOf_NTTP_V = IsInstanceOf_NTTP<T, Template>::value;
 }
 

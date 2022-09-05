@@ -77,7 +77,7 @@ namespace IO::WDT::DataStructures
   };
 
   template<Common::ClientVersion client_version>
-  requires (client_version >= Common::ClientVersion::BFA)
+  requires (client_version >= Common::ClientVersion::BFA && client_version < Common::ClientVersion::ANY)
   struct MapHeaderFlags<client_version> : public MapHeaderFlags<Common::ClientVersion::LEGION>
   {
     enum : std::uint32_t

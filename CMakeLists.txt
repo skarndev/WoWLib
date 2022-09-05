@@ -108,7 +108,8 @@ add_definitions(-DCONTRACT_FLAGS=${CONTRACT_FLAGS_})
 # define base source dir path to use in compile time
 add_definitions(-DSOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-collect_files(sources_files src TRUE "*.c;*.cpp;" "src/IO/ADT/Obj src/IO/ADT/Root src/IO/ADT/Tex")
+set(filters src/IO/ADT/Obj src/IO/ADT/Root src/IO/ADT/Tex)
+collect_files(sources_files src TRUE "*.c;*.cpp;" "${filters}")
 collect_files(headers_files src TRUE "*.h;*.hpp;*.inl" "")
 
 assign_source_group(
@@ -120,7 +121,7 @@ assign_source_group(
 add_library(EpsilonAddon SHARED ${sources_files} ${headers_files})
 target_compile_options(EpsilonAddon PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Wall -Wextra -fconcepts-diagnostics-depth=2>
+        -Wall -Wextra>
         $<$<CXX_COMPILER_ID:MSVC>:
         /W4>)
 
