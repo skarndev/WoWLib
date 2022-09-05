@@ -39,7 +39,22 @@ int main()
   mem = 100;
 
   Utils::Meta::Reflection::Reflect<Test>::InvokeMemberFunc<"fourth">(t);
+  static_assert(Utils::Meta::Reflection::Reflect<Test>::IsMemberFunc<"fourth">());
+  static_assert(!Utils::Meta::Reflection::Reflect<Test>::IsMemberVar<"fourth">());
 
+  LogDebug("struct Test");
+  LogDebug("{");
+  {
+    LogIndentScoped;
+    Utils::Meta::Reflection::Reflect<Test>::ForEachMember([=](auto ptr, std::string_view name)
+      {
+        if constexpr (std::is_member_object_pointer_v<decltype(ptr)>)
+        {
+          LogDebug("%s %s = %s;", NAMEOF_SHORT_TYPE(Utils::Meta::Traits::TypeOfMemberObject_T<decltype(ptr)>), name, t.*ptr);
+        }
+      });
+  }
+  LogDebug("};");
   LogDebug("first: %d", t.first);
   return 0;
 }

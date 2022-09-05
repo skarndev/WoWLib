@@ -21,7 +21,9 @@ namespace Utils::Meta::Algorithms
      * @tparam nttp Any NTTP.
      */
     template<typename Callable, auto nttp>
-    concept NTTP_Predicate = std::is_invocable_r_v<bool, Callable, decltype(nttp), std::size_t>;
+    concept NTTP_Predicate = std::is_invocable_r_v<bool, Callable
+      , std::integral_constant<decltype(nttp), nttp>
+      , std::integral_constant<std::size_t, 0>>;
 
     /**
      * Checks if provided type is a valid type predicate for a given type.
@@ -29,7 +31,8 @@ namespace Utils::Meta::Algorithms
      * @tparam T Any type.
      */
     template<typename Callable, typename T>
-    concept Type_Predicate = std::is_invocable_r_v<bool, Callable, std::type_identity<T>, std::size_t>;
+    concept Type_Predicate = std::is_invocable_r_v<bool, Callable, std::type_identity<T>
+      , std::integral_constant<std::size_t, 0>>;
   }
 
   template<auto start, auto end>
@@ -327,13 +330,14 @@ namespace Utils::Meta::Algorithms
     struct FindNTTPImpl;
 
     template<auto predicate, std::size_t i, auto var, auto... rem_vars>
-//    requires (Concepts::NTTP_Predicate<decltype(predicate), var>
-//              && (Concepts::NTTP_Predicate<decltype(predicate), rem_vars> && ...))
+    requires (Concepts::NTTP_Predicate<decltype(predicate), var>
+              && (Concepts::NTTP_Predicate<decltype(predicate), rem_vars> && ...))
     struct FindNTTPImpl<predicate, i, Utils::Meta::DataTypes::ConstPack<var, rem_vars...>>
     {
       static constexpr auto Impl()
       {
-        if constexpr (std::invoke(predicate, std::integral_constant<decltype(var), var>{}, std::integral_constant<std::size_t, i>{}))
+        if constexpr (std::invoke(predicate, std::integral_constant<decltype(var), var>{}
+                                  , std::integral_constant<std::size_t, i>{}))
           return Utils::Meta::DataTypes::NTTPIndex<var, i>{};
         else if constexpr (sizeof...(rem_vars) > 0)
             return FindNTTPImpl<predicate, i + 1, Utils::Meta::DataTypes::ConstPack<rem_vars...>>::Impl();

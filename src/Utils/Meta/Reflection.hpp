@@ -95,29 +95,17 @@ namespace Utils::Meta::Reflection
         return ret::value;
       }
 
-    private:
-      template<Templates::StringLiteral member_name, auto cur_member_ptr, auto... rem_member_ptrs>
-      static consteval auto GetMemberPtrImpl()
+      template<typename Func>
+      requires (std::is_invocable_r_v<void, Func, decltype(mem_ptrs), std::string_view> && ...)
+      static auto ForEachMember(Func&& func)
       {
-        constexpr std::string_view cur_member_name = NAMEOF_MEMBER(cur_member_ptr);
-        constexpr const char* cur_member_name_cstr = cur_member_name.data();
-
-        if constexpr (Templates::StringLiteral<cur_member_name.size() + 1>
-                       {cur_member_name_cstr, cur_member_name.size()} == member_name)
-          return cur_member_ptr;
-        else
+        INLINE_FOR_EACH_NTTP(DataTypes::ConstPack<mem_ptrs...>, cur_mem_ptr, i)
         {
-          if constexpr (sizeof...(rem_member_ptrs) > 0)
-          {
-            return GetMemberPtrImpl<member_name, rem_member_ptrs...>();
-          }
-          else
-          {
-            return nullptr;
-          }
-        }
+          func(cur_mem_ptr, ReflectionDescriptorImpl::field_names[i]);
+        };
       }
     };
+
   }
 
   template<typename T>

@@ -108,7 +108,7 @@ int main()
   constexpr auto test_find_nttp = Utils::Meta::Algorithms::FindNTTP
     <
     ConstPack<1, 2, 'c', 3>,
-    [](auto var, std::size_t i) { return std::is_same_v<char, decltype(var)>; }
+    [](auto var, std::size_t i) { return std::is_same_v<char, typename decltype(var)::value_type>; }
     >;
 
   static_assert(!std::is_same_v<decltype(decltype(test_find_nttp)::value), Utils::Meta::DataTypes::NoType const>);
