@@ -67,4 +67,10 @@ namespace Utils::Meta::Concepts
    template<typename T, template<auto...> typename Template>
    concept InstanceOf_NTTP = Utils::Meta::Traits::IsInstanceOf_NTTP_V<T, Template>;
 
+   /**
+    * Checks if type is iterable.
+    * @tparam T Any type.
+    */
+   template<typename T>
+   concept Iterable = Utils::Meta::Traits::IsIterable_V<T>;
 }

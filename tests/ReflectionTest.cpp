@@ -1,6 +1,8 @@
 #include <Utils/Meta/Reflection.hpp>
 #include <Validation/Log.hpp>
 
+#include <array>
+
 struct Test
 {
   int first;
@@ -11,14 +13,28 @@ struct Test
 
   template<typename T>
   T fifth(T x) { LogDebug("fifth() called."); return x; }
+};
 
+struct TestNested
+{
+  int own;
 
+  Test test_field;
+  Test c_array[3];
+  std::array<Test, 2> array;
+  float matrix [4][4];
+
+  union TestUnion
+  {
+    std::uint32_t first;
+    float second;
+  } union_mem;
 };
 
 struct TestNonReflectable {};
 
 REFLECTION_DESCRIPTOR(Test, first, second, third, fourth);
-
+REFLECTION_DESCRIPTOR(TestNested, own, test_field, c_array, array, matrix, union_mem);
 
 int main()
 {
@@ -56,5 +72,10 @@ int main()
   }
   LogDebug("};");
   LogDebug("first: %d", t.first);
+
+
+  TestNested t1{};
+  Utils::Meta::Reflection::Reflect<TestNested>::PrettyPrint([](auto str, auto...args) { LogDebug(str, args...); }, t1);
+
   return 0;
 }

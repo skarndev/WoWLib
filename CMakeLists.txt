@@ -192,7 +192,7 @@ if(BUILD_TESTS)
   target_link_libraries(logging_test EpsilonAddon)
   target_include_directories(logging_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 
-  add_executable(contract_test "tests/ContractsTest.cpp" src/Utils/Meta/ProtocolHelpers.hpp)
+  add_executable(contract_test "tests/ContractsTest.cpp")
   target_link_libraries(contract_test EpsilonAddon)
   target_include_directories(contract_test PRIVATE ${EpsilonAddon_INCLUDE_DIRS})
 

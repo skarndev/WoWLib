@@ -5,18 +5,31 @@
 #include <Utils/Meta/Templates.hpp>
 #include <Utils/Meta/Algorithms.hpp>
 #include <Utils/Meta/DataTypes.hpp>
+#include <Validation/Log.hpp>
 #include <nameof.hpp>
 #include <boost/preprocessor.hpp>
 #include <boost/callable_traits.hpp>
 
 #include <string_view>
 
+/**
+ * Contains type implementing compile-time static type reflection for types.
+ */
 namespace Utils::Meta::Reflection
 {
+  template<typename T>
+  struct Reflect;
+
+  namespace Concepts
+  {
+    template<typename T>
+    concept Reflectable = requires { { Reflect<T>{} }; };
+  }
+
   namespace details
   {
     template<typename T, Templates::StringLiteral type_name, auto... mem_ptrs>
-    requires (Concepts::IsMemberOf<decltype(mem_ptrs), T> && ...)
+    requires (Utils::Meta::Concepts::IsMemberOf<decltype(mem_ptrs), T> && ...)
     struct ReflectionDescriptorImpl
     {
       static constexpr std::array<std::string_view, sizeof...(mem_ptrs)> field_names = {NAMEOF_MEMBER(mem_ptrs) ...};
@@ -104,18 +117,139 @@ namespace Utils::Meta::Reflection
           func(cur_mem_ptr, ReflectionDescriptorImpl::field_names[i]);
         };
       }
+
+      template<typename LogFunc>
+      static void PrettyPrint(LogFunc&& log_func, T const& instance)
+      {
+        log_func("type %s /* (sizeof: %d) */", NAMEOF_TYPE(T), sizeof(T));
+        log_func("{");
+        {
+          LogIndentScoped;
+          INLINE_FOR_EACH_NTTP(DataTypes::ConstPack<mem_ptrs...>, cur_mem_ptr, i)
+          {
+            if constexpr (std::is_member_function_pointer_v<decltype(cur_mem_ptr)>)
+              return;
+            else
+            {
+              using MemberType = Traits::TypeOfMemberObject_T<decltype(cur_mem_ptr)>;
+              PrettyPrintMember(log_func, instance.*cur_mem_ptr, NAMEOF_MEMBER(cur_mem_ptr));
+            }
+          };
+        }
+        log_func("}");
+      }
+
+      template<typename LogFunc>
+      static void PrettyPrint(LogFunc&& log_func, T const& instance, std::string_view field_name)
+      {
+        log_func("type %s", NAMEOF_TYPE(T));
+        log_func("{");
+        {
+          LogIndentScoped;
+          INLINE_FOR_EACH_NTTP(DataTypes::ConstPack<mem_ptrs...>, cur_mem_ptr, i)
+          {
+            if constexpr (std::is_member_function_pointer_v<decltype(cur_mem_ptr)>)
+              return;
+            else
+            {
+              using MemberType = Traits::TypeOfMemberObject_T<decltype(cur_mem_ptr)>;
+              PrettyPrintMember(log_func, instance.*cur_mem_ptr, NAMEOF_MEMBER(cur_mem_ptr));
+            }
+          };
+        }
+        log_func("} %s;", field_name);
+      }
+
+    private:
+      template<typename LogFunc, typename IterableType>
+      static void PrettyPrintIterable(LogFunc&& log_func, IterableType const& iterable)
+      {
+        using ValueType = std::remove_cvref_t<decltype(*std::begin(iterable))>;
+
+        log_func("{");
+
+        {
+          LogIndentScoped;
+
+          if constexpr (Utils::Meta::Reflection::Concepts::Reflectable<ValueType>)
+          {
+            for (auto const& each : iterable)
+            {
+              Utils::Meta::Reflection::Reflect<ValueType>::PrettyPrint(log_func, each);
+              log_func(",");
+            }
+          }
+          else if constexpr (Utils::Meta::Traits::IsIterable_V<ValueType>)
+          {
+            for (auto const& each : iterable)
+            {
+              log_func("%s /* (size: %d) */"
+                       , NAMEOF_TYPE(ValueType)
+                       , std::distance(std::begin(each)
+                                       , std::end(each))
+              );
+              PrettyPrintIterable(log_func, each);
+            }
+          }
+          else if constexpr (requires (ValueType t) { { log_func("%s", t) }; } )
+          {
+            for (auto const& each : iterable)
+            {
+              log_func("%s,", each);
+            }
+          }
+          else
+          {
+            log_func("<Non-reflectable data...>");
+          }
+        }
+
+        log_func("}");
+
+      }
+
+      template<typename LogFunc, typename MemberType>
+      static void PrettyPrintMember(LogFunc&& log_func, MemberType const& cur_member, std::string_view member_name)
+      {
+        if constexpr (Utils::Meta::Reflection::Concepts::Reflectable<MemberType>)
+        {
+          Utils::Meta::Reflection::Reflect<MemberType>::PrettyPrint(log_func, cur_member, member_name);
+        }
+        else if constexpr (Utils::Meta::Traits::IsIterable_V<MemberType>)
+        {
+          log_func("%s %s /* (size: %d) */"
+                   , NAMEOF_TYPE(MemberType)
+                   , member_name
+                   , std::distance(std::begin(cur_member)
+                                   , std::end(cur_member))
+                  );
+
+          PrettyPrintIterable(log_func, cur_member);
+        }
+        else if constexpr (std::is_union_v<MemberType>)
+        {
+          log_func("%s %s = %s;"
+                   , NAMEOF_SHORT_TYPE(MemberType)
+                   , member_name
+                   , "<Non-reflectable value>");
+        }
+        else if constexpr (requires (MemberType t) { { log_func("%s", t) }; } )
+        {
+          log_func("%s %s = %s;", NAMEOF_TYPE(MemberType), member_name, cur_member);
+        }
+        else
+        {
+          log_func("%s %s = %s;"
+                   , NAMEOF_SHORT_TYPE(MemberType)
+                   , member_name
+                   , "<Non-reflectable value>");
+
+        }
+      }
     };
 
   }
 
-  template<typename T>
-  struct Reflect;
-
-  namespace Concepts
-  {
-    template<typename T>
-    concept Reflectable = requires { { Reflect<T>{} }; };
-  }
 }
 
 #define MAKE_MEMBER_PTR(R, TYPENAME, I, ELEM) \

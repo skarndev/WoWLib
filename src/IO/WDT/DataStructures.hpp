@@ -3,6 +3,7 @@
 #include <IO/Common.hpp>
 #include <IO/CommonDataStructures.hpp>
 #include <IO/WorldConstants.hpp>
+#include <Utils/Meta/Reflection.hpp>
 
 #include <cstdint>
 #include <array>

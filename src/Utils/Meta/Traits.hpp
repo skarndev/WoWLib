@@ -1,5 +1,6 @@
 #pragma once
 #include <type_traits>
+#include <algorithm>
 
 namespace Utils::Meta::Traits
 {
@@ -129,5 +130,27 @@ namespace Utils::Meta::Traits
    */
   template<typename T, template<auto...> typename Template>
   constexpr bool IsInstanceOf_NTTP_V = IsInstanceOf_NTTP<T, Template>::value;
+
+  /**
+   * Checks if type is iterable.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  struct IsIterable : public std::false_type {};
+
+  template<typename T>
+  requires (requires (T& t)
+  {
+    { std::begin(t) };
+    { std::end(t) };
+  })
+  struct IsIterable<T> : public std::true_type {};
+
+  /**
+   * Checks if type is iterable.
+   * @tparam T Any type.
+   */
+  template<typename T>
+  constexpr bool IsIterable_V = IsIterable<T>::value;
 }
 

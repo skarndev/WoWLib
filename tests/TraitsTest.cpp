@@ -151,7 +151,7 @@ int main()
   IO::WDT::WDTRoot<ClientVersion::BFA> wdt{};
 
   std::fstream stream {};
-  stream.open("C:\\Users\\Skarn\\Downloads\\ahnqiraj.wdt");
+  stream.open("/home/skarn/Downloads/ahnqiraj.wdt");
   ByteBuffer wdt_buf{stream};
   wdt.Read(wdt_buf);
   Ensure(wdt_buf.Tell() == wdt_buf.Size(), "Finished parsing before EOF.");
