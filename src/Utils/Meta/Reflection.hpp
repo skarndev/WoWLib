@@ -95,7 +95,7 @@ namespace Utils::Meta::Reflection
       static consteval auto GetMemberPtr()
       requires (HasMember<member_name>())
       {
-        using ret = decltype(Algorithms::FindNTTP<DataTypes::ConstPack<mem_ptrs...>
+        auto ret = Algorithms::FindNTTP<DataTypes::ConstPack<mem_ptrs...>
           , [](auto var, auto i) -> bool
           {
             constexpr std::string_view cur_member_name = NAMEOF_MEMBER(decltype(var)::value);
@@ -103,9 +103,9 @@ namespace Utils::Meta::Reflection
 
             return Templates::StringLiteral<cur_member_name.size() + 1>{cur_member_name_cstr, cur_member_name.size()}
             == member_name;
-          }>);
+          }>;
 
-        return ret::value;
+        return decltype(ret)::value;
       }
 
       template<typename Func>
@@ -167,7 +167,6 @@ namespace Utils::Meta::Reflection
         using ValueType = std::remove_cvref_t<decltype(*std::begin(iterable))>;
 
         log_func("{");
-
         {
           LogIndentScoped;
 
@@ -186,8 +185,7 @@ namespace Utils::Meta::Reflection
               log_func("%s /* (size: %d) */"
                        , NAMEOF_TYPE(ValueType)
                        , std::distance(std::begin(each)
-                                       , std::end(each))
-              );
+                                       , std::end(each)));
               PrettyPrintIterable(log_func, each);
             }
           }
