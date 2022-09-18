@@ -40,3 +40,4 @@ out
 cmake-build-debug
 cmake-build-relwithdebinfo
 cmake-build-release
+codegen/structures/__pycache__

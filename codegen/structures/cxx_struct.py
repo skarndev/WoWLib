@@ -1,10 +1,7 @@
 from cxx_type import CxxType
 from config import ClientVersions
-from builtin_types import *
 
-from typing import Tuple, Type, Union, Set
-
-import inspect
+from typing import Tuple, Type, Union, Set, Iterable
 
 
 class Field:
@@ -55,23 +52,15 @@ class Field:
         :return: C++ code string.
         """
 
-        line = f"{self.value_type.full_typename} {self.name} "
+        line = f"{self.value_type.full_typename} {self.name}"
 
         if self.bit is not None:
-            line += f": {self.bit} "
+            line += f" : {self.bit}"
 
-        if self.default is not None:
-
-            if isinstance(self.default, tuple):
-                value = ", ".join(val for val in self.default)
-                line += f"= {{ { value } }}"
-            else:
-                line += f"= {self.default}"
-
-        line += '; '
+        line += ';'
 
         if self.comment:
-            line += f"///> {self.comment}"
+            line += f" ///> {self.comment}"
 
         line += '\n'
 
@@ -86,15 +75,13 @@ class Field:
         if self.default is None:
             return None
 
-        line = f"ret.{self.name} = "
+        line = f".{self.name} = "
 
         if isinstance(self.default, tuple):
             value = ", ".join(val for val in self.default)
             line += f"{{ {value} }}"
         else:
             line += str(self.default)
-
-        line += ';\n'
 
         return line
 
@@ -177,6 +164,19 @@ class CxxStruct(CxxType):
         return not (self.__cxx_version_range__ is not None
                     and (version < self.__cxx_version_range__[0] or version > self.__cxx_version_range__[1]))
 
+    def _generate_default_initilizer(self, fields: Iterable[Field]) -> str:
+        """
+        Generate code for defaultg initializer.
+        :return: C++ code string.
+        """
+        code = f"\n  static {self.__class__.__name__} New()\n  {{\n"
+
+        designated_initializers = ", \n".join(f"      {field.generate_default_init_code()}"
+                                              for field in fields if field.default is not None)
+        code += f"    return \n    {{\n{designated_initializers}\n    }};\n"
+
+        return code
+
     def generate_code(self) -> str:
         """
         Generate code for structure definition.
@@ -186,8 +186,13 @@ class CxxStruct(CxxType):
         code = ""
 
         if self.__cxx__docstring__:
-            code += self.__cxx__docstring__
-            code += '\n'
+            doc_strings = self.__cxx__docstring__.split('\n')
+
+            code += "/**\n"
+            for doc_string in doc_strings:
+                code += f"* {doc_string}\n"
+
+            code += '**/\n'
 
         # versioned structure
         if self.is_versioned:
@@ -212,17 +217,7 @@ class CxxStruct(CxxType):
                 for field in fields:
                     code += f"  {field.generate_code()}"
 
-                # generate default initializer
-                code += f"\n  static {self.__class__.__name__} DefaultInit()\n  {{\n"
-                code += f"    auto ret = {self.__class__.__name__}{{}};\n"
-                for field in fields:
-                    if field.default is None:
-                        continue
-
-                    code += f"    {field.generate_default_init_code()}"
-
-                code += f"    return ret;\n"
-
+                code += self._generate_default_initilizer(fields)
                 code += '  }\n};\n\n'
 
         # static structure
@@ -232,16 +227,7 @@ class CxxStruct(CxxType):
             for field in self.__cxx_fields__:
                 code += f"  {field.generate_code()}"
 
-            # generate default initializer
-            code += f"\n  static {self.__class__.__name__} DefaultInit()\n  {{\n"
-            code += f"    auto ret = {self.__class__.__name__}{{}};\n"
-            for field in self.__cxx_fields__:
-                if field.default is None:
-                    continue
-
-                code += f"    {field.generate_default_init_code()}"
-
-            code += f"    return ret;\n"
+            code += self._generate_default_initilizer(self.__cxx_fields__)
 
             code += '  }\n};\n\n'
 

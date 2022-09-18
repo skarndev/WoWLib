@@ -168,6 +168,11 @@ class CxxNumericType(CxxType):
         self.is_integral = isinstance(min_val, int)
 
     def check_value_bounds(self, val: int | float) -> bool:
+        """
+        Check if value is within the allowed bounds.
+        :param val: Value to test.
+        :return: True if val is within the type bounds, else False.
+        """
         if self.is_integral:
             if not isinstance(val, int):
                 return False
@@ -180,12 +185,4 @@ class CxxNumericType(CxxType):
 
             return self.min < val <= self.max
 
-
-# test
-if __name__ == '__main__':
-
-    u8 = CxxType('uint8', 1)
-    print(u8.full_typename)
-    print(u8[1][2][3].full_typename)
-    print(u8[1][2][3].headers)
 
